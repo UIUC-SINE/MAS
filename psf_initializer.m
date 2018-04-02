@@ -1,16 +1,17 @@
 %% Photon Sieve PSF Script
+pkg load image
 
 %%%%%%%% Parameters %%%%%%%%
-sizeHx = 51;  % PSFsize , MUST be of ODD length!!!
+sizeHx = 301;  % PSFsize , MUST be of ODD length!!!
 sizeHy = sizeHx;
+k = 100; % number of measurement planes
 
 % specify the measurement planes
-dn = linspace(0,1,1000); % fill this with normalized values
-k = length(dn); % number of measurement planes
+dn = linspace(-10,10,k); % fill this with normalized values
 
 % Wavelengths of the monochromatic sources
 lambda(1)=33.4*10^(-9);      %1nd source wavelength
-lambda(2)=33.5*10^(-9);      %2rd source wavelength
+## lambda(2)=33.5*10^(-9);      %2rd source wavelength
 
 s = length(lambda); % num of sources
 
@@ -59,10 +60,11 @@ pixelsize=maxPossibleResolution;  %Nyquist sampling interval=maxPossibleResoluti
 % dn = [0.20 0.43 0.60 0.81];
 % dn = [0 0.25 0.50 0.75];
 
-width = f(1) - f(s);
+## width = f(1) - f(s);
 
-d = width * dn + f(s); % elements of d are true d(i) values
-d = fliplr(d);
+## d = width * dn + f(s); % elements of d are true d(i) values
+## d = fliplr(d);
+d = dn * DOF(1) + f(1);
 
 
 defocusAmount = zeros(s,s);
@@ -112,3 +114,16 @@ end
 
 %% Generate blurred (+ noisy) measurements using psfs and ground truth images
 psfs = H;
+
+subplot(3, 1, 1)
+imshow(incoherentPsf(:, :, end), [])
+title('Furthest PSF')
+x = reshape(abs(fftshift(fft2(incoherentPsf), axis=2)(1, :, :)), sizeHx, k);
+subplot(3, 1, 2)
+imshow(imresize(x.^(3/10), [301, 600]), [])
+title('PSF FFT slices')
+xlabel('distance from photon sieve')
+ylabel('center slice of fft')
+
+## dlmwrite('/tmp/out.dat', sizeHx, sizeHx * k)
+save('-hdf5', '/tmp/out.hdf5', incoherentPsf)
