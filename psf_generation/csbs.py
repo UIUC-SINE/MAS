@@ -30,22 +30,25 @@ def csbs(measurements, cost_func, iterations, **kwargs):
     Returns:
         measurements with 'num_copies' modified
     """
+    assert (iterations < np.sum(measurements['num_copies'])), "`iterations` must be less than the total number of psf groups"
 
     for i in range(iterations):
         lowest_psf_group_index = None
         lowest_psf_group_cost = float('inf')
         # iterate psf_group combinations and find the lowest cost
         for psf_group_index in range(len(measurements['psfs'])):
-            # print(i, psf_group_index)
             # only evaluate groups with nonzero copies
             if measurements['num_copies'][psf_group_index] >= 1:
-                measurements_temp = measurements.copy()
-                measurements_temp['num_copies'][psf_group_index] -= 1
-                psf_group_cost = cost_func(measurements_temp, **kwargs)
+                # remove a psf group and check cost
+                measurements['num_copies'][psf_group_index] -= 1
+                psf_group_cost = cost_func(measurements, **kwargs)
                 if psf_group_cost < lowest_psf_group_cost:
                     lowest_psf_group_cost = psf_group_cost
                     lowest_psf_group_index = psf_group_index
+                # add the psf group back
+                measurements['num_copies'][psf_group_index] += 1
 
+        # permanently remove the psf group which incurred the lowest cost
         measurements['num_copies'][lowest_psf_group_index] -= 1
         # print(measurements['num_copies'])
 
@@ -69,7 +72,7 @@ def main(data_file='/tmp/out.hdf5', cost_func=random_cost, num_copies=10,
         num_images, image_width, image_height = f['incoherentPsf']['value'].shape
 
         # measurements at each plane
-        #  measurements['copies'] number of measurements at this distance
+        #  measurements['num_copies'] number of measurements at this distance
         #  measurements['psfs'] psfs of each source at this distance
         measurements = np.zeros(num_images, dtype=[('num_copies', 'i'),
                                                    ('psfs', 'f', (image_width, image_height))])
