@@ -115,11 +115,11 @@ end
 %% Generate blurred (+ noisy) measurements using psfs and ground truth images
 psfs = H;
 
-subplot(3, 1, 1)
+subplot(2, 1, 1)
 imshow(incoherentPsf(:, :, end), [])
 title('Furthest PSF')
 x = reshape(abs(fftshift(fft2(incoherentPsf), axis=2)(1, :, :)), sizeHx, k);
-subplot(3, 1, 2)
+subplot(2, 1, 2)
 imshow(imresize(x.^(3/10), [301, 600]), [])
 title('PSF FFT slices')
 xlabel('distance from photon sieve')

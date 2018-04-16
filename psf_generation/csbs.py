@@ -17,6 +17,16 @@ def random_cost(measurements):
     return np.random.rand()
 
 # @profile
+def evan_cost(measurements):
+    """
+    Calculate cost from input PSFs
+
+    Args:
+        measurements (ndarray): structured numpy array containing 'num_copies' and 'psfs'
+    """
+    return np.r
+
+# @profile
 def csbs(measurements, cost_func, iterations, **kwargs):
     r"""
     Perform clustered sbs algorithm on a set of psfs
