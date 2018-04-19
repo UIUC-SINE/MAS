@@ -4,7 +4,7 @@ pkg load image
 %%%%%%%% Parameters %%%%%%%%
 sizeHx = 301;  % PSFsize , MUST be of ODD length!!!
 sizeHy = sizeHx;
-k = 100; % number of measurement planes
+k = 30; % number of measurement planes
 
 % specify the measurement planes
 dn = linspace(-10,10,k); % fill this with normalized values
@@ -12,6 +12,7 @@ dn = linspace(-10,10,k); % fill this with normalized values
 % Wavelengths of the monochromatic sources
 lambda(1)=33.4*10^(-9);      %1nd source wavelength
 ## lambda(2)=33.5*10^(-9);      %2rd source wavelength
+## lambda(3)=33.5*10^(-9);      %2rd source wavelength
 
 s = length(lambda); % num of sources
 
@@ -36,9 +37,9 @@ end
 diffLimitedCutOffFreq=1/w;   %same as D/(lambda_1*f_1), D/(lambda_2*f_2)
 
 % Rayleigh resolution given by 1.22 \Delta, where \Delta is the width of the smallest zone
-RayleighResolution=1.22*w;     %same as 1.22/diffLimitedBandwidth_1
-SparrowResolution=0.94*w;
-AbbeResolution=w;
+## RayleighResolution=1.22*w;     %same as 1.22/diffLimitedBandwidth_1
+## SparrowResolution=0.94*w;
+## AbbeResolution=w;
 maxPossibleResolution=1/(2*diffLimitedCutOffFreq); %correspond to the cut-off frequency due to diffraction
 
 % Choose a unique sampling interval in the space domain based on the maxBandwidth (for FFT-based psf computation)
@@ -92,6 +93,7 @@ for i = 1:k
         if i==j
             % Incoherent psf for the jth source at distance d(i)
             [incoherentPsf(:,:,i,j), diffLimitingPsf(:,:,i),di(i,j)]=incoherentPsf5(lambda(j),D,w,defocusAmount(i,j),sizeHx,pixelsize,diffLimitedCutOffFreq);
+            imshow(abs(incoherentPsf(:, :, i, j)), [])
             if i==1
                 factor=sum(sum(incoherentPsf(:,:,i,j)));
             end
@@ -115,15 +117,15 @@ end
 %% Generate blurred (+ noisy) measurements using psfs and ground truth images
 psfs = H;
 
-subplot(2, 1, 1)
-imshow(incoherentPsf(:, :, end), [])
+## subplot(2, 1, 1)
+## imshow(incoherentPsf(:, :, end), [])
 title('Furthest PSF')
-x = reshape(abs(fftshift(fft2(incoherentPsf), axis=2)(1, :, :)), sizeHx, k);
-subplot(2, 1, 2)
-imshow(imresize(x.^(3/10), [301, 600]), [])
-title('PSF FFT slices')
-xlabel('distance from photon sieve')
-ylabel('center slice of fft')
+## x = reshape(abs(fftshift(fft2(incoherentPsf), axis=2)(1, :, :)), sizeHx, k);
+## subplot(2, 1, 2)
+## imshow(imresize(x.^(3/10), [301, 600]), [])
+## title('PSF FFT slices')
+## xlabel('distance from photon sieve')
+## ylabel('center slice of fft')
 
 ## dlmwrite('/tmp/out.dat', sizeHx, sizeHx * k)
-save('-hdf5', '/tmp/out.hdf5', incoherentPsf)
+save('-hdf5', '/tmp/out.hdf5', 'incoherentPsf')

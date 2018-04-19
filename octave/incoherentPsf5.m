@@ -15,8 +15,10 @@ function [incoherentPsf, diffLimitingPsf,di]=incoherentPsf5(lambda,D,w,defocusAm
 %% Parameters following from the given parameters
 
 % Photon sieve
-f1=D*w/lambda;          %first order focal length
-DOF=2*w^2/lambda;       %depth of focus
+  f1=D*w/lambda;          %first order focal length
+# focal_length
+  DOF=2*w^2/lambda;       %depth of focus
+# dof
 
 
 
@@ -25,6 +27,7 @@ DOF=2*w^2/lambda;       %depth of focus
 
 % Distance to image plane
 di=f1+defocusAmount * DOF;  %distance to the image plane
+% plane_location
 
 % Diffraction-limited bandwidth observed at the image plane (determined by the aperture size)
 diffLimitedBandwidth=D/(lambda*di); %the factor 2 is due to the incoherence
