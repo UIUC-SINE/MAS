@@ -5,244 +5,170 @@ import numpy as np
 from matplotlib import pyplot as plt
 from numpy.fft import fft2, fftshift, ifftshift
 
+class block_array(np.ndarray):
+    """Subclass of ndarray which redefines multiplication as block_mul
+    """
+    def __mul__(self, a):
+        return block_mul(self, a)
+    def __rmul__(self, a):
+        return self.__mul__(a)
 
-def block_herm(input_mtx,block_dim):
-    r""" This function realizes the Hermitian transpose operation for a block
-    matrix with diagonal blocks. However, the function assumes that the input
-    matrix has its (block_dim^2 by block_dim^2) diagonal blocks reshaped into
-    (block_dim by block_dim) blocks. We call this reshaped form as the
-    "compressed" form.
+
+def block_herm(x):
+    """Perform block Hermitian transpose on a matrix.
+
+    Calculates a special 'block Hermitian' transpose in
+    dimensions `i` and `j` of a 4D matrix of size (i, j, k, l)
 
     Args:
-        input_mtx: The input matrix whose hermitian will be taken. It must be
-            in the "compressed" form. For example, if the dimension of the
-            "uncompressed" input_mtx is (row_num*block_dim^2 by
-            col_num*block_dim^2), then the dimension of input_mtx must be
-            (row_num*block_dim by col_num*block_dim)
-        block_dim: Dimension of each block in input_mtx (assuming square blocks)
+        x (ndarray): 4D matrix
 
     Returns:
-        out: The output matrix, which is in the "compressed" form of the
-            Hermitian transpose of the original block matrix with diagonal
-            blocks.
+        ndarray: output matrix
     """
-    # number of blocks in row and column dimensions
-    row_num = int(input_mtx.shape[0] / block_dim)
-    col_num = int(input_mtx.shape[1] / block_dim)
-
-    out = np.zeros((col_num * block_dim, row_num * block_dim),dtype=complex)
-
-    for i in range(col_num):
-        for j in range(row_num):
-            out[i*block_dim:(i+1)*block_dim , j*block_dim:(j+1)*block_dim] = (
-            np.conjugate(input_mtx[j*block_dim:(j+1)*block_dim ,
-            i*block_dim:(i+1)*block_dim])
-            )
-
-    return out
+    return np.conj(np.einsum('ijkl->jikl', x))
 
 
-def block_mul(x, y, block_dim):
-    """ This function realizes the matrix multiplication operation for a block
-    matrix with diagonal blocks. However, the function assumes that the input
-    matrix has its (block_dim^2 by block_dim^2) diagonal blocks reshaped into
-    (block_dim by block_dim) blocks. We call this reshaped form as the
-    "compressed" form.
+def block_mul(x, y):
+    """Perform block multiplication on two 4D matrices
+
+    Just 2D matrix multiplication except matrix elements are themselves matrices
 
     Args:
-        x: The input matrix as being the first multiplicand. It must be in the
-            "compressed" form. For example, if the dimension of the
-            "uncompressed" x is (row_num*block_dim^2 by col_num*block_dim^2),
-            then the dimension of x must be (row_num*block_dim by
-            col_num*block_dim)
-        y: The second multiplicand, having the same properties as x
-        block_dim: Dimension of each block in x and y (assuming square blocks)
+        x (ndarray): 4D matrix of dimension (i, j, k, l)
+        y (ndarray): 4D matrix of dimension (j, m, k, l)
 
     Returns:
-        out: The output matrix, which is the compressed (see the function
-            definition) version of the multiplication of the two block diagonal
-            matrices with diagonal blocks
+        ndarray: 4D matrix of dimension (i, m, k, l)
     """
-    row_x = int(x.shape[0] / block_dim)
-    col_x = int(x.shape[1] / block_dim)
-    col_y = int(y.shape[1] / block_dim)
 
-    out = np.zeros((x.shape[0],y.shape[1]),dtype=complex)
-
-    for i in range(row_x):
-        for j in range(col_y):
-            for k in range(col_x):
-                out[i*block_dim:(i+1)*block_dim , j*block_dim:(j+1)*block_dim]=(
-                out[i*block_dim:(i+1)*block_dim , j*block_dim:(j+1)*block_dim]+
-                x[i*block_dim:(i+1)*block_dim , k*block_dim:(k+1)*block_dim]*
-                y[k*block_dim:(k+1)*block_dim , j*block_dim:(j+1)*block_dim])
-
-    return out
+    return np.einsum('ijkl,jmkl->imkl', x, y).view(block_array)
 
 
-def block_inv(A,block_dim):
-    """ This function realizes the matrix inversion operation for a Hermitian
-    symmetric block matrix with diagonal blocks. However, the function assumes
-    that the input matrix has its (block_dim^2 by block_dim^2) diagonal blocks
-    reshaped into (block_dim by block_dim) blocks. We call this reshaped form
-    as the "compressed" form.
+def block_inv(x, is_herm=False):
+    """Computes inverse of compressed block diagonal matrix
+
+    Input matrix is a "compressed" 4D ndarray, where the last two dimensions
+    are 2D matrices which hold the diagonal elements of the blocks
+
+    e.g.  If we have the following block matrix
+
+    | a 0 0 d 0 0 |
+    | 0 b 0 0 e 0 |
+    | 0 0 c 0 0 f |
+    | g 0 0 j 0 0 |
+    | 0 h 0 0 k 0 |
+    | 0 0 i 0 0 l |
+
+    then the compressed form is
+
+    | [a b c]  [d e f] |
+    |                  |
+    | [g h i]  [j k l] |
 
     Args:
-        A: The input matrix whose inverse will be computed. It must be in the
-            "compressed" form. For example, if the dimension of the
-            "uncompressed" A is (numblocks*block_dim^2 by numblocks*block_dim^2)
-            , then the dimension of A must be (numblocks*block_dim by
-            numblocks*block_dim)
-        block_dim: Dimension of each block in A (assuming square blocks)
+        x (ndarray): 4D matrix of dimension (i, i, j, k )
 
     Returns:
-        out: The compressed (see the function definition) version of the inverse
+        (ndarray): matrix inverse. dimension (i, i, j, k)
     """
 
-    numblocks = int(A.shape[0]/block_dim)
-    print('numblocks=%d' % numblocks)
+    x = x.view(block_array)
 
-    if numblocks == 1:
-        out = 1 / A
-        return out
+    rows, cols, j, k = x.shape
 
-    elif numblocks == 2:
-        A11 = A[ :block_dim , :block_dim]
-        A12 = A[ :block_dim , block_dim:2*block_dim]
-        A21 = A[block_dim:2*block_dim , :block_dim]
-        A22 = A[block_dim:2*block_dim, block_dim:2*block_dim]
+    assert rows == cols, 'input array must be dimension (i, i, j, k)'
 
-        A11i = 1/A11
-        A22hat = A22 - block_mul(block_herm(A12,block_dim),block_mul(A11i,A12,block_dim),block_dim)
-        A22hati = 1/A22hat;
+    if rows == 1:
+        return 1 / x
 
-        A11hati = A11i + block_mul(A11i,block_mul(A12,block_mul(A22hati,block_mul(block_herm(A12,block_dim),A11i,block_dim),block_dim),block_dim),block_dim);
+    a = x[:rows//2, :cols//2, :, :]
+    b = x[:rows//2, -cols//2:, :, :]
+    c = x[-rows//2:, :cols//2, :, :]
+    d = x[-rows//2:, -cols//2:, :, :]
 
-        A21hat = -block_mul(A22hati,block_mul(A21,A11i,block_dim),block_dim);
-        A12hat = block_herm(A21hat,block_dim);
 
-        out = np.concatenate((np.concatenate((A11hati,A12hat),axis=1),np.concatenate((A21hat,A22hati),axis=1)),axis=0)
+    # precompute inverse of d for efficiency
+    d_inv = block_inv(d)
+    A_inv = block_inv(a - b * d_inv * c)
 
-        return out
 
+    # https://en.wikipedia.org/wiki/Block_matrix#Block_matrix_inversion
+    A = A_inv
+    B = -A_inv * b * d_inv
+    if not is_herm:
+        C = -d_inv * c * A_inv
     else:
-        numblocks1 = int(np.floor(numblocks/2))
+        C = block_herm(B)
+    D = d_inv + d_inv * c * A_inv * b * d_inv
 
-        A11 = A[:block_dim*numblocks1, :block_dim*numblocks1];
-        A12 = A[:block_dim*numblocks1, block_dim*numblocks1:];
-        A21 = A[block_dim*numblocks1: ,:block_dim*numblocks1];
-        A22 = A[block_dim*numblocks1: ,block_dim*numblocks1:];
-
-        A11i = block_inv(A11,block_dim);
-        A22hat = A22 - block_mul(block_herm(A12,block_dim),block_mul(A11i,A12,block_dim),block_dim);
-        A22hati = block_inv(A22hat,block_dim);
-
-        A11hati = A11i + block_mul(A11i,block_mul(A12,block_mul(A22hati,block_mul(block_herm(A12,block_dim),A11i,block_dim),block_dim),block_dim),block_dim);
-
-        A21hat = -block_mul(A22hati,block_mul(A21,A11i,block_dim),block_dim);
-        A12hat = block_herm(A21hat,block_dim);
-
-        out = np.concatenate((np.concatenate((A11hati,A12hat),axis=1),np.concatenate((A21hat,A22hati),axis=1)),axis=0)
-
-        return out
+    return np.concatenate((np.concatenate((A, B), axis=1),
+                           np.concatenate((C, D), axis=1)), axis=0)
 
 
-def indexer(x,i,j,block_dim):
-    """Takes the (row,col)^th block of a block matrix with square blocks of size
-    block_dim. For example, if the input matrix has dimensons (m*block_dim by
-    n*block_dim), then we can regard this matrix as a (m by n) block matrix with
-    (block_dim by block_dim) blocks. This function outputs the (i,j)^th block
-    out of (m by n) ones.
+def diff_matrix(size):
+    """Create discrete derivative approximation matrix
 
-     Args:
-        x: The input matrix, which is considered to be composed of (block_dim by
-            block_dim) blocks.
-        i: Indicates the row number of the block to be extracted
-        j: Indicates the column number of the block to be extracted
-        block_dim: Dimension of each block in x (assuming square blocks)
+    Returns a discrete derivative approximation matrix in the x direction
 
-    Returns:
-        out: The extracted block of dimension (block_dim by block_dim)
-    """
-    out = x[i*block_dim:(i+1)*block_dim , j*block_dim:(j+1)*block_dim]
-    return out
+    e.g. for size=5
 
-
-def block_fft2(x,block_dim,fft_dim):
-    """Takes the (fft_dim by fft_dim) point 2D FFT of each (block_dim by
-    block_dim) block of the input matrix x. If x is of dimension (m*block_dim by
-    n*block_dim), then the output matrix has dimension (m*fft_dim by n*fft_dim)
+    |  1 -1  0  0  0 |
+    |  0  1 -1  0  0 |
+    |  0  0  1 -1  0 |
+    |  0  0  0  1 -1 |
+    | -1  0  0  0  1 |
 
     Args:
-        x: The input matrix
-        block_dim: Dimension of each block in x (assuming square blocks)
-        fft_dim: Number of points of 2D FFT to be taken. This also determines
-            the output block size
+        size (int): length of a side of this matrix
 
     Returns:
-        out: The output matrix whose each block is the 2D FFT of the
-            corresponding block of the input matrix
+        (ndarray): array of dimension (size, size)
     """
-    k,p = x.shape
-    k = k//block_dim
-    p = p//block_dim
-    out = np.zeros((k*fft_dim,p*fft_dim),dtype=complex)
 
-    if fft_dim == block_dim:
-        for i in range(k):
-            for j in range(p):
-                temp = indexer(x,i,j,block_dim)
-                temp = fftshift(fft2(ifftshift(temp)))
-                out[i*fft_dim:(i+1)*fft_dim , j*fft_dim:(j+1)*fft_dim] = temp
-
-    else:
-        for i in range(k):
-            for j in range(p):
-                temp = indexer(x,i,j,block_dim)
-                print('temp_indexed=(%d,%d)' % temp.shape)
-                pad_dim = int( np.ceil( (fft_dim-block_dim)/2. ) )
-                print('pad_dim=%d' % pad_dim)
-                temp = np.pad(temp,pad_dim,'constant')
-                print('temp_padded=(%d,%d)' % temp.shape)
-                temp = temp[:fft_dim,:fft_dim]
-                print('temp_truncated=(%d,%d)' % temp.shape)
-                temp = fftshift(fft2(ifftshift(temp)))
-                print('temp_fft=(%d,%d)' % temp.shape)
-                out[i*fft_dim:(i+1)*fft_dim , j*fft_dim:(j+1)*fft_dim] = temp
-    return out
+    return np.eye(size) - np.roll(np.eye(size), -1, axis=0)
 
 
-def block_ifft2(x,block_dim):
-    """Takes 2D inverse FFT of each (block_dim by block_dim) block of the input
-    matrix x.
-
-    Args:
-        x: The input matrix
-        block_dim: Dimension of each block in x (assuming square blocks)
-
-    Returns:
-        out: The output matrix whose each block is the 2D inverse FFT of the
-            corresponding block of the input matrix
+def init(measurements):
     """
-    k,p = x.shape
-    k = k//block_dim
-    p = p//block_dim
-    out = np.zeros((k*block_dim,p*block_dim),dtype=complex)
+    """
+    _, _, rows, cols = measurements['psfs'].shape
+    # Dx = np.kron(np.eye(rows), diff_matrix(cols))
+    # Dy = np.kron(diff_matrix(cols), np.eye(rows))
+    psf_dfts = np.fft.fft2(measurements['psfs'], axes=(2, 3))
 
-    for i in range(k):
-        for j in range(p):
-            temp = indexer(x,i,j,block_dim)
-            temp = fftshift(ifft2(ifftshift(temp)))
-            out[i*block_dim:(i+1)*block_dim, j*block_dim:(j+1)*block_dim] = temp
-    return out
+    LAM_idft = np.zeros((rows, cols))
+    LAM_idft[0, :] = (diff_matrix(cols).T @ diff_matrix(cols))[0]
+    LAM_idft[:, 0] = (diff_matrix(rows).T @ diff_matrix(rows))[0]
+
+    initialized_data = {
+        "psf_dfts": psf_dfts,
+        "GAM": block_mul(block_herm(psf_dfts), psf_dfts),
+        "LAM": np.fft.fft2(LAM_idft)
+    }
+
+    return initialized_data
 
 
-def init():
-    return
+def iteration_end(measurements, initialized_data, lowest_psf_group_index):
+    """
+    """
+    initialized_data['GAM'] -= block_mul(block_herm(initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]), initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1])
+
+def cost(measurements, initialized_data, psf_group_index, **kwargs):
+    """
+    """
+
+    _, num_sources, _, _ = measurements['psfs'].shape
+
+    SIG_e_dft = (initialized_data['GAM'] -
+                 block_mul(block_herm(initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
+                           initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]) +
+                 kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), initialized_data['LAM'])
+    )
 
 
-def cost():
-    return
+    return np.sum(np.trace(block_inv(SIG_e_dft)))
 
 
 def main():
@@ -251,7 +177,6 @@ def main():
     import scipy.stats as st
     from matplotlib import pyplot as plt
     from skimage.transform import resize
-    from computational_functions import *
 
     def gauss2D(shape=(3,3),sigma=0.5):
         """

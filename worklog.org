@@ -1,0 +1,17 @@
+* 2018-05-05 - CSBS-SSE progress
+- rewrote some of the SSE functions to use einsum and more idiomatic python
+- decided that sse init() should store the psf ffts for use in later computation
+
+** outline of SSE algorithm
+
+   - init
+     - calculate PSF ffts
+     - calculate $\Gamma$ matrix and $\Lambda = \mathcal{F} \text{1st col of} D_x^T D_x + D_y^T D_y$
+   - cost
+     - update $\Gamma$ matrix by subtracting removed PSF
+     - calculate trace to find cost
+
+* 2018-05-16 - CSBS-SSE completion
+- fixed block_inv to work with even sized inputs
+- added iteration_end function to cost_module
+- derived $Dx^T \cdot Dx + Dy^T \cdot Dy$
