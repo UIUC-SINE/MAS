@@ -100,3 +100,35 @@
    b_{12} & 0 & \hdots & 0 \\
    \vdots & \vdots & & \vdots \\
    b_{1n} & 0 & \hdots & 0 \end{bmatrix}$$
+   
+* 2018-05-20 - Farzad's Jihad
+  Today we began work on a mathematical framework to formalize the constraints and goals of the plane selection/exposure time problem.
+  
+** Parameters
+   Parameters we control in the problem.
+
+   - exposure time $\tau_k$
+   - measurement plane locations $d_k$
+   - measurement plane transition time $\Delta_j$
+
+** Goals
+   Problem optimization goals.
+
+   - high SNR (maximize $\tau_k$)
+   - Minimize temporal artifacts (minimize $\tau_k$, minimize $\Delta_j$)
+   - Capture measurement diversity (maximize order of $d_k$)
+
+** 3 types of noise
+   #+begin_src python
+                --------------       -----------------------------
+   source---+---| microphone |-------| system processing ----+---|-------
+            |   --------------       ------------------------|----
+           n_2                                              n_3
+   #+end_src python
+   
+   $y = n_1(Ax) + A n_2 + n_3$
+   
+   - $n(Ax)$ - shot noise. large input signal increases self interference
+     - Ulas says shot noise is just shot noise
+   - $n_2$ - dark noise (environmental noise). e.g. computer fan
+   - $n_3$ - read noise (system noise). e.g. ADC noise, self interference

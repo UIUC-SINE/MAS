@@ -88,14 +88,14 @@ def load_measurements(data_file, num_copies=10):
     measurements['num_copies_removed'][:] = 0
     return measurements
 
-def generate_measurements(wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_planes=30,
+def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_planes=30,
                                                diameter=2.5e-2, smallest_zone_width=5e-6,
                                                image_width=301, num_copies=10):
     """
     Generate measurements array for CSBS algorithm
 
     Args:
-        wavelengths (ndarray): array of source wavelengths
+        source_wavelengths (ndarray): array of source wavelengths
         num_planes (int): number of measurement planes
         diameter (float): photon-sieve diameter
         smallest_zone_width (float): smallest photon-sieve aperture diameter
@@ -106,14 +106,17 @@ def generate_measurements(wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_p
     """
 
     image_height = image_width
-    num_sources = len(wavelengths)
+    num_sources = len(source_wavelengths)
 
     # focal length and depth of focus for each wavelength
-    focal_lengths = diameter * smallest_zone_width / wavelengths
-    dofs = 2 * smallest_zone_width**2 / wavelengths
+    focal_lengths = diameter * smallest_zone_width / source_wavelengths
+    dofs = 2 * smallest_zone_width**2 / source_wavelengths
 
     plane_locations = np.linspace(max(focal_lengths) - 10 * max(dofs),
                                 min(focal_lengths) + 10 * min(dofs), num_planes)
+    print(plane_locations.shape)
+
+    wavelengths = (diameter * smallest_zone_width) / plane_locations
 
     psfs = []
     # generate incoherent measurements for each wavelength and plane location
@@ -123,7 +126,7 @@ def generate_measurements(wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_p
             logging.info('{} iterations'.format(n))
 
         temp = []
-        for wavelength in wavelengths:
+        for wavelength in source_wavelengths:
             temp.append(incoherent_psf(wavelength=wavelength,
                                     diameter=diameter,
                                     smallest_zone_width=smallest_zone_width,
@@ -132,14 +135,19 @@ def generate_measurements(wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_p
         psfs.append(temp)
 
     measurements = np.zeros(num_planes, dtype=[('num_copies', 'i'),
-                                                ('num_copies_removed', 'i'),
-                                                ('psfs', 'f', (num_sources,
-                                                                image_width,
-                                                                image_height))])
+                                               ('num_copies_removed', 'i'),
+                                               ('psfs', 'f', (num_sources,
+                                                               image_width,
+                                                               image_height)),
+                                               ('plane_locations', 'f'),
+                                               ('wavelengths', 'f'),
+                                               ])
 
     measurements['psfs'] = np.array(psfs)
     measurements['num_copies'][:] = num_copies
     measurements['num_copies_removed'][:] = 0
+    measurements['plane_locations'] = plane_locations
+    measurements['wavelengths'] = wavelengths
     return measurements
 
 
@@ -153,8 +161,8 @@ if __name__ == '__main__':
     num_planes = 30
 
     # wavelengths of monochromatic sources
-    wavelengths = np.array([33.4, 33.5, 33.6]) * 1e-9
-    num_sources = len(wavelengths)
+    source_wavelengths = np.array([33.4, 33.5, 33.6]) * 1e-9
+    num_sources = len(source_wavelengths)
 
     # photon sieve parameters
     diameter = 2.5e-2
@@ -162,7 +170,7 @@ if __name__ == '__main__':
 
     #---------- PSF Generation ----------
 
-    psf = incoherent_psf(wavelength=wavelengths[0],
+    psf = incoherent_psf(wavelength=source_wavelengths[0],
                          diameter=diameter,
                          smallest_zone_width=smallest_zone_width,
                          plane_location=plane_locations[0],
