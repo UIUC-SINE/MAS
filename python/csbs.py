@@ -12,9 +12,15 @@ def csbs(measurements, cost_module, iterations, **kwargs):
 
     Args:
         measurements (ndarray): structured numpy array containing 'num_copies' and 'psfs'
-        cost_func (function): accepts `measurements` and \**kwargs, and returns scalar cost
+        cost_module (module): a python module containing `init`, `cost`, and `iteration_end` functions.
+            `init` is called before the CSBS algorithm begins with `measurements` and can
+                return initialization data which will be passed to the `cost` function.
+            `cost` is called each iteration with `measurements` and `initialized_data` returned from `init`.
+            `iteration_end` is called after 1 iteration and a psf group has been removed with `measurements`,
+                `initialized_data`, and `lowest_psf_group_index` which is the index of the psf group which
+                incurred the lowest cost on the previous iteration
         iterations (int): run clustered sbs this many times
-        kwargs: keyword arguments to pass to cost_func
+        kwargs: extra keyword arguments to pass to cost_module.cost
 
     Returns:
         measurements with 'num_copies' modified
@@ -31,7 +37,10 @@ def csbs(measurements, cost_module, iterations, **kwargs):
             if measurements['num_copies'][psf_group_index] >= 1:
                 # remove a psf group and check cost
                 measurements['num_copies'][psf_group_index] -= 1
-                psf_group_cost = cost_module.cost(measurements, initialized_data, **kwargs)
+                psf_group_cost = cost_module.cost(measurements,
+                                                  initialized_data,
+                                                  psf_group_index,
+                                                  **kwargs)
                 if psf_group_cost < lowest_psf_group_cost:
                     lowest_psf_group_cost = psf_group_cost
                     lowest_psf_group_index = psf_group_index
@@ -40,8 +49,8 @@ def csbs(measurements, cost_module, iterations, **kwargs):
 
         # permanently remove the psf group which incurred the lowest cost
         measurements['num_copies'][lowest_psf_group_index] -= 1
-        measurements['num_copies_removed'][lowest_psf_group_index] += 1
-        # print(measurements['num_copies'])
+
+        cost_module.iteration_end(measurements, initialized_data, lowest_psf_group_index)
 
     return measurements
 

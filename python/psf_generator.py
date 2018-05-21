@@ -100,6 +100,9 @@ def generate_measurements(wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_p
         diameter (float): photon-sieve diameter
         smallest_zone_width (float): smallest photon-sieve aperture diameter
         image_width (int): width of psfs (must be odd)
+
+    Returns:
+        structured ndarray with columns 'num_copies', 'num_copies_removed' and 'psfs'
     """
 
     image_height = image_width
