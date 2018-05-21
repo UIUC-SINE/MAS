@@ -6,6 +6,36 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
+class Measurements():
+    """A class for holding measurements and state data during csbs iterations
+
+    Args:
+        psfs (ndarray): an array holding the 2D psfs.  shape: (num_planes, num_sources)
+        num_copies (int): number of repeated measurements to initialize with
+        plane_locations (ndarray): an array holding the measurement plane locations. shape: (num_planes)
+        wavelengths (ndarray): measurement wavelength at each plane location. shape: (num_planes)
+
+    Attributes:
+        psfs (ndarray)
+        num_copies (int)
+        copies (ndarray): array containing current number of measurements at each location
+        plane_locations (ndarray)
+        wavelengths (ndarray)
+        copies_history (list): list containing indices of removed measurement plane indices for each iteration
+    """
+    def __init__(self, *, psfs, num_copies, plane_locations, wavelengths):
+
+        assert psfs.shape[0] == len(plane_locations), "`psfs` and `plane_locations` shapes do not match"
+        assert psfs.shape[0] == len(wavelengths), "`psfs` and `wavelengths` shapes do not match"
+
+        self.psfs = psfs
+        self.plane_locations = plane_locations
+        self.num_copies = num_copies
+        self.copies = np.ones((len(plane_locations))) * num_copies
+        self.wavelengths = wavelengths
+        self.copies_history = []
+
+
 def incoherent_psf(*, wavelength, diameter, smallest_zone_width,
                    plane_location, image_width):
     """
@@ -55,38 +85,35 @@ def incoherent_psf(*, wavelength, diameter, smallest_zone_width,
     return incoherent_psf
 
 
-def load_measurements(data_file, num_copies=10):
-    """
-    Build measurements ndarray from HDF5 file containing psfs
+# def load_measurements(data_file, num_copies=10):
+#     """
+#     Build measurements ndarray from HDF5 file containing psfs
 
-    Args:
-        data_file (str): path to hdf5 datafile containing incoherent PSFs.  HDF5 file should contain
-                         'incoherentPsf' matrix of shape [sources]x[planes]x[psf width]x[psf height]
-        num_copies (int): number of copies of each psf group to initialize array with
+#     Args:
+#         data_file (str): path to hdf5 datafile containing incoherent PSFs.  HDF5 file should contain
+#                          'incoherentPsf' matrix of shape [sources]x[planes]x[psf width]x[psf height]
+#         num_copies (int): number of copies of each psf group to initialize array with
 
-    Returns:
-        structured ndarray with columns 'num_copies', 'num_copies_removed' and 'psfs'
-    """
+#     Returns:
+#         structured ndarray with columns 'num_copies', 'num_copies_removed' and 'psfs'
+#     """
 
-    import h5py
+#     import h5py
 
-    # load psfs from file and set copies
-    with h5py.File(data_file) as f:
-        num_sources, num_planes, image_width, image_height = f['incoherentPsf']['value'].shape
+#     # load psfs from file and set copies
+#     with h5py.File(data_file) as f:
+#         num_sources, num_planes, image_width, image_height = f['incoherentPsf']['value'].shape
 
-        # measurements at each plane
-        #  measurements['num_copies'] number of measurements at this distance
-        #  measurements['psfs'] psfs of each source at this distance
-        measurements = np.zeros(num_planes, dtype=[('num_copies', 'i'),
-                                                   ('num_copies_removed', 'i'),
-                                                   ('psfs', 'f', (num_sources,
-                                                                  image_width,
-                                                                  image_height))])
-        measurements['psfs'] = np.swapaxes(f['incoherentPsf']['value'], 0, 1)
+#         measurements = np.zeros(num_planes, dtype=[('num_copies', 'i'),
+#                                                    ('num_copies_removed', 'i'),
+#                                                    ('psfs', 'f', (num_sources,
+#                                                                   image_width,
+#                                                                   image_height))])
+#         psfs = np.swapaxes(f['incoherentPsf']['value'], 0, 1)
 
-    measurements['num_copies'][:] = num_copies
-    measurements['num_copies_removed'][:] = 0
-    return measurements
+
+#     measurements = Measurements(psfs=psfs, num_copies=num_copies)
+#     return measurements
 
 def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_planes=30,
                                                diameter=2.5e-2, smallest_zone_width=5e-6,
@@ -102,7 +129,7 @@ def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9
         image_width (int): width of psfs (must be odd)
 
     Returns:
-        structured ndarray with columns 'num_copies', 'num_copies_removed' and 'psfs'
+        Measurements object with psfs and csbs data
     """
 
     image_height = image_width
@@ -112,42 +139,34 @@ def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9
     focal_lengths = diameter * smallest_zone_width / source_wavelengths
     dofs = 2 * smallest_zone_width**2 / source_wavelengths
 
-    plane_locations = np.linspace(max(focal_lengths) - 10 * max(dofs),
-                                min(focal_lengths) + 10 * min(dofs), num_planes)
-    print(plane_locations.shape)
+    plane_locations = np.linspace(min(focal_lengths) - 10 * min(dofs),
+                                max(focal_lengths) + 10 * max(dofs), num_planes)
 
     wavelengths = (diameter * smallest_zone_width) / plane_locations
 
-    psfs = []
+    psfs = np.empty((0, num_sources, image_width, image_width))
     # generate incoherent measurements for each wavelength and plane location
     for n, plane_location in enumerate(plane_locations):
 
         if n % 10 == 0:
             logging.info('{} iterations'.format(n))
 
-        temp = []
+        psf_group = np.empty((0, image_width, image_width))
         for wavelength in source_wavelengths:
-            temp.append(incoherent_psf(wavelength=wavelength,
-                                    diameter=diameter,
-                                    smallest_zone_width=smallest_zone_width,
-                                    plane_location=plane_location,
-                                    image_width=image_width))
-        psfs.append(temp)
+            psf = incoherent_psf(wavelength=wavelength,
+                               diameter=diameter,
+                               smallest_zone_width=smallest_zone_width,
+                               plane_location=plane_location,
+                               image_width=image_width)
 
-    measurements = np.zeros(num_planes, dtype=[('num_copies', 'i'),
-                                               ('num_copies_removed', 'i'),
-                                               ('psfs', 'f', (num_sources,
-                                                               image_width,
-                                                               image_height)),
-                                               ('plane_locations', 'f'),
-                                               ('wavelengths', 'f'),
-                                               ])
+            psf_group = np.append(psf_group, [psf], axis=0)
+        psfs = np.append(psfs, [psf_group], axis=0)
 
-    measurements['psfs'] = np.array(psfs)
-    measurements['num_copies'][:] = num_copies
-    measurements['num_copies_removed'][:] = 0
-    measurements['plane_locations'] = plane_locations
-    measurements['wavelengths'] = wavelengths
+    measurements = Measurements(psfs=psfs,
+                                num_copies=num_copies,
+                                plane_locations=plane_locations,
+                                wavelengths=wavelengths)
+
     return measurements
 
 
