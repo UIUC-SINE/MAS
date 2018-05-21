@@ -60,9 +60,8 @@ def main():
     # measurements = psf_generator.load_measurements('/tmp/out.hdf5')
 
     import random_cost
-    cost_module = random_cost
     iterations = 1
-    return csbs(measurements, cost_module, iterations)
+    return csbs(measurements, random_cost, iterations)
 
 if __name__ == '__main__':
     main()
