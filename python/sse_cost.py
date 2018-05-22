@@ -132,10 +132,10 @@ def diff_matrix(size):
 def init(measurements):
     """
     """
-    _, _, rows, cols = measurements['psfs'].shape
+    _, _, rows, cols = measurements.psfs.shape
     # Dx = np.kron(np.eye(rows), diff_matrix(cols))
     # Dy = np.kron(diff_matrix(cols), np.eye(rows))
-    psf_dfts = np.fft.fft2(measurements['psfs'], axes=(2, 3))
+    psf_dfts = np.fft.fft2(measurements.psfs, axes=(2, 3))
 
     LAM_idft = np.zeros((rows, cols))
     LAM_idft[0, :] = (diff_matrix(cols).T @ diff_matrix(cols))[0]
@@ -147,24 +147,25 @@ def init(measurements):
         "LAM": np.fft.fft2(LAM_idft)
     }
 
-    return initialized_data
+    measurements.initialized_data = initialized_data
 
 
-def iteration_end(measurements, initialized_data, lowest_psf_group_index):
+def iteration_end(measurements, lowest_psf_group_index):
     """
     """
-    initialized_data['GAM'] -= block_mul(block_herm(initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]), initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1])
+    measurements.initialized_data['GAM'] -= block_mul(block_herm(measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]),
+                                                      measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1])
 
-def cost(measurements, initialized_data, psf_group_index, **kwargs):
+def cost(measurements, psf_group_index, **kwargs):
     """
     """
 
-    _, num_sources, _, _ = measurements['psfs'].shape
+    _, num_sources, _, _ = measurements.psfs.shape
 
-    SIG_e_dft = (initialized_data['GAM'] -
-                 block_mul(block_herm(initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
-                           initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]) +
-                 kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), initialized_data['LAM'])
+    SIG_e_dft = (measurements.initialized_data['GAM'] -
+                 block_mul(block_herm(measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
+                           measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]) +
+                 kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), measurements.initialized_data['LAM'])
     )
 
 

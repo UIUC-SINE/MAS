@@ -3,14 +3,11 @@
 # Evan Widloski - 2018-04-15
 import numpy as np
 
-def init(measurements):
-    return 'initialized_data'
-
-def cost(measurements, initialized_data):
+def cost(measurements, psf_group_index):
     """
     Calculate cost from input PSFs
 
     Args:
-        measurements (ndarray): structured numpy array containing 'num_copies' and 'psfs'
+        measurements (Measurements): psf measurements and csbs data
     """
     return np.random.rand()
