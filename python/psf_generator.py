@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 class Measurements():
-    """A class for holding measurements and state data during csbs iterations
+    """A class for holding PSFs and state data during csbs iterations
 
     Args:
         psfs (ndarray): an array holding the 2D psfs.  shape: (num_planes, num_sources)
@@ -16,11 +16,12 @@ class Measurements():
         wavelengths (ndarray): measurement wavelength at each plane location. shape: (num_planes)
 
     Attributes:
-        psfs (ndarray)
-        num_copies (int)
+        psfs (ndarray): an array holding the 2D psfs
+        psf_ffts (ndarray): an array holding the 2D psf ffts
+        num_copies (int): number of repeated measurements to initialize with
         copies (ndarray): array containing current number of measurements at each location
-        plane_locations (ndarray)
-        wavelengths (ndarray)
+        plane_locations (ndarray): an array holding the measurement plane locaitons
+        wavelengths (ndarray): an array holding the wavelength at each measurement plane
         copies_history (list): list containing indices of removed measurement plane indices for each iteration
     """
     def __init__(self, *, psfs, num_copies, plane_locations, wavelengths):
@@ -29,10 +30,12 @@ class Measurements():
         assert psfs.shape[0] == len(wavelengths), "`psfs` and `wavelengths` shapes do not match"
 
         self.psfs = psfs
+        self.psf_ffts = np.fft.fft2(psfs)
         self.plane_locations = plane_locations
         self.num_copies = num_copies
         self.copies = np.ones((len(plane_locations))) * num_copies
         self.wavelengths = wavelengths
+        self.image_width = psfs.shape[2]
         self.copies_history = []
 
 
@@ -115,7 +118,7 @@ def incoherent_psf(*, wavelength, diameter, smallest_zone_width,
 #     measurements = Measurements(psfs=psfs, num_copies=num_copies)
 #     return measurements
 
-def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, num_planes=30,
+def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9, planes=30,
                                                diameter=2.5e-2, smallest_zone_width=5e-6,
                                                image_width=301, num_copies=10):
     """
@@ -123,7 +126,7 @@ def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9
 
     Args:
         source_wavelengths (ndarray): array of source wavelengths
-        num_planes (int): number of measurement planes
+        planes (int/ndarray): number of measurement planes, or plane locations in an array
         diameter (float): photon-sieve diameter
         smallest_zone_width (float): smallest photon-sieve aperture diameter
         image_width (int): width of psfs (must be odd)
@@ -139,8 +142,11 @@ def generate_measurements(source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9
     focal_lengths = diameter * smallest_zone_width / source_wavelengths
     dofs = 2 * smallest_zone_width**2 / source_wavelengths
 
-    plane_locations = np.linspace(min(focal_lengths) - 10 * min(dofs),
-                                max(focal_lengths) + 10 * max(dofs), num_planes)
+    if type(planes) is int:
+        plane_locations = np.linspace(min(focal_lengths) - 10 * min(dofs),
+                                      max(focal_lengths) + 10 * max(dofs), planes)
+    else:
+        plane_locations = planes
 
     wavelengths = (diameter * smallest_zone_width) / plane_locations
 
