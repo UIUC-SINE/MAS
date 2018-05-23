@@ -23,6 +23,11 @@ def csbs(measurements, cost_module, iterations, **kwargs):
 
     assert (iterations < np.sum(measurements.copies)), "`iterations` must be less than the total number of psf groups"
 
+    # save csbs parameters in Measurements object
+    measurements.csbs_params = {'iterations': iterations,
+                                'cost_module': cost_module.__name__,
+                                **kwargs}
+
     # call 'init' if it exists
     if hasattr(cost_module, 'init'):
         cost_module.init(measurements)
