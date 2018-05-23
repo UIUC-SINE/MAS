@@ -1,6 +1,9 @@
+#+title: MAS Worklog
 #+latex_header: \newcommand*{\vertbar}{\rule[-1ex]{0.5pt}{2.5ex}}
-#+latex_header: \newcommand*{\horzbar}{\rule[.5ex]{2.5ex}{0.5pt}} 
+#+latex_header: \newcommand*{\horzbar}{\rule[.5ex]{2.5ex}{0.5pt}}
 #+latex_header: \newcommand*{\ident}{\begin{bmatrix} 1 & & \\ & \ddots & \\ & & 1 \end{bmatrix}}
+#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
+
 * 2018-05-05 - CSBS-SSE progress
 - rewrote some of the SSE functions to use einsum and more idiomatic python
 - decided that sse init() should store the psf ffts for use in later computation
@@ -20,17 +23,17 @@
 - derived $Dx^T \cdot Dx + Dy^T \cdot Dy$
 
 ** Finding Lambda
-   
+
    $D_x^T D_x + D_y^T D_y$ is a block circulant matrix with circulant blocks, so it can be diagonalized by the 2D DFT matrix, $F_{2D}$
-   
-   $\Lambda = F_{2D} (D_x^T D_x + D_y^T D_y) F_{2D}^{-1}$
-   
+
+   $$\Lambda = F_{2D} (D_x^T D_x + D_y^T D_y) F_{2D}^{-1}$$
+
    In other words,
-   
-   $\text{vect}^{-1}(\text{diag}(\Lambda)) = \text{2D DFT of vect}^{-1}(\text{1st row of } D_x^T D_x + D_y^T D_y)$
+
+   $$\text{vect}^{-1}(\text{diag}(\Lambda)) = \text{2D DFT of vect}^{-1}(\text{1st row of } D_x^T D_x + D_y^T D_y)$$
 
    $D_x$ and $D_y$ are discrete derivative operators operating on a flattened image $x$ of size $m \times n$
-   
+
    $$D_x x = \text{vect}\left(\begin{bmatrix}
    \horzbar & d \circledast x_{r1} & \horzbar \\
    & \vdots & \\
@@ -41,12 +44,12 @@
    \horzbar & D_r x_{rm} & \horzbar \\
    \end{bmatrix}\right)
    $$
-   
-   where $D_r$ is the 1D circulant matrix of $[-1, 1]$ of size $n\times n$. 
+
+   where $D_r$ is the 1D circulant matrix of $[-1, 1]$ of size $n\times n$.
    $\text{vect}$ is an operator which concatenates the rows of a matrix into a single vector.
-   
+
    Similarly for $D_y$
-   
+
    $$D_y x = \text{vect}\left(\begin{bmatrix}
    \vertbar &  & \vertbar \\
    d \circledast x_{c1} & \hdots & d \circledast x_{cn} \\
@@ -57,53 +60,56 @@
    \vertbar &  & \vertbar \\
    \end{bmatrix}\right)
    $$
-   
+
    where $D_c$ is the 1D circulant matrix of $[-1, 1]$ of size $m\times m$
 
-   $D_x = I_{m \times m} \otimes D_r$
-   $D_y = D_c \otimes I_{n \times n}$
-   
-   $D_x^T D_x + D_y^T D_y = (I_{m \times m} \otimes D_r)^T (I_{m \times m} \otimes D_r) + (D_c \otimes I_{n \times n})^T (D_c \otimes I_{n \times n})$
-   
+   $$D_x = I_{m \times m} \otimes D_r$$
+   $$D_y = D_c \otimes I_{n \times n}$$
+
+   $$D_x^T D_x + D_y^T D_y = (I_{m \times m} \otimes D_r)^T (I_{m \times m} \otimes D_r) + (D_c \otimes I_{n \times n})^T (D_c \otimes I_{n \times n})$$
+
    Using the property $(A \otimes B)(C \otimes D) = AC \otimes BD$, we get
-   
-   $D_x^T D_x + D_y^T D_y = I_{m \times m} \otimes D_r^TD_r + D_c^TD_c \otimes I_{n \times n}$
+
+   $$D_x^T D_x + D_y^T D_y = I_{m \times m} \otimes D_r^TD_r + D_c^TD_c \otimes I_{n \times n}$$
 
    Substituting back in,
 
-   $$\begin{aligned}
-   \text{2D DFT of vect}^{-1}(\text{1st row of } D_x^T D_x + D_y^T D_y) &= \text{2D DFT of vect}^{-1}(\text{1st row of } I_{m \times m} \otimes D_r^TD_r + D_c^TD_c \otimes I_{n \times n}) \\
+   $$
+   \begin{aligned}
+   & \text{2D DFT of vect}^{-1}(\text{1st row of } D_x^T D_x + D_y^T D_y) \\
+   &= \text{2D DFT of vect}^{-1}(\text{1st row of } I_{m \times m} \otimes D_r^TD_r + D_c^TD_c \otimes I_{n \times n}) \\
    &= \text{2D DFT of } \left[ \text{vect}^{-1}(\text{1st row of } I_{m \times m} \otimes D_r^TD_r) + \text{vect}^{-1}(\text{1st row of } D_c^TD_c \otimes I_{n \times n}) \right]
    \end{aligned}$$
+   
    ----------------------
-   
+
    Let $A$ and $B$ be arbitrary matrices
-   
+
 
    $$I \otimes A = \begin{bmatrix} A & & \\ & \ddots & \\ & & A \end{bmatrix}$$
 
    $$\text{vect}^{-1}(\text{1st row of } A \otimes I) = \begin{bmatrix} a_{11}  & \hdots & a_{1n} \\ 0 & \hdots & 0  \\ \vdots &   & \vdots \\ 0 & \hdots & 0 \end{bmatrix}$$
-   
+
    $$B \otimes I = \begin{bmatrix} b_{11} \ident & \hdots & b_{1n} \ident \\
    & \vdots & \\
    b_{m1} \ident & \hdots & b_{mn} \ident
    \end{bmatrix}$$
-   
+
    $$\text{vect}^{-1}(\text{1st row of } B \otimes I) = \begin{bmatrix} b_{11} & 0 & \hdots & 0 \\ \vdots & \vdots & & \vdots  \\ b_{1n} & 0 & \hdots & 0 \end{bmatrix}$$
-   
+
    ---------------------
 
    If we let $A = D_x^TD_x$ and $B = D_y^TD_y$, then
-   
+
    $$\text{2D DFT of } \left[ \text{vect}^{-1}(\text{1st row of } I_{m \times m} \otimes D_r^TD_r) + \text{vect}^{-1}(\text{1st row of } D_c^TD_c \otimes I_{n \times n}) \right] =
    \begin{bmatrix} a_{11} + b_{11} & a_{12} & \hdots & a_{1n} \\
    b_{12} & 0 & \hdots & 0 \\
    \vdots & \vdots & & \vdots \\
    b_{1n} & 0 & \hdots & 0 \end{bmatrix}$$
-   
+
 * 2018-05-20 - Farzad's Jihad
   Today we began work on a mathematical framework to formalize the constraints and goals of the plane selection/exposure time problem.
-  
+
 ** Parameters
    Parameters we control in the problem.
 
@@ -124,11 +130,10 @@
    source---+---| microphone |-------| system processing ----+---|-------
             |   --------------       ------------------------|----
            n_2                                              n_3
-   #+end_src python
-   
+   #+end_src
+
    $y = n_1(Ax) + A n_2 + n_3$
-   
+
    - $n(Ax)$ - shot noise. large input signal increases self interference
-     - Ulas says shot noise is just shot noise
    - $n_2$ - dark noise (environmental noise). e.g. computer fan
    - $n_3$ - read noise (system noise). e.g. ADC noise, self interference
