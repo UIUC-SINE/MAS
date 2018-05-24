@@ -60,4 +60,5 @@ def fourier_slices(measurements):
                 rotation='vertical')
 
     fig.constrained_layout = True
-    plt.show()
+
+    return plt

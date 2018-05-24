@@ -1,18 +1,22 @@
 #+title: MAS Worklog
+#+author: Evan Widloski, Ulas Kamaci
 #+latex_header: \newcommand*{\vertbar}{\rule[-1ex]{0.5pt}{2.5ex}}
 #+latex_header: \newcommand*{\horzbar}{\rule[.5ex]{2.5ex}{0.5pt}}
 #+latex_header: \newcommand*{\ident}{\begin{bmatrix} 1 & & \\ & \ddots & \\ & & 1 \end{bmatrix}}
-#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
+#+latex_header: \usepackage[margin=0.5in]{geometry}
+#+latex_header: \usepackage{listings}
+#+OPTIONS: ^:nil
 
 * 2018-05-05 - CSBS-SSE progress
 - rewrote some of the SSE functions to use einsum and more idiomatic python
 - decided that sse init() should store the psf ffts for use in later computation
+- created a [[http://github.com/uiuc-sine/mas][Github repo]]
 
 ** outline of SSE algorithm
 
    - init
      - calculate PSF ffts
-     - calculate $\Gamma$ matrix and $\Lambda = \mathcal{F} \text{1st col of} D_x^T D_x + D_y^T D_y$
+     - calculate $\Gamma$ matrix and $\Lambda = \mathcal{F} \left[ \text{1st col of} D_x^T D_x + D_y^T D_y \right]$
    - cost
      - update $\Gamma$ matrix by subtracting removed PSF
      - calculate trace to find cost
@@ -107,7 +111,7 @@
    \vdots & \vdots & & \vdots \\
    b_{1n} & 0 & \hdots & 0 \end{bmatrix}$$
 
-* 2018-05-20 - Farzad's Jihad
+* 2018-05-20 - Framework
   Today we began work on a mathematical framework to formalize the constraints and goals of the plane selection/exposure time problem.
 
 ** Parameters
@@ -154,3 +158,23 @@
   The total time to complete taking measurements should not exceed $t_{obj}$:
 
   - $K t_{exp} + \sum_{i=1}^{K-1} t_{tr}^(i) \leq t_{obj}$
+
+* 2018-05-22 - Plotting CSBS Results
+  Wrote some code to visualize output from CSBS, shown below.
+
+  #+include: "python/examples/csbs_plot.py" src python
+
+  #+attr_org: :width 400
+  #+attr_latex: :width 300
+  #+caption: First 3 plots are frequency support of 3 sources.  4th plot is progression of CSBS algorithm initialized with 10 copies.  5th plot is final result of CSBS
+  #+results:
+  [[file:csbs_fourier_slices.png]]
+  
+  I noticed that with a poor choice of lambda, CSBS sometimes completely kills off other focused measurement planes.
+
+  #+include: "python/examples/lambda_selection.py" src python
+
+  #+attr_org: :width 400
+  #+attr_latex: :width 300
+  #+caption: CSBS final result for various lambdas. A good choice here is 20-40
+  [[./python/examples/lambda_selection.png]]
