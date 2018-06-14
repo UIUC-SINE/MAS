@@ -3,6 +3,7 @@
 #+latex_header: \newcommand*{\vertbar}{\rule[-1ex]{0.5pt}{2.5ex}}
 #+latex_header: \newcommand*{\horzbar}{\rule[.5ex]{2.5ex}{0.5pt}}
 #+latex_header: \newcommand*{\ident}{\begin{bmatrix} 1 & & \\ & \ddots & \\ & & 1 \end{bmatrix}}
+#+latex_header: \newcommand*{\trace}{\text{tr}}
 #+latex_header: \usepackage[margin=0.5in]{geometry}
 #+latex_header: \usepackage{listings}
 #+OPTIONS: ^:nil
@@ -11,28 +12,114 @@
 - rewrote some of the SSE functions to use einsum and more idiomatic python
 - decided that sse init() should store the psf ffts for use in later computation
 - created a [[http://github.com/uiuc-sine/mas][Github repo]]
+  
+** SSE Cost for CSBS algorithm
+   
+   Cost is $\trace (\Sigma_e) = \trace ((A^HA + \lambda L^H L)^{-1})$.
 
-** outline of SSE algorithm
+   We approximate forward model as 2D circular convolutions so that matrices can be diagonalized and we end up with faster computation.
 
-   - init
-     - calculate PSF ffts
-     - calculate $\Gamma$ matrix and $\Lambda = \mathcal{F} \left[ \text{1st col of} D_x^T D_x + D_y^T D_y \right]$
-   - cost
-     - update $\Gamma$ matrix by subtracting removed PSF
-     - calculate trace to find cost
+   Assume 2 sources.
+
+   #+begin_latex
+   \begin{equation}
+   A^HA = \begin{bmatrix} \sum_{k=1}^K A_{k1}^H A_{k1} & \sum_{k=1}^K A_{k1}^H A_{k2} \\
+   \sum_{k=1}^K A_{k2}^H A_{k1} & \sum_{k=1}^K A_{k2}^H A_{k2}\end{bmatrix}
+   =
+   \begin{bmatrix}F_{2D}^{-1} & 0 \\ 0 & F_{2D}^{-1}\end{bmatrix}
+   \begin{bmatrix} \Gamma_{11} & \Gamma_{12} \\ \Gamma_{21} & \Gamma_{22} \end{bmatrix} 
+   \begin{bmatrix} F_{2D} & 0 \\ 0 & F_{2D} \end{bmatrix}
+   \end{equation}
+   #+end_latex
+   
+   #+begin_latex
+   \begin{equation}
+   L^HL = \begin{bmatrix}F_{2D}^{-1} & 0 \\ 0 & F_{2D}^{-1}\end{bmatrix}
+   \begin{bmatrix}\Lambda & 0 \\ 0 & \Lambda\end{bmatrix}
+   \begin{bmatrix}F_{2D} & 0 \\ 0 & F_{2D}\end{bmatrix}
+   \end{equation}
+   #+end_latex
+   
+   #+begin_latex
+   \begin{aligned}
+   \trace (\Sigma_e) &= 
+   \trace \left (
+   \begin{bmatrix}F_{2D}^{-1} & 0 \\ 0 & F_{2D}^{-1}\end{bmatrix}
+   \begin{bmatrix} \Gamma_{11} - \lambda \Lambda & \Gamma_{12} \\ \Gamma_{21} & \Gamma_{22} - \lambda\Lambda  \end{bmatrix}^{-1}
+   \begin{bmatrix}F_{2D} & 0 \\ 0 & F_{2D}\end{bmatrix}
+   \right) \\ &= 
+   \trace \left (
+   \begin{bmatrix}F_{2D} & 0 \\ 0 & F_{2D}\end{bmatrix}
+   \begin{bmatrix}F_{2D}^{-1} & 0 \\ 0 & F_{2D}^{-1}\end{bmatrix}
+   \begin{bmatrix} \Gamma_{11} - \lambda \Lambda & \Gamma_{12} \\ \Gamma_{21} & \Gamma_{22} - \lambda\Lambda  \end{bmatrix}^{-1}
+   \right) \\ &= 
+   \trace \left (
+   \begin{bmatrix} \Gamma_{11} - \lambda \Lambda & \Gamma_{12} \\ \Gamma_{21} & \Gamma_{22} - \lambda\Lambda  \end{bmatrix}^{-1}
+   \right)
+   \end{aligned}
+   #+end_latex
+   
+** Outline of CSBS Algorithm
+   - Initialization
+
+     /Intialization code before CSBS begins/
+
+   - Iterate
+
+     /Repeat N times/
+
+      - for each row of $A$
+
+        - temporarily remove row from $A$ and compute cost of this reduced $A$
+
+      - permanently remove whichever row of $A$ incurred the lowest cost
+
+   /Note: 1 row of A is a row vector of convolution matrices, length $S$/
+
+** CSBS Optimizations for SSE
+   We make a number of optimizations when calculating the SSE cost to make it computationally feasible.  
+   
+   - store "compressed" form of diagonal matrices, PSFs
+
+     $\Gamma_{ij}$ and $\Lambda$ are diagonal matrices of dimension $(m \cdot n) \times (m \cdot n)$.  we store the diagonal elements only in a matrix of size $m \times n$
+
+     We store the PSFs (and DFTs) in their 2D form to avoid flattening/reshaping.  Consequency, we have special multiplication and inversion functions which operate on these compressed matrices directly.
+
+   - update $\Gamma = \begin{bmatrix} \Gamma_{11} & \Gamma_{12} \\ \Gamma_{21} & \Gamma_{22} \end{bmatrix}$ instead of recomputing it
+
+     $\Gamma$ changes very little between CSBS iterations.  We subtract off the contribution from the removed row of $A$ at the end of each CSBS iteration
+
+   - dont store duplicate rows in $A$
+
+     $A$ contains many duplicate rows to represent repeated measurements at one measurement plane.  We only store one copy of a row in $A$ along with a counter of how many copies of this row are left
+
+   - use block matrix inversion formula for inverting $\bar{\Gamma} = \begin{bmatrix} \Gamma_{11} - \lambda \Lambda & \Gamma_{12} \\ \Gamma_{21} \Lambda & \Gamma_{22} - \lambda \end{bmatrix}$
+
+     The elements of $\bar{\Gamma}$ are diagonal matrices.  We use the [[https://en.wikipedia.org/wiki/Block_matrix#Block_matrix_inversion][block matrix inversion formula]] to invert it efficiently.
+
+** Outline of CSBS Algorithm for SSE
+   - Initialization
+     - precompute PSF ffts
+     - calculate full $\Gamma$ matrix and $\Lambda$
+   - Iterate
+      - for each row of $A$
+        - temporarily remove row from $A$ and compute cost: $\trace (\Sigma_e)$
+      - permanently remove whichever row of $A$ incurred the lowest cost
+      - update $\Gamma$ by subtracting contribution from removed row
+
 
 * 2018-05-16 - CSBS-SSE completion
 - fixed block_inv to work with even sized inputs
 - added iteration_end function to cost_module
 - derived $Dx^T \cdot Dx + Dy^T \cdot Dy$
 
-** Finding Lambda
+** Finding $\Lambda$
 
    $D_x^T D_x + D_y^T D_y$ is a block circulant matrix with circulant blocks, so it can be diagonalized by the 2D DFT matrix, $F_{2D}$
 
    $$\Lambda = F_{2D} (D_x^T D_x + D_y^T D_y) F_{2D}^{-1}$$
 
-   In other words,
+   Then the compressed form of $\Lambda$ is
 
    $$\text{vect}^{-1}(\text{diag}(\Lambda)) = \text{2D DFT of vect}^{-1}(\text{1st row of } D_x^T D_x + D_y^T D_y)$$
 
@@ -151,30 +238,42 @@
 ** Parameters
   - number of measurement planes : $K$
   - exposure time at each measurement plane : $t_{exp}$
-  - detector transition time from $i^{th}$ to $(i+1)^{th}$ measurement plane: $t_{tr}^(i)$
+  - detector transition time from $i^{th}$ to $(i+1)^{th}$ measurement plane: $t_{tr}^{i}$
   - the time for which the dynamic object can be considered still: $t_{obj}$
 
 ** Requirement
   The total time to complete taking measurements should not exceed $t_{obj}$:
 
-  - $K t_{exp} + \sum_{i=1}^{K-1} t_{tr}^(i) \leq t_{obj}$
+  - $K t_{exp} + \sum_{i=1}^{K-1} t_{tr}^{i} \leq t_{obj}$
 
 * 2018-05-22 - Plotting CSBS Results
   Wrote some code to visualize output from CSBS, shown below.
 
-  #+include: "python/examples/csbs_plot.py" src python
-
   #+attr_org: :width 400
   #+attr_latex: :width 300
-  #+caption: First 3 plots are frequency support of 3 sources.  4th plot is progression of CSBS algorithm initialized with 10 copies.  5th plot is final result of CSBS
+  #+caption: [[https://github.com/UIUC-SINE/MAS/blob/master/python/examples/csbs_plot.py][csbs_plot.py]] output. First 3 plots are frequency support of 3 sources.  4th plot is progression of CSBS algorithm initialized with 10 copies.  5th plot is final result of CSBS
   #+results:
   [[file:csbs_fourier_slices.png]]
   
   I noticed that with a poor choice of lambda, CSBS sometimes completely kills off other focused measurement planes.
 
-  #+include: "python/examples/lambda_selection.py" src python
-
   #+attr_org: :width 400
   #+attr_latex: :width 300
-  #+caption: CSBS final result for various lambdas. A good choice here is 20-40
+  #+caption: [[https://github.com/UIUC-SINE/MAS/blob/master/python/examples/lambda_selection.py][lambda_selection.py]] output. CSBS final result for various lambdas. For some lambdas, CSBS has completely killed off measurements at some of the focal lengths.  A good choice here is $\lambda \in [20, 40]$.
   [[./python/examples/lambda_selection.png]]
+
+   # $$\rlap{$\times$} \square$$
+   # $$\rlap{$\text{H}$} \square$$
+   # $$\makebox[9pt][l]{$\square$}\raisebox{.15ex}{\hspace{0.075em}$\times}$$
+    
+   # $$\times\hspace{-.38cm}\Box$$
+
+   
+   # #+begin_latex
+   # \begin{equation}
+   # \setlength\fboxsep{0.5pt}
+   # \setlength\fboxrule{0.5pt}
+   # \frac{A\boxed{\times}B}{C\boxed{\times}D}
+   # \frac{A\boxed{\times}B}{C^{\boxed{-1}}D}
+   # \end{equation}
+   # #+end_latex
