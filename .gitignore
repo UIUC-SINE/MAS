@@ -5,3 +5,5 @@
 **/*.JPG
 **/*.png
 **/octave-workspace
+**/*.mat
+**/*.txt

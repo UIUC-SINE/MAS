@@ -95,6 +95,9 @@ def block_inv(x, is_herm=False):
 
     # https://en.wikipedia.org/wiki/Block_matrix#Block_matrix_inversion
     A = A_inv
+    print(type(A_inv))
+    print(type(b))
+    print(type(d_inv))
     B = -A_inv * b * d_inv
     if not is_herm:
         C = -d_inv * c * A_inv
@@ -103,7 +106,7 @@ def block_inv(x, is_herm=False):
     D = d_inv + d_inv * c * A_inv * b * d_inv
 
     return np.concatenate((np.concatenate((A, B), axis=1),
-                           np.concatenate((C, D), axis=1)), axis=0)
+                           np.concatenate((C, D), axis=1)), axis=0).view(block_array)
 
 
 def diff_matrix(size):
