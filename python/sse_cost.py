@@ -90,20 +90,23 @@ def block_inv(x, is_herm=False):
 
     # precompute inverse of d for efficiency
     d_inv = block_inv(d)
-    A_inv = block_inv(a - b * d_inv * c)
+    t1 = b * d_inv
+    t2 = d_inv * c
+    t3 = b * t2
+    A_inv = block_inv(a - t3)
 
 
     # https://en.wikipedia.org/wiki/Block_matrix#Block_matrix_inversion
     A = A_inv
-    B = -A_inv * b * d_inv
+    B = -A_inv * t1
     if not is_herm:
-        C = -d_inv * c * A_inv
+        C = -t2 * A_inv
     else:
         C = block_herm(B)
-    D = d_inv + d_inv * c * A_inv * b * d_inv
+    D = d_inv + t2 * B
 
     return np.concatenate((np.concatenate((A, B), axis=1),
-                           np.concatenate((C, D), axis=1)), axis=0)
+                           np.concatenate((C, D), axis=1)), axis=0).view(block_array)
 
 
 def diff_matrix(size):
