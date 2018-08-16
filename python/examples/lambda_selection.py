@@ -14,7 +14,7 @@ copies = []
 for lam in lambdas:
     print('----------------------', lam)
     measurements = generate_measurements(source_wavelengths=np.array([33.4e-9, 33.7e-9, 33.8e-9]), image_width=51)
-    csbs(measurements, sse_cost, 290, lam=lam)
+    csbs(measurements, sse_cost, 10, lam=lam)
     copies.append(measurements.copies)
 
 # 2D plot of (plane_locations, lambda) vs copies
@@ -25,4 +25,4 @@ plt.xlabel('plane locations')
 plt.yticks(np.arange(len(lambdas)), np.round(lambdas, 3))
 cbar = plt.colorbar()
 cbar.set_label('Copies')
-plt.savefig('lambda_selection.png')
+# plt.savefig('lambda_selection.png')

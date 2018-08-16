@@ -48,8 +48,11 @@ def fourier_slices(measurements):
     cbar.set_label('Copies')
 
     # plot final copies
-    subplots[-1].plot(measurements.plane_locations, measurements.copies)
-    subplots[-1].set_xlim([min(measurements.plane_locations), max(measurements.plane_locations)])
+    subplots[-1].plot(measurements.measurement_wavelengths, measurements.copies)
+    subplots[-1].set_xlim(
+        [min(measurements.measurement_wavelengths),
+         max(measurements.measurement_wavelengths)]
+    )
     subplots[-1].set_title('Final Iteration')
     subplots[-1].set_xlabel('Plane Location (m)')
     subplots[-1].grid(True)

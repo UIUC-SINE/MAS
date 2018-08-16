@@ -6,7 +6,7 @@ import numpy as np
 import timeit
 from mas import psf_generator
 
-def csbs(measurements, cost_module, iterations, **kwargs):
+def csbs(measurements, cost_module, end_copies, **kwargs):
     r""" Perform clustered sbs algorithm on a set of psfs
 
     Args:
@@ -17,14 +17,14 @@ def csbs(measurements, cost_module, iterations, **kwargs):
             `cost` is called each iteration with `measurements` and the currently removed psf_group `psf_group_index`
             `iteration_end` is called after each iteration with `measurements`, and `lowest_psf_group_index`
                 which is the index of the psf group which incurred the lowest cost on the previous iteration
-        iterations (int): run clustered sbs this many times
+        end_copies (int): run clustered sbs until there are this many copies left
         kwargs: extra keyword arguments to pass to cost_module.cost
     """
 
-    assert (iterations < np.sum(measurements.copies)), "`iterations` must be less than the total number of psf groups"
+    assert end_copies > 0, ("end_copies must be positive")
 
     # save csbs parameters in Measurements object
-    measurements.csbs_params = {'iterations': iterations,
+    measurements.csbs_params = {'end_copies': end_copies,
                                 'cost_module': cost_module.__name__,
                                 **kwargs}
 
@@ -32,7 +32,7 @@ def csbs(measurements, cost_module, iterations, **kwargs):
     if hasattr(cost_module, 'init'):
         cost_module.init(measurements)
 
-    for i in range(iterations):
+    while np.sum(measurements.copies) > end_copies:
         lowest_psf_group_index = None
         lowest_psf_group_cost = float('inf')
         # iterate psf_group combinations and find the lowest cost
@@ -63,8 +63,8 @@ def main():
     measurements = psf_generator.generate_measurements()
 
     import random_cost
-    iterations = 1
-    csbs(measurements, random_cost, iterations)
+    end_copies = 5
+    csbs(measurements, random_cost, end_copies)
 
     return measurements
 
