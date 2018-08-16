@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='mas',
-    packages=['./'],
+    packages=['mas'],
     author="Evan Widloski",
     author_email="evan@evanw.org",
     description="Milliarc-second Photon Sieve Simulations",
