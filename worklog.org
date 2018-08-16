@@ -40,7 +40,7 @@
    \end{equation}
    #+end_latex
    
-   #+begin_latex
+   $$
    \begin{aligned}
    \trace (\Sigma_e) &= 
    \trace \left (
@@ -57,7 +57,7 @@
    \begin{bmatrix} \Gamma_{11} - \lambda \Lambda & \Gamma_{12} \\ \Gamma_{21} & \Gamma_{22} - \lambda\Lambda  \end{bmatrix}^{-1}
    \right)
    \end{aligned}
-   #+end_latex
+   $$
    
 ** Outline of CSBS Algorithm
    - Initialization
@@ -179,7 +179,7 @@
 
    $$I \otimes A = \begin{bmatrix} A & & \\ & \ddots & \\ & & A \end{bmatrix}$$
 
-   $$\text{vect}^{-1}(\text{1st row of } A \otimes I) = \begin{bmatrix} a_{11}  & \hdots & a_{1n} \\ 0 & \hdots & 0  \\ \vdots &   & \vdots \\ 0 & \hdots & 0 \end{bmatrix}$$
+   $$\text{vect}^{-1}(\text{1st row of } I \otimes A) = \begin{bmatrix} a_{11}  & \hdots & a_{1n} \\ 0 & \hdots & 0  \\ \vdots &   & \vdots \\ 0 & \hdots & 0 \end{bmatrix}$$
 
    $$B \otimes I = \begin{bmatrix} b_{11} \ident & \hdots & b_{1n} \ident \\
    & \vdots & \\
