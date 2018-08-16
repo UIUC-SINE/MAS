@@ -2,10 +2,10 @@
 # Evan Widloski - 2018-05-22
 # Plot results of CSBS algorithm at each iteration
 
-from csbs import csbs
-import sse_cost
-from psf_generator import generate_measurements
-from plotting import fourier_slices
+from mas.csbs import csbs
+from mas import sse_cost
+from mas.psf_generator import generate_measurements
+from mas.plotting import fourier_slices
 import numpy as np
 
 # initialize A matrix

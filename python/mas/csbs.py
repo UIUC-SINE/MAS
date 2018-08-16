@@ -4,7 +4,7 @@
 
 import numpy as np
 import timeit
-import psf_generator
+from mas import psf_generator
 
 def csbs(measurements, cost_module, iterations, **kwargs):
     r""" Perform clustered sbs algorithm on a set of psfs

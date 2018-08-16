@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import itertools
 from scipy.signal import convolve2d
 # from psf_generation import psf_generation
-import psf_generation
+from mas import psf_generation
 import scipy.misc
 import scipy.linalg
 

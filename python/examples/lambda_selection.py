@@ -1,11 +1,11 @@
 #!/bin/env python3
 # Evan Widloski - 2018-05-22
 # plot final csbs result for a range of lambdas
-from csbs import csbs
-import sse_cost
-from psf_generator import generate_measurements
+from mas.csbs import csbs
+from mas import sse_cost
+from mas.psf_generator import generate_measurements
 import numpy as np
-import pyplot as plt
+from matplotlib import pyplot as plt
 
 
 # run csbs algorithm on a range of lambdas

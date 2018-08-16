@@ -1,10 +1,10 @@
-from psf_generator import generate_measurements
-from sse_cost import block_mul, block_inv, block_herm
+from mas.psf_generator import generate_measurements
+from mas.sse_cost import block_mul, block_inv, block_herm
 import scipy.misc
 import numpy as np
-from sse_cost import init
+from mas.sse_cost import init
 from matplotlib import pyplot as plt
-from plotting import fourier_slices
+from mas.plotting import fourier_slices
 
 
 sources = np.array([scipy.misc.face(gray=True)])[:, np.newaxis, :, :]
