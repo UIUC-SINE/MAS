@@ -7,13 +7,14 @@ from matplotlib import pyplot as plt
 
 # ----- Photon sieve generation -----
 
-focal_length = 3.7425 # (m)
+sieve_diameter = 10e-3 # (m)
 target_wavelength = 33.4e-9 # (m)
-smallest_hole_diameter = 30.24e-6 # (m)
+smallest_hole_diameter = 7.56e-6*4 # (m)
 hole_diameter_to_zone_width = 1.53096
 open_area_ratio = 0.6
+source_distance = np.inf # (m)
 
-sieve_diameter = target_wavelength * focal_length / smallest_hole_diameter
+focal_length = sieve_diameter * smallest_hole_diameter / target_wavelength
 
 num_white_zones = np.floor(sieve_diameter**2 / (8 * target_wavelength * focal_length))
 zone_radii = np.sqrt(2 * target_wavelength * focal_length * np.arange(1, num_white_zones + 1))
@@ -67,25 +68,42 @@ def a_func(x, y):
 a = np.vectorize(a_func)
 
 num_samples = 1001
+# FIXME
+smallest_hole_diameter = white_zones[-1]['hole_diameter']
 DOF = 2 * smallest_hole_diameter**2 / target_wavelength # distance from photon sieve to source
-source_distance = focal_length + DOF
-sampling_interval = target_wavelength * source_distance / sieve_diameter
+plane_distance = focal_length + 0 * DOF
+sampling_interval = target_wavelength * plane_distance / sieve_diameter
+# FIXME
 fxx = np.arange(-(num_samples - 1) / 2, (num_samples - 1) / 2) / (num_samples * sampling_interval)
 fyy = np.arange(-(num_samples - 1) / 2, (num_samples - 1) / 2) / (num_samples * sampling_interval)
+# fxx = np.linspace(-1 / (2 * sampling_interval), 1 / (2 * sampling_interval), num_samples)
+# fyy = np.linspace(-1 / (2 * sampling_interval), 1 / (2 * sampling_interval), num_samples)
 
 fx, fy = np.meshgrid(fxx, fyy)
 
 
-G = (
-    (target_wavelength * source_distance)**4 *
-    a(target_wavelength * source_distance * fx, target_wavelength * source_distance * fy) *
-    np.e**(1j * np.pi * sampling_interval * source_distance**2 * (fx**2 + fy**2))
+# coherent_otf = (
+#     (target_wavelength * plane_distance)**4 *
+#     a(target_wavelength * plane_distance * fx, target_wavelength * plane_distance * fy) *
+#     np.e**(1j * np.pi * sampling_interval * target_wavelength * plane_distance**2 * (fx**2 + fy**2))
+# )
+
+coherent_otf = (
+    a(target_wavelength * plane_distance * fx, target_wavelength * plane_distance * fy) *
+    np.e**(1j * np.pi * (1 / plane_distance + 1 / source_distance) * target_wavelength *
+    plane_distance**2 * (fx**2 + fy**2))
 )
 
-g = np.fft.ifft2(G)
+coherent_psf = np.fft.fftshift(np.fft.ifft2(coherent_otf))
+incoherent_psf = np.abs(coherent_psf)**2
+incoherent_psf = incoherent_psf / np.max(incoherent_psf)
+incoherent_otf = np.fft.fftshift(np.fft.fft2(incoherent_psf))
 
-plt.imshow(
-    np.abs(g)
-)
-
+plt.figure()
+plt.subplot(121)
+plt.imshow(incoherent_psf)
+plt.colorbar()
+plt.subplot(122)
+plt.imshow(np.abs(incoherent_otf)
+plt.colorbar()
 plt.show()
