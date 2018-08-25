@@ -28,7 +28,7 @@ def fourier_slices(measurements):
                                  figsize=figaspect(2),
     )
     for source_index, subplot in enumerate(subplots[:-2]):
-        subplot.imshow(np.abs(slices[:, source_index].T), cmap='magma', interpolation='nearest', aspect='auto')
+        subplot.imshow(np.abs(slices[:, source_index].T)**(3/10), cmap='magma', interpolation='nearest', aspect='auto')
         # subplot.set(adjustable='box', aspect=1/4)
         subplot.set_title('Source {}'.format(source_index))
         subplot.set_ylabel('Frequency support')
@@ -48,7 +48,7 @@ def fourier_slices(measurements):
     cbar.set_label('Copies')
 
     # plot final copies
-    subplots[-1].plot(measurements.measurement_wavelengths, measurements.copies)
+    subplots[-1].plot(measurements.measurement_wavelengths, measurements.copies, 'o')
     subplots[-1].set_xlim(
         [min(measurements.measurement_wavelengths),
          max(measurements.measurement_wavelengths)]

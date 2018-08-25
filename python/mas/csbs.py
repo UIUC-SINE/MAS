@@ -5,6 +5,9 @@
 import numpy as np
 import timeit
 from mas import psf_generator
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def csbs(measurements, cost_module, end_copies, **kwargs):
     r""" Perform clustered sbs algorithm on a set of psfs
@@ -33,6 +36,7 @@ def csbs(measurements, cost_module, end_copies, **kwargs):
         cost_module.init(measurements)
 
     while np.sum(measurements.copies) > end_copies:
+        logging.info('CSBS copies remaining: {}'.format(np.sum(measurements.copies)))
         lowest_psf_group_index = None
         lowest_psf_group_cost = float('inf')
         # iterate psf_group combinations and find the lowest cost
