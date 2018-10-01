@@ -85,8 +85,65 @@ def photon_sieve(*, sieve_diameter, smallest_hole_diameter,
 
     return white_zones
 
+def circ_incoherent_psf(
+        *,
+        source_wavelength,
+        measurement_wavelength,
+        sieve_diameter,
+        smallest_hole_diameter,
+        image_width,
+        **kwargs
+):
+    """
+    Generate an approximation of an incoherent photon-sieve PSF
 
-def incoherent_psf(
+    Args:
+        source_wavelength (float): wavelength of monochromatic plane-wave source
+        measurement_wavelength (float): wavelength of focal plane to measure at
+        sieve_diameter (float): photon-sieve diameter
+        smallest_hole_diameter (float): diameter of smallest hole in photon-sieve
+        image_width (int): width of returned psf, in pixels (must be odd)
+
+    Returns:
+        image_width by image_width ndarray containing incoherent psf
+
+    """
+    assert image_width % 2 == 1, 'image width must be odd'
+
+    focal_length = sieve_diameter * smallest_hole_diameter / source_wavelength
+    plane_location = sieve_diameter * smallest_hole_diameter / measurement_wavelength
+    # depth of focus
+    dof = 2 * smallest_hole_diameter**2 / source_wavelength
+    defocus_amount = (plane_location - focal_length) / dof
+    # diffraction limited cutoff frequency
+    # (equivalent to sieve_diameter / (source_wavelength * focal_length))
+    cutoff_freq = 1 / smallest_hole_diameter
+    pixel_size = 1 / (2 * cutoff_freq)
+
+    # diffraction limited bandwidth at sensor plane
+    diff_limited_bandwidth = sieve_diameter / (source_wavelength * plane_location)
+    # sampling interval in frequency domain
+    delta_freq = 1 / (image_width * pixel_size)
+
+    # defocusing parameter in Fresnel formula
+    epsilon_1 = - defocus_amount * dof / (focal_length * (focal_length + defocus_amount * dof))
+
+    # points at which to evaluate Fresnel formula
+    freqs = delta_freq * np.linspace(-(image_width - 1) // 2, (image_width - 1) // 2, num=image_width)
+
+    f_xx, f_yy = np.meshgrid(freqs, freqs)
+    # circular aperture
+    circ = np.sqrt(f_xx**2 + f_yy**2) <= diff_limited_bandwidth / 2
+    # Fresnel approximation through aperture and free space
+    h_coherent = circ * np.e**(1j * np.pi * epsilon_1 *
+                             source_wavelength * plane_location**2 *
+                             (f_xx**2 + f_yy**2))
+    coherent_psf = np.fft.fftshift(np.fft.ifft2(h_coherent))
+    incoherent_psf = np.abs(coherent_psf)**2
+
+    return incoherent_psf
+
+def sieve_incoherent_psf(
         *,
         white_zones,
         source_wavelength,
@@ -102,6 +159,7 @@ def incoherent_psf(
     Args:
         white_zones (list): list of dictionaries repesenting each white_zone
         source_wavelength (float): wavelength of monochromatic plane-wave source
+        measurement_wavelength (float): wavelength of focal plane to measure at
         sieve_diameter (float): photon-sieve diameter
         smallest_hole_diameter (float): diameter of smallest hole in photon-sieve
         image_width (int): width of returned psf, in pixels (must be odd)
@@ -110,9 +168,6 @@ def incoherent_psf(
     Returns:
         image_width by image_width ndarray containing incoherent psf
     """
-
-    print(source_wavelength, measurement_wavelength, sieve_diameter,
-          smallest_hole_diameter, image_width)
 
     assert image_width % 2 == 1, 'image width must be odd'
 
@@ -175,7 +230,8 @@ def generate_measurements(
         source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9,
         measurement_wavelengths=30, sieve_diameter=10e-3,
         smallest_hole_diameter=7.56e-6 * 4, image_width=301, num_copies=10,
-        open_area_ratio=0.6, hole_diameter_to_zone_width=1.53096
+        open_area_ratio=0.6, hole_diameter_to_zone_width=1.53096,
+        psf_generator=sieve_incoherent_psf, sieve_generator=photon_sieve
 ):
     """
     Generate measurements array for CSBS algorithm
@@ -186,6 +242,8 @@ def generate_measurements(
         sieve_diameter (float): photon-sieve diameter
         smallest_hole_diameter (float): smallest photon-sieve aperture diameter
         image_width (int): width of psfs (must be odd)
+        psf_generator (def): function to generate photon sieve psf (default, mas.psf_generator.sieve_incoherent_psf)
+        sieve_generator (def): function to generate sieve structure ( default mas.psf_generator.photon_sieve)
 
     Returns:
         Measurements object with psfs and csbs data
@@ -203,6 +261,8 @@ def generate_measurements(
 
     psfs = np.empty((0, num_sources, image_width, image_width))
 
+    logging.info("Generating photon sieve structure...")
+    # generate photon sieve structure
     white_zones = photon_sieve(
         sieve_diameter=sieve_diameter,
         smallest_hole_diameter=smallest_hole_diameter,
@@ -210,15 +270,20 @@ def generate_measurements(
         open_area_ratio=open_area_ratio
     )
 
+    logging.info("Generating psfs...")
     # generate incoherent measurements for each wavelength and plane location
-    for n, measurement_wavelength in enumerate(measurement_wavelengths):
+    for m, measurement_wavelength in enumerate(measurement_wavelengths):
 
-        if n % 10 == 0:
-            logging.info('{} iterations'.format(n))
 
         psf_group = np.empty((0, image_width, image_width))
-        for source_wavelength in source_wavelengths:
-            psf = incoherent_psf(
+        for n, source_wavelength in enumerate(source_wavelengths):
+            logging.info(
+                '{}/{}'.format(
+                    m * len(source_wavelengths) + n + 1,
+                    len(measurement_wavelengths) * len(source_wavelengths)
+                )
+            )
+            psf = psf_generator(
                 white_zones=white_zones,
                 source_wavelength=float(source_wavelength),
                 sieve_diameter=float(sieve_diameter),

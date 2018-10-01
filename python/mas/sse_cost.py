@@ -156,8 +156,11 @@ def init(measurements):
 def iteration_end(measurements, lowest_psf_group_index):
     """
     """
-    measurements.initialized_data['GAM'] -= block_mul(block_herm(measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]),
-                                                      measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1])
+    measurements.initialized_data['GAM'] -= block_mul(
+        block_herm(measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]),
+        measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]
+    )
+
 
 def cost(measurements, psf_group_index, **kwargs):
     """
@@ -165,12 +168,14 @@ def cost(measurements, psf_group_index, **kwargs):
 
     _, num_sources, _, _ = measurements.psfs.shape
 
-    SIG_e_dft = (measurements.initialized_data['GAM'] -
-                 block_mul(block_herm(measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
-                           measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]) +
-                 kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), measurements.initialized_data['LAM'])
+    SIG_e_dft = (
+        measurements.initialized_data['GAM'] -
+        block_mul(
+            block_herm(measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
+            measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]
+        ) +
+        kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), measurements.initialized_data['LAM'])
     )
-
 
     return np.sum(np.trace(block_inv(SIG_e_dft)))
 

@@ -25,9 +25,11 @@ pad_x2 = (sources[0].shape[1] - measurements.image_width) // 2
 pad_y1 = int(np.ceil((sources[0].shape[2] - measurements.image_width) / 2))
 pad_y2 = (sources[0].shape[2] - measurements.image_width) // 2
 
-measurements.psfs = np.pad(measurements.psfs,
-                           ((0, 0), (0, 0), (pad_x1, pad_x2), (pad_y1, pad_y2)),
-                           mode='constant')
+measurements.psfs = np.pad(
+    measurements.psfs,
+    ((0, 0), (0, 0), (pad_x1, pad_x2), (pad_y1, pad_y2)),
+    mode='constant'
+)
 
 init(measurements)
 

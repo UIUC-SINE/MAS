@@ -36,7 +36,7 @@ def csbs(measurements, cost_module, end_copies, **kwargs):
         cost_module.init(measurements)
 
     while np.sum(measurements.copies) > end_copies:
-        logging.info('CSBS copies remaining: {}'.format(np.sum(measurements.copies)))
+        logging.info('CSBS copies remaining: {}'.format(np.sum(measurements.copies).astype(int)))
         lowest_psf_group_index = None
         lowest_psf_group_cost = float('inf')
         # iterate psf_group combinations and find the lowest cost
