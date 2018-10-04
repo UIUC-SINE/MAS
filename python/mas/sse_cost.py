@@ -42,6 +42,7 @@ def block_mul(x, y):
         ndarray: 4D matrix of dimension (i, m, k, l)
     """
 
+    assert x.shape[1] == y.shape[0] and x.shape[2:] == y.shape[2:], "Matrix dimensions do not agree"
     return np.einsum('ijkl,jmkl->imkl', x, y).view(block_array)
 
 
