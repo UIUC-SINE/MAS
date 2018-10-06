@@ -4,6 +4,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import figaspect
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def fourier_slices(measurements):
     """Plot results of CSBS algorithm
@@ -14,8 +17,6 @@ def fourier_slices(measurements):
     Args:
         measurements (Measurements): measurements object after CSBS
     """
-
-    assert measurements.copies_history, "No copies_history.  Did you run CSBS yet?"
 
     _, num_sources, image_width, _ = measurements.psfs.shape
 
@@ -35,17 +36,20 @@ def fourier_slices(measurements):
         subplot.get_xaxis().set_visible(False)
 
 
-    # plot copies at each plane vs iterations
-    copies_progression = np.empty((0, len(measurements.copies)))
-    copies = np.ones(len(measurements.copies)) * measurements.num_copies
-    for copy_removed in measurements.copies_history:
-        copies[copy_removed] -= 1
-        copies_progression = np.append(copies_progression, [copies], axis=0)
-    img = subplots[-2].imshow(copies_progression, cmap='magma', interpolation='nearest', aspect='auto')
-    subplots[-2].set_ylabel('Iterations')
-    subplots[-2].get_xaxis().set_visible(False)
-    cbar = plt.colorbar(img, ax=subplots[-2])
-    cbar.set_label('Copies')
+    if measurements.copies_history:
+        # plot copies at each plane vs iterations
+        copies_progression = np.empty((0, len(measurements.copies)))
+        copies = np.ones(len(measurements.copies)) * measurements.num_copies
+        for copy_removed in measurements.copies_history:
+            copies[copy_removed] -= 1
+            copies_progression = np.append(copies_progression, [copies], axis=0)
+        img = subplots[-2].imshow(copies_progression, cmap='magma', interpolation='nearest', aspect='auto')
+        subplots[-2].set_ylabel('Iterations')
+        subplots[-2].get_xaxis().set_visible(False)
+        cbar = plt.colorbar(img, ax=subplots[-2])
+        cbar.set_label('Copies')
+    else:
+        logging.warning("No copies_history.  Did you run CSBS?")
 
     # plot final copies
     subplots[-1].plot(measurements.measurement_wavelengths, measurements.copies, 'o')
@@ -58,9 +62,10 @@ def fourier_slices(measurements):
     subplots[-1].grid(True)
 
     # show csbs parameters
-    plt.figtext(0.98, 0.98, str(measurements.csbs_params),
-                horizontalalignment='right',
-                rotation='vertical')
+    if hasattr(measurements, 'csbs_params'):
+        plt.figtext(0.98, 0.98, str(measurements.csbs_params),
+                    horizontalalignment='right',
+                    rotation='vertical')
 
     fig.constrained_layout = True
 
