@@ -90,25 +90,22 @@ def block_inv(x, is_herm=False):
 
 
     # precompute inverse of d for efficiency
-    d_inv = block_inv(d)
+    d_inv = block_inv(d, is_herm=is_herm)
     t1 = b * d_inv
     t2 = d_inv * c
     t3 = b * t2
-    A_inv = block_inv(a - t3)
-
+    A_inv = block_inv(a - t3, is_herm=is_herm)
 
     # https://en.wikipedia.org/wiki/Block_matrix#Block_matrix_inversion
-    A = A_inv
-    B = -A_inv * t1
+    B_inv = -A_inv * t1
     if not is_herm:
-        C = -t2 * A_inv
+        C_inv = -t2 * A_inv
     else:
-        C = block_herm(B)
-    D = d_inv + t2 * B
+        C_inv = block_herm(B_inv)
+    D_inv = d_inv - t2 * B_inv
 
-    return np.concatenate((np.concatenate((A, B), axis=1),
-                           np.concatenate((C, D), axis=1)), axis=0).view(block_array)
-
+    return np.concatenate((np.concatenate((A_inv, B_inv), axis=1),
+                           np.concatenate((C_inv, D_inv), axis=1)), axis=0).view(block_array)
 
 def diff_matrix(size):
     """Create discrete derivative approximation matrix
