@@ -3,10 +3,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 import h5py
 from PIL import Image
-from sse_cost import *
+from mas.sse_cost import block_mul
 # from psf_generator import photon_sieve, incoherent_psf
 from numpy.fft import fft2, ifft2, fftshift, ifftshift
 from scipy.stats import poisson

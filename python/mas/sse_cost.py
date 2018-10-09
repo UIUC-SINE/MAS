@@ -161,18 +161,33 @@ def init(measurements):
     """
     """
     _, _, rows, cols = measurements.psfs.shape
-    # Dx = np.kron(np.eye(rows), diff_matrix(cols))
-    # Dy = np.kron(diff_matrix(cols), np.eye(rows))
     psf_dfts = np.fft.fft2(measurements.psfs, axes=(2, 3))
 
-    LAM_idft = np.zeros((rows, cols))
-    LAM_idft[0, :] = (diff_matrix(cols).T @ diff_matrix(cols))[0]
-    LAM_idft[:, 0] = (diff_matrix(rows).T @ diff_matrix(rows))[0]
+    diffx_kernel = np.zeros((rows, cols))
+    diffx_kernel[0, 0] = -1
+    diffx_kernel[0, 1] = 1
+    diffy_kernel = np.zeros((rows, cols))
+    diffy_kernel[0, 0] = -1
+    diffy_kernel[1, 0] = 1
+    LAM = (
+        np.abs(np.fft.fft2(diffx_kernel))**2 +
+        np.abs(np.fft.fft2(diffy_kernel))**2
+    )
+
 
     initialized_data = {
         "psf_dfts": psf_dfts,
-        "GAM": block_mul(block_herm(psf_dfts), psf_dfts),
-        "LAM": np.fft.fft2(LAM_idft)
+        "GAM": block_mul(
+            block_herm(
+                # scale rows of psf_dfts by copies^2
+                np.einsum(
+                    'i,ijkl->ijkl', measurements.copies ** 2,
+                    psf_dfts
+                )
+            ),
+            psf_dfts
+        ),
+        "LAM": 
     }
 
     measurements.initialized_data = initialized_data
