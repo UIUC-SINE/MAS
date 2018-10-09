@@ -107,6 +107,33 @@ def block_inv(x, is_herm=False):
     return np.concatenate((np.concatenate((A_inv, B_inv), axis=1),
                            np.concatenate((C_inv, D_inv), axis=1)), axis=0).view(block_array)
 
+
+def block_inv2(x):
+    y = np.zeros_like(x)
+    for i in range(x.shape[2]):
+        for j in range(x.shape[3]):
+            t = x[:,:,i,j]
+            y[:,:,i,j] = 1/(t[0,0]*t[1,1]-t[1,0]*t[0,1])*np.array([[t[1,1],-t[0,1]],[-t[1,0],t[0,0]]])
+    return y
+
+def block_inv3(A):
+    from scipy.linalg import lapack
+    # lapack_routine = lapack_lite.dgesv
+    # Looking one step deeper, we see that solve performs many sanity checks.
+    # Stripping these, we have:
+    b = np.identity(A.shape[0], dtype=A.dtype)
+
+    identity  = np.eye(A.shape[0])
+    def lapack_inverse(a):
+        b = np.copy(identity)
+        return lapack.dgesv(a, b)[2]
+
+    out = np.zeros_like(A)
+    for i in range(A.shape[2]):
+        for j in range(A.shape[3]):
+            out[:,:,i,j] = lapack_inverse(A[:,:,i,j])
+    return out
+
 def diff_matrix(size):
     """Create discrete derivative approximation matrix
 
