@@ -47,7 +47,7 @@ def photon_sieve(*, sieve_diameter, smallest_hole_diameter,
         sieve_diameter (float): photon sieve diameter
         smallest_hole_diameter (float): diameter of holes on outermost zone
         hole_diameter_to_zone_width (float): ratio of hole diameter to zone
-        open_area_ratio (float): ratio of hole area to total sieve area 
+        open_area_ratio (float): ratio of hole area to total sieve area
 
     Returns:
         A list of dictionaries representing each 'open' zone with the following keys:

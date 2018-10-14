@@ -181,13 +181,13 @@ def init(measurements):
             block_herm(
                 # scale rows of psf_dfts by copies^2
                 np.einsum(
-                    'i,ijkl->ijkl', measurements.copies ** 2,
+                    'i,ijkl->ijkl', measurements.copies,
                     psf_dfts
                 )
             ),
             psf_dfts
         ),
-        "LAM": 
+        "LAM": LAM
     }
 
     measurements.initialized_data = initialized_data

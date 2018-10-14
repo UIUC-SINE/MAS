@@ -44,15 +44,17 @@ def csbs(measurements, cost_module, end_copies, **kwargs):
             # only evaluate groups with nonzero copies
             if measurements.copies[psf_group_index] >= 1:
                 # remove a psf group and check cost
-                measurements.copies[psf_group_index] -= 1
-                psf_group_cost = cost_module.cost(measurements,
-                                                  psf_group_index,
-                                                  **kwargs)
+                # measurements.copies[psf_group_index] -= 1
+                psf_group_cost = cost_module.cost(
+                    measurements,
+                    psf_group_index,
+                    **kwargs
+                )
                 if psf_group_cost < lowest_psf_group_cost:
                     lowest_psf_group_cost = psf_group_cost
                     lowest_psf_group_index = psf_group_index
                 # add the psf group back
-                measurements.copies[psf_group_index] += 1
+                # measurements.copies[psf_group_index] += 1
 
         # permanently remove the psf group which incurred the lowest cost
         measurements.copies[lowest_psf_group_index] -= 1
