@@ -187,7 +187,7 @@ def init(measurements):
             ),
             psf_dfts
         ),
-        "LAM": 
+        "LAM": LAM
     }
 
     measurements.initialized_data = initialized_data
