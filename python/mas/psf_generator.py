@@ -1,5 +1,6 @@
 #!/bin/env python3
 # Evan Widloski - 2018-04-18
+# functions for generating photon sieve PSFs
 
 import numpy as np
 import logging
@@ -20,7 +21,7 @@ def circ_incoherent_psf(
         **kwargs
 ):
     """
-    Generate an approximation of an incoherent photon-sieve PSF
+    Fast approximation of photon sieve PSF using circular aperture
 
     Args:
         source_wavelength (float): wavelength of monochromatic plane-wave source
