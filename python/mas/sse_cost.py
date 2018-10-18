@@ -107,6 +107,33 @@ def block_inv(x, is_herm=False):
     return np.concatenate((np.concatenate((A_inv, B_inv), axis=1),
                            np.concatenate((C_inv, D_inv), axis=1)), axis=0).view(block_array)
 
+
+def block_inv2(x):
+    y = np.zeros_like(x)
+    for i in range(x.shape[2]):
+        for j in range(x.shape[3]):
+            t = x[:,:,i,j]
+            y[:,:,i,j] = 1/(t[0,0]*t[1,1]-t[1,0]*t[0,1])*np.array([[t[1,1],-t[0,1]],[-t[1,0],t[0,0]]])
+    return y
+
+def block_inv3(A):
+    from scipy.linalg import lapack
+    # lapack_routine = lapack_lite.dgesv
+    # Looking one step deeper, we see that solve performs many sanity checks.
+    # Stripping these, we have:
+    b = np.identity(A.shape[0], dtype=A.dtype)
+
+    identity  = np.eye(A.shape[0])
+    def lapack_inverse(a):
+        b = np.copy(identity)
+        return lapack.dgesv(a, b)[2]
+
+    out = np.zeros_like(A)
+    for i in range(A.shape[2]):
+        for j in range(A.shape[3]):
+            out[:,:,i,j] = lapack_inverse(A[:,:,i,j])
+    return out
+
 def diff_matrix(size):
     """Create discrete derivative approximation matrix
 
@@ -134,18 +161,33 @@ def init(measurements):
     """
     """
     _, _, rows, cols = measurements.psfs.shape
-    # Dx = np.kron(np.eye(rows), diff_matrix(cols))
-    # Dy = np.kron(diff_matrix(cols), np.eye(rows))
     psf_dfts = np.fft.fft2(measurements.psfs, axes=(2, 3))
 
-    LAM_idft = np.zeros((rows, cols))
-    LAM_idft[0, :] = (diff_matrix(cols).T @ diff_matrix(cols))[0]
-    LAM_idft[:, 0] = (diff_matrix(rows).T @ diff_matrix(rows))[0]
+    diffx_kernel = np.zeros((rows, cols))
+    diffx_kernel[0, 0] = -1
+    diffx_kernel[0, 1] = 1
+    diffy_kernel = np.zeros((rows, cols))
+    diffy_kernel[0, 0] = -1
+    diffy_kernel[1, 0] = 1
+    LAM = (
+        np.abs(np.fft.fft2(diffx_kernel))**2 +
+        np.abs(np.fft.fft2(diffy_kernel))**2
+    )
+
 
     initialized_data = {
         "psf_dfts": psf_dfts,
-        "GAM": block_mul(block_herm(psf_dfts), psf_dfts),
-        "LAM": np.fft.fft2(LAM_idft)
+        "GAM": block_mul(
+            block_herm(
+                # scale rows of psf_dfts by copies^2
+                np.einsum(
+                    'i,ijkl->ijkl', measurements.copies ** 2,
+                    psf_dfts
+                )
+            ),
+            psf_dfts
+        ),
+        "LAM": LAM
     }
 
     measurements.initialized_data = initialized_data

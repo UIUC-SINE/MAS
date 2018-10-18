@@ -3,26 +3,29 @@
 # plot final csbs result for a range of lambdas
 from mas.csbs import csbs
 from mas import sse_cost
-from mas.psf_generator import generate_measurements, circ_incoherent_psf
+from mas.psf_generator import Measurements, PhotonSieve, circ_incoherent_psf
 import numpy as np
 from matplotlib import pyplot as plt
 import copy
 
 
+# generate photon sieve with default parameters
+ps = PhotonSieve()
+
 # run csbs algorithm on a range of lambdas
 lambdas = np.logspace(-10, 2, 20)
 copies = []
-orig_measurements = generate_measurements(
+orig_m = Measurements(
+    ps,
     source_wavelengths=np.array([33.4e-9, 33.7e-9, 33.8e-9]),
-    measurement_wavelengths=5,
-    image_width=51,
     psf_generator=circ_incoherent_psf,
+    image_width=51
 )
 for lam in lambdas:
     print('----------------------', lam)
-    measurements = copy.deepcopy(orig_measurements)
-    csbs(measurements, sse_cost, 10, lam=lam)
-    copies.append(measurements.copies)
+    m = copy.deepcopy(orig_m)
+    csbs(m, sse_cost, 10, lam=lam)
+    copies.append(m.copies)
 
 # 2D plot of (plane_locations, lambda) vs copies
 plt.figure(constrained_layout=True)
