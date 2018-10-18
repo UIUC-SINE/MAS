@@ -102,7 +102,7 @@ def psf_slider(measurements):
         for n, im in enumerate(ims):
             im.set_array(measurements.psfs[measurement_plane_index, n])
             im.set_norm(Normalize())
-            fig.canvas.draw_idle()
+        fig.canvas.draw_idle()
 
     slider.on_changed(update)
 
