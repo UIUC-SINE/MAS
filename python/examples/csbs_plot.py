@@ -4,19 +4,25 @@
 
 from mas.csbs import csbs
 from mas import sse_cost
-from mas.psf_generator import generate_measurements
-from mas.plotting import fourier_slices
+from mas.psf_generator import Measurements, PhotonSieve, circ_incoherent_psf
+from mas.plotting import fourier_slices, psf_slider
 import numpy as np
 
-# initialize A matrix
-measurements = generate_measurements(source_wavelengths=np.array([32.0e-9,  33.4e-9, 35.0e-9]),
-                                     image_width=501,
-                                     num_copies=10)
+# create photon sieve with default parameters
+ps = PhotonSieve()
+# generate psfs
+m = Measurements(
+    ps,
+    source_wavelengths=np.array([32.0e-9,  33.4e-9, 35.0e-9]),
+    psf_generator=circ_incoherent_psf,
+    image_width=501,
+    num_copies=10
+)
 
 # run CSBS (modifies measurements in place)
-csbs(measurements, sse_cost, 10, lam=100)
+csbs(m, sse_cost, 10, lam=100)
 
 # plot results
-plt = fourier_slices(measurements)
+plt = fourier_slices(m)
 plt.show()
 # plt.savefig('csbs_fourier_slices.png')
