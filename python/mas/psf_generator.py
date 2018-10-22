@@ -180,8 +180,6 @@ class PhotonSieve():
         diameter (float): photon-sieve diameter
         open_area_ratio (float): open area ratio (ratio of hole area to total sieve area)
         hole_diameter_to_zone_width (float): ratio of hole diameter to zonewidth
-        generate_mask (bool): controls whether to generate a mask or not (default: False)
-        mask_width (int): controls the size of the mask (assuming square mask)
 
     Attributes:
         smallest_hole_diameter
@@ -197,9 +195,7 @@ class PhotonSieve():
             smallest_hole_diameter=7e-6,
             diameter=10e-3,
             open_area_ratio=0.6,
-            hole_diameter_to_zone_width=1.53096,
-            generate_mask=False,
-            mask_width=1001
+            hole_diameter_to_zone_width=1.53096
     ):
 
         self.smallest_hole_diameter = smallest_hole_diameter
@@ -218,7 +214,7 @@ class PhotonSieve():
             radius = np.sqrt(x**2 + y**2)
             # return true if point falls inside hole
             if radius >= inner and radius < outer:
-                white_zone = self.structure[np.searchsorted(self.outer_radii, radius)]
+                white_zone = self.structure[np.searchsorted(outer_radii, radius)]
                 theta = np.arctan2(y, x)
                 closest_hole = int(
                     np.round(len(white_zone['hole_coordinates']) * theta / (2 * np.pi))
@@ -236,6 +232,24 @@ class PhotonSieve():
 
         self.mask = np.vectorize(mask)
 
+    def get_mask(self, mask_width):
+        """
+        Return array representing the mask
+
+        Args:
+            mask_width (int): number of samples in each direction
+
+        Returns:
+            2d ndarray of the generated binary mask
+        """
+
+        xx = self.diameter * np.arange(
+            -(mask_width - 1) / 2,
+            (mask_width - 1) / 2 + 1
+        ) / mask_width
+        yy = xx
+        x, y = np.meshgrid(xx, yy)
+        return self.mask(x,y)
 
 
 class Measurements():
