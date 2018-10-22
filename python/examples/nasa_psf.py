@@ -2,7 +2,7 @@
 # Evan Widloski - 2018-10-14
 # generate some PSFs and save to HDF5 file
 
-from mas.psf_generator import Measurements, PhotonSieve, circ_incoherent_psf
+from mas.psf_generator import PSFs, PhotonSieve, circ_incoherent_psf
 import numpy as np
 import h5py
 
@@ -19,7 +19,7 @@ dof_array = np.array([0, 1, 2, 3, 5, 7])
 dof = 2 * ps.smallest_hole_diameter**2 / source_wavelengths
 focal_length = ps.diameter * ps.smallest_hole_diameter / source_wavelengths
 
-measurements = Measurements(
+psfs = PSFs(
     ps,
     source_wavelengths=source_wavelengths,
     measurement_wavelengths=ps.diameter * ps.smallest_hole_diameter / (focal_length + dof_array * dof),
@@ -29,6 +29,6 @@ measurements = Measurements(
 )
 
 # save to file
-with h5py.File('/tmp/psfs.h5') as f:
-    for psf, dof in zip(measurements.psfs[:, 0, :, :], dof_array):
+with h5py.File('/tmp/psfs.h5', 'w') as f:
+    for psf, dof in zip(psfs.psfs[:, 0, :, :], dof_array):
         f.create_dataset("dof={}".format(dof), data=psf)

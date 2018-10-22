@@ -157,11 +157,11 @@ def diff_matrix(size):
     return np.eye(size) - np.roll(np.eye(size), -1, axis=0)
 
 
-def init(measurements):
+def init(psfs):
     """
     """
-    _, _, rows, cols = measurements.psfs.shape
-    psf_dfts = np.fft.fft2(measurements.psfs, axes=(2, 3))
+    _, _, rows, cols = psfs.psfs.shape
+    psf_dfts = np.fft.fft2(psfs.psfs, axes=(2, 3))
 
     diffx_kernel = np.zeros((rows, cols))
     diffx_kernel[0, 0] = -1
@@ -181,7 +181,7 @@ def init(measurements):
             block_herm(
                 # scale rows of psf_dfts by copies
                 np.einsum(
-                    'i,ijkl->ijkl', measurements.copies,
+                    'i,ijkl->ijkl', psfs.copies,
                     psf_dfts
                 )
             ),
@@ -190,31 +190,31 @@ def init(measurements):
         "LAM": LAM
     }
 
-    measurements.initialized_data = initialized_data
+    psfs.initialized_data = initialized_data
 
 
-def iteration_end(measurements, lowest_psf_group_index):
+def iteration_end(psfs, lowest_psf_group_index):
     """
     """
-    measurements.initialized_data['GAM'] -= block_mul(
-        block_herm(measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]),
-        measurements.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]
+    psfs.initialized_data['GAM'] -= block_mul(
+        block_herm(psfs.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]),
+        psfs.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]
     )
 
 
-def cost(measurements, psf_group_index, **kwargs):
+def cost(psfs, psf_group_index, **kwargs):
     """
     """
 
-    _, num_sources, _, _ = measurements.psfs.shape
+    _, num_sources, _, _ = psfs.psfs.shape
 
     SIG_e_dft = (
-        measurements.initialized_data['GAM'] -
+        psfs.initialized_data['GAM'] -
         block_mul(
-            block_herm(measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
-            measurements.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]
+            block_herm(psfs.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
+            psfs.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]
         ) +
-        kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), measurements.initialized_data['LAM'])
+        kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), psfs.initialized_data['LAM'])
     )
 
     return np.sum(np.trace(block_inv(SIG_e_dft)))

@@ -252,7 +252,7 @@ class PhotonSieve():
         return self.mask(x,y)
 
 
-class Measurements():
+class PSFs():
     """A class for holding PSFs and state data during csbs iterations
 
     Args:
@@ -264,7 +264,7 @@ class Measurements():
 
     Attributes:
         psfs (ndarray): an array holding the 2D psfs
-        psf_ffts (ndarray): an array holding the 2D psf ffts
+        psf_dfts (ndarray): an array holding the 2D psf ffts
 
         All arguments are also stored as attributes
     """
