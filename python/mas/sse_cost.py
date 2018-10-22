@@ -179,9 +179,9 @@ def init(measurements):
         "psf_dfts": psf_dfts,
         "GAM": block_mul(
             block_herm(
-                # scale rows of psf_dfts by copies^2
+                # scale rows of psf_dfts by copies
                 np.einsum(
-                    'i,ijkl->ijkl', measurements.copies ** 2,
+                    'i,ijkl->ijkl', measurements.copies,
                     psf_dfts
                 )
             ),

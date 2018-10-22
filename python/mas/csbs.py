@@ -27,9 +27,11 @@ def csbs(measurements, cost_module, end_copies, **kwargs):
     assert end_copies > 0, ("end_copies must be positive")
 
     # save csbs parameters in Measurements object
-    measurements.csbs_params = {'end_copies': end_copies,
-                                'cost_module': cost_module.__name__,
-                                **kwargs}
+    measurements.csbs_params = {
+        'end_copies': end_copies,
+        'cost_module': cost_module.__name__,
+        **kwargs
+    }
 
     # call 'init' if it exists
     if hasattr(cost_module, 'init'):
@@ -43,16 +45,14 @@ def csbs(measurements, cost_module, end_copies, **kwargs):
         for psf_group_index in range(len(measurements.psfs)):
             # only evaluate groups with nonzero copies
             if measurements.copies[psf_group_index] >= 1:
-                # remove a psf group and check cost
-                measurements.copies[psf_group_index] -= 1
-                psf_group_cost = cost_module.cost(measurements,
-                                                  psf_group_index,
-                                                  **kwargs)
+                psf_group_cost = cost_module.cost(
+                    measurements,
+                    psf_group_index,
+                    **kwargs
+                )
                 if psf_group_cost < lowest_psf_group_cost:
                     lowest_psf_group_cost = psf_group_cost
                     lowest_psf_group_index = psf_group_index
-                # add the psf group back
-                measurements.copies[psf_group_index] += 1
 
         # permanently remove the psf group which incurred the lowest cost
         measurements.copies[lowest_psf_group_index] -= 1
