@@ -61,16 +61,3 @@ def csbs(measurements, cost_module, end_copies, **kwargs):
         # call 'iteration_end' if it exists
         if hasattr(cost_module, 'iteration_end'):
             cost_module.iteration_end(measurements, lowest_psf_group_index)
-
-def main():
-
-    measurements = psf_generator.generate_measurements()
-
-    import random_cost
-    end_copies = 5
-    csbs(measurements, random_cost, end_copies)
-
-    return measurements
-
-if __name__ == '__main__':
-    main()
