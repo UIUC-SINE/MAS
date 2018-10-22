@@ -200,7 +200,7 @@ def sieve_structure(sieve):
         (PhotonSieve): a PhotonSieve instance holding sieve parameters
 
     Returns:
-    A list of dictionaries representing each 'open' zone with the following keys:
+        A list of dictionaries representing each 'open' zone with the following keys:
 
         hole_diameter (float): diameter of holes in this zone
         hole_coordinates (list): list of tuples containing x and y hole coordinates
