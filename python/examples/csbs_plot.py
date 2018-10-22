@@ -5,7 +5,7 @@
 from mas.csbs import csbs
 from mas import sse_cost
 from mas.psf_generator import Measurements, PhotonSieve, circ_incoherent_psf
-from mas.plotting import fourier_slices
+from mas.plotting import fourier_slices, psf_slider
 import numpy as np
 
 # create photon sieve with default parameters
@@ -23,6 +23,6 @@ m = Measurements(
 csbs(m, sse_cost, 10, lam=20)
 
 # plot results
-plt = fourier_slices(measurements)
+plt = fourier_slices(m)
 plt.show()
 # plt.savefig('csbs_fourier_slices.png')

@@ -10,7 +10,6 @@ import functools
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-
 def circ_incoherent_psf(
         *,
         sieve,
@@ -36,17 +35,17 @@ def circ_incoherent_psf(
     """
     assert image_width % 2 == 1, 'image width must be odd'
 
-    focal_length = sieve.d * sieve.shd / source_wavelength
-    plane_location = sieve.d * sieve.shd / measurement_wavelength
+    focal_length = sieve.diameter * sieve.smallest_hole_diameter / source_wavelength
+    plane_location = sieve.diameter * sieve.smallest_hole_diameter / measurement_wavelength
     # depth of focus
-    dof = 2 * sieve.shd**2 / source_wavelength
+    dof = 2 * sieve.smallest_hole_diameter**2 / source_wavelength
     defocus_amount = (plane_location - focal_length) / dof
     # diffraction limited cutoff frequency
-    # (equivalent to sieve.d / (source_wavelength * focal_length))
-    cutoff_freq = 1 / sieve.shd
+    # (equivalent to sieve.diameter / (source_wavelength * focal_length))
+    cutoff_freq = 1 / sieve.smallest_hole_diameter
 
     # diffraction limited bandwidth at sensor plane
-    diff_limited_bandwidth = sieve.d / (source_wavelength * plane_location)
+    diff_limited_bandwidth = sieve.diameter / (source_wavelength * plane_location)
     # sampling interval in frequency domain
     delta_freq = 1 / (image_width * sampling_interval)
 
@@ -67,6 +66,7 @@ def circ_incoherent_psf(
     incoherent_psf = np.abs(coherent_psf)**2
 
     return incoherent_psf
+
 
 def sieve_incoherent_psf(
         *,
@@ -94,32 +94,8 @@ def sieve_incoherent_psf(
 
     assert image_width % 2 == 1, 'image width must be odd'
 
-    def a_func(x, y):
-        radius = np.sqrt(x**2 + y**2)
-        # return True if point falls inside hole
-        for white_zone in sieve.structure:
-            if radius >= white_zone['inner_radius']:
-                if radius < white_zone['outer_radius']:
-                    theta = np.arctan2(y, x)
-                    closest_hole = int(
-                        np.round(len(white_zone['hole_coordinates']) * theta / (2 * np.pi))
-                    )
-                    # check if point falls in hole
-                    if np.sqrt(
-                            (x - white_zone['hole_coordinates'][closest_hole][0])**2 +
-                            (y - white_zone['hole_coordinates'][closest_hole][1])**2
-                    ) < white_zone['hole_diameter'] / 2:
-                        return True
-                    else:
-                        return False
-            else:
-                return False
-        return False
-
-    a = np.vectorize(a_func)
-
-    focal_length = sieve.d * sieve.shd / source_wavelength
-    plane_distance = sieve.d * sieve.shd / measurement_wavelength
+    focal_length = sieve.diameter * sieve.smallest_hole_diameter / source_wavelength
+    plane_distance = sieve.diameter * sieve.smallest_hole_diameter / measurement_wavelength
     # FIXME - smallest hole redefinition
     smallest_hole_diameter = sieve.structure[-1]['hole_diameter']
 
@@ -135,7 +111,7 @@ def sieve_incoherent_psf(
     fx, fy = np.meshgrid(fxx, fyy)
 
     coherent_otf = (
-        a(source_wavelength * plane_distance * fx, source_wavelength * plane_distance * fy) *
+        sieve.mask(source_wavelength * plane_distance * fx, source_wavelength * plane_distance * fy) *
         np.e**(
             1j * np.pi * (1 / plane_distance + 1 / source_distance) * source_wavelength *
             plane_distance**2 * (fx**2 + fy**2)
@@ -144,7 +120,6 @@ def sieve_incoherent_psf(
 
     coherent_psf = np.fft.fftshift(np.fft.ifft2(coherent_otf))
     incoherent_psf = np.abs(coherent_psf)**2
-    incoherent_otf = np.fft.fftshift(np.fft.fft2(incoherent_psf))
 
     return incoherent_psf
 
@@ -166,15 +141,15 @@ def sieve_structure(sieve):
     """
 
     # total number of rings (zones) of holes
-    num_white_zones = np.floor(sieve.d**2 / (8 * sieve.d * sieve.shd))
+    num_white_zones = np.floor(sieve.diameter**2 / (8 * sieve.diameter * sieve.smallest_hole_diameter))
     # radius from sieve center to center of each white zone
-    zone_radii = np.sqrt(2 * sieve.d * sieve.shd * np.arange(1, num_white_zones + 1))
+    zone_radii = np.sqrt(2 * sieve.diameter * sieve.smallest_hole_diameter * np.arange(1, num_white_zones + 1))
     # width of each white zone (outer - inner radius)
-    zone_widths = sieve.d * sieve.shd / (2 * zone_radii)
+    zone_widths = sieve.diameter * sieve.smallest_hole_diameter / (2 * zone_radii)
     # diameters of holes in each white zone
-    hole_diameters = sieve.hdtzw * zone_widths
+    hole_diameters = sieve.hole_diameter_to_zone_width * zone_widths
     # number of holes in each white zone
-    hole_counts = np.round(8 * sieve.oar * zone_widths * zone_radii / (hole_diameters**2))
+    hole_counts = np.round(8 * sieve.open_area_ratio * zone_widths * zone_radii / (hole_diameters**2))
 
     white_zones = []
     # generate each white zone
@@ -185,14 +160,13 @@ def sieve_structure(sieve):
         white_zone['inner_radius'] = zone_radius - hole_diameter / 2
         white_zone['outer_radius'] = zone_radius + hole_diameter / 2
         # generate each hole
-        for theta in 2 * np.pi * np.arange(hole_count) / hole_count:
-            white_zone['hole_coordinates'].append(
-                (
-                    zone_radius * np.cos(theta),
-                    zone_radius * np.sin(theta)
-                )
+        theta = 2 * np.pi * np.arange(hole_count) / hole_count
+        white_zone['hole_coordinates'] = list(
+            zip(
+                zone_radius * np.cos(theta),
+                zone_radius * np.sin(theta),
             )
-
+        )
         white_zones.append(white_zone)
 
     return white_zones
@@ -202,32 +176,67 @@ class PhotonSieve():
     """A class for holding photon-sieve parameters and photon-sieve mask
 
     Args:
-        shd (float): smallest photon-sieve hole diameter
-        d (float): photon-sieve diameter
-        oar (float): open area ratio (ratio of hole area to total sieve area)
-        hdtzw (float): ratio of hole diameter to zonewidth
+        smallest_hole_diameter (float): smallest photon-sieve hole diameter
+        diameter (float): photon-sieve diameter
+        open_area_ratio (float): open area ratio (ratio of hole area to total sieve area)
+        hole_diameter_to_zone_width (float): ratio of hole diameter to zonewidth
+        generate_mask (bool): controls whether to generate a mask or not (default: False)
+        mask_width (int): controls the size of the mask (assuming square mask)
 
     Attributes:
-        shd
-        d
-        oar
-        hdtzw
+        smallest_hole_diameter
+        diameter
+        open_area_ratio
+        hole_diameter_to_zone_width
         structure (list): list of dictionaries repesenting each white_zone
+        mask (function): vectorized function that outputs the binary sieve mask a(x,y)
 """
 
     def __init__(
             self,
-            shd=7e-6,
-            d=10e-3,
-            oar=0.6,
-            hdtzw=1.53096,
+            smallest_hole_diameter=7e-6,
+            diameter=10e-3,
+            open_area_ratio=0.6,
+            hole_diameter_to_zone_width=1.53096,
+            generate_mask=False,
+            mask_width=1001
     ):
 
-        self.shd =shd
-        self.d =d
-        self.oar = oar 
-        self.hdtzw = hdtzw
+        self.smallest_hole_diameter = smallest_hole_diameter
+        self.diameter = diameter
+        self.open_area_ratio = open_area_ratio
+        self.hole_diameter_to_zone_width = hole_diameter_to_zone_width
+
         self.structure = sieve_structure(self)
+
+        outer_radii = [zone['outer_radius'] for zone in self.structure]
+        inner = self.structure[0]['inner_radius']
+        outer = self.structure[-1]['outer_radius']
+
+        def mask(x, y):
+
+            radius = np.sqrt(x**2 + y**2)
+            # return true if point falls inside hole
+            if radius >= inner and radius < outer:
+                white_zone = self.structure[np.searchsorted(self.outer_radii, radius)]
+                theta = np.arctan2(y, x)
+                closest_hole = int(
+                    np.round(len(white_zone['hole_coordinates']) * theta / (2 * np.pi))
+                )
+                # check if point falls in hole
+                if np.sqrt(
+                        (x - white_zone['hole_coordinates'][closest_hole][0])**2 +
+                        (y - white_zone['hole_coordinates'][closest_hole][1])**2
+                ) < white_zone['hole_diameter'] / 2:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+
+        self.mask = np.vectorize(mask)
+
+
 
 class Measurements():
     """A class for holding PSFs and state data during csbs iterations
@@ -238,7 +247,6 @@ class Measurements():
         image_width (int): width of psfs (must be odd)
         num_copies (int): number of repeated measurements to initialize with
         psf_generator (def): function to generate photon sieve psf (default, mas.psf_generator.sieve_incoherent_psf)
-        sieve_generator (def): function to generate sieve structure ( default mas.psf_generator.photon_sieve)
 
     Attributes:
         psfs (ndarray): an array holding the 2D psfs
@@ -255,16 +263,15 @@ class Measurements():
             image_width=301,
             num_copies=10,
             psf_generator=sieve_incoherent_psf,
+            sampling_interval=2.2e-6
     ):
 
 
-        print(sieve)
-        print(type(sieve))
-        focal_lengths = sieve.d * sieve.shd / source_wavelengths
-        dofs = 2 * sieve.shd**2 / source_wavelengths
+        focal_lengths = sieve.diameter * sieve.smallest_hole_diameter / source_wavelengths
+        dofs = 2 * sieve.smallest_hole_diameter**2 / source_wavelengths
         if type(measurement_wavelengths) is int:
-            approx_start = sieve.d * sieve.shd / (max(focal_lengths) + 10 * max(dofs))
-            approx_end = sieve.d * sieve.shd / (min(focal_lengths) - 10 * min(dofs))
+            approx_start = sieve.diameter * sieve.smallest_hole_diameter / (max(focal_lengths) + 10 * max(dofs))
+            approx_end = sieve.diameter * sieve.smallest_hole_diameter / (min(focal_lengths) - 10 * min(dofs))
             measurement_wavelengths = np.linspace(approx_start, approx_end, measurement_wavelengths)
 
         psfs = np.empty((0, len(source_wavelengths), image_width, image_width))
@@ -288,14 +295,14 @@ class Measurements():
                     measurement_wavelength=measurement_wavelength,
                     image_width=image_width,
                     source_distance=float('inf'),
-                    sampling_interval=float(sieve.shd)/10
+                    sampling_interval=float(sampling_interval)
                 )
 
                 psf_group = np.append(psf_group, [psf], axis=0)
             psfs = np.append(psfs, [psf_group], axis=0)
 
         self.psfs = psfs
-        self.psf_ffts = np.fft.fft2(psfs)
+        self.psf_dfts = np.fft.fft2(psfs)
         self.num_copies = num_copies
         self.copies = np.ones((len(measurement_wavelengths))) * num_copies
         self.measurement_wavelengths = measurement_wavelengths
