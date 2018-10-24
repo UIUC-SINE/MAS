@@ -180,12 +180,16 @@ def init(psfs):
         "GAM": block_mul(
             block_herm(
                 # scale rows of psf_dfts by copies
+                # split across sqrt to prevent rounding error
                 np.einsum(
-                    'i,ijkl->ijkl', psfs.copies,
+                    'i,ijkl->ijkl', np.sqrt(psfs.copies),
                     psf_dfts
                 )
             ),
-            psf_dfts
+            np.einsum(
+                'i,ijkl->ijkl', np.sqrt(psfs.copies),
+                psf_dfts
+            ),
         ),
         "LAM": LAM
     }
@@ -202,19 +206,32 @@ def iteration_end(psfs, lowest_psf_group_index):
     )
 
 
-def cost(psfs, psf_group_index, **kwargs):
-    """
+def SIG_e_dft(psfs, lam):
+    """Compute SIG_e_dft for given PSFs
+
+    Args:
+        psfs (PSFs): psf object
+        lam (float): regularization parameter
     """
 
     _, num_sources, _, _ = psfs.psfs.shape
 
     SIG_e_dft = (
-        psfs.initialized_data['GAM'] -
+        psfs.initialized_data['GAM'] +
+        lam * np.einsum('ij,kl', np.eye(num_sources), psfs.initialized_data['LAM'])
+    )
+
+
+def cost(psfs, psf_group_index, **kwargs):
+    """
+    """
+
+    iteration_SIG_e_dft = (
+        SIG_e_dft(psfs, kwargs['lam']) -
         block_mul(
             block_herm(psfs.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]),
             psfs.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]
-        ) +
-        kwargs['lam'] * np.einsum('ij,kl', np.eye(num_sources), psfs.initialized_data['LAM'])
+        )
     )
 
-    return np.sum(np.trace(block_inv(SIG_e_dft)))
+    return np.sum(np.trace(block_inv(iteration_SIG_e_dft)))
