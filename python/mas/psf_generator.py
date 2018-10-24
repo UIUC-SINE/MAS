@@ -96,8 +96,6 @@ def sieve_incoherent_psf(
 
     focal_length = sieve.diameter * sieve.smallest_hole_diameter / source_wavelength
     plane_distance = sieve.diameter * sieve.smallest_hole_diameter / measurement_wavelength
-    # FIXME - smallest hole redefinition
-    smallest_hole_diameter = sieve.structure[-1]['hole_diameter']
 
     fxx = np.arange(
         -(image_width - 1) / 2,
