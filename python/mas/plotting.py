@@ -72,27 +72,27 @@ def fourier_slices(measurements):
 
     return plt
 
-def psf_slider(measurements):
+def psf_slider(psfs):
     """Plot 1 row of Measurements matrix, with a slider to adjust measurements
     plane
 
     Args:
-        measurements (Measurements): measurements object after CSBS
+        psfs (PSFs): psfs object after CSBS
     """
 
     n = Normalize()
 
-    fig, subplots = plt.subplots(1, len(measurements.source_wavelengths), squeeze=False)
+    fig, subplots = plt.subplots(1, len(psfs.source_wavelengths), squeeze=False)
     subplots = subplots[0]
 
-    ims = [subplot.imshow(measurements.psfs[0, n]) for n, subplot in enumerate(subplots)]
+    ims = [subplot.imshow(psfs.psfs[0, n]) for n, subplot in enumerate(subplots)]
 
     slider_axis = plt.axes([0.25, 0.05, 0.65, 0.03])
     slider = Slider(
         slider_axis,
         'Measurement plane',
          0,
-         len(measurements.measurement_wavelengths) - 1,
+         len(psfs.measurement_wavelengths) - 1,
          valfmt='%i'
      )
 
@@ -100,10 +100,34 @@ def psf_slider(measurements):
         measurement_plane_index = int(slider.val)
         print(measurement_plane_index)
         for n, im in enumerate(ims):
-            im.set_array(measurements.psfs[measurement_plane_index, n])
+            im.set_array(psfs.psfs[measurement_plane_index, n])
             im.set_norm(Normalize())
         fig.canvas.draw_idle()
 
     slider.on_changed(update)
 
     return plt
+
+
+def plotter4d(data, title=''):
+    """Plot 4d ndarrays to the subplots of the first two dimensions
+
+    Args:
+        data (ndarray): 4d ndarray to be plotted
+        title (string): suptitle of the whole figure
+    """
+    k,p = data.shape[:2]
+
+    fig, subplots = plt.subplots(
+        k, p,
+        squeeze=False,
+        figsize=(4,8)
+    )
+    plt.suptitle(title)
+
+    for data_row, subplot_row in zip(data, subplots):
+        for data, subplot in zip(data_row, subplot_row):
+            im = subplot.imshow(data)
+            fig.colorbar(im, ax=subplot)
+
+    plt.show()
