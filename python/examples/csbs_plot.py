@@ -16,11 +16,11 @@ psfs = PSFs(
     source_wavelengths=np.array([33.4e-9,  33.7e-9, 33.8e-9]),
     psf_generator=circ_incoherent_psf,
     image_width=301,
-    num_copies=10
+    num_copies=5
 )
 
 # run CSBS (modifies psfs in place)
-csbs(psfs, sse_cost, 10, lam=20)
+csbs(psfs, sse_cost, 10, lam=1e-2, order=0)
 
 # plot results
 plt = fourier_slices(psfs)

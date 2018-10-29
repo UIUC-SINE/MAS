@@ -35,7 +35,7 @@ def csbs(psfs, cost_module, end_copies, **kwargs):
 
     # call 'init' if it exists
     if hasattr(cost_module, 'init'):
-        cost_module.init(psfs)
+        cost_module.init(psfs, **kwargs)
 
     while np.sum(psfs.copies) > end_copies:
         logging.info('CSBS copies remaining: {}'.format(np.sum(psfs.copies).astype(int)))

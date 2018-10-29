@@ -157,23 +157,11 @@ def diff_matrix(size):
     return np.eye(size) - np.roll(np.eye(size), -1, axis=0)
 
 
-def init(psfs):
+def init(psfs, **kwargs):
     """
     """
     _, _, rows, cols = psfs.psfs.shape
     psf_dfts = np.fft.fft2(psfs.psfs, axes=(2, 3))
-
-    diffx_kernel = np.zeros((rows, cols))
-    diffx_kernel[0, 0] = -1
-    diffx_kernel[0, 1] = 1
-    diffy_kernel = np.zeros((rows, cols))
-    diffy_kernel[0, 0] = -1
-    diffy_kernel[1, 0] = 1
-    LAM = (
-        np.abs(np.fft.fft2(diffx_kernel))**2 +
-        np.abs(np.fft.fft2(diffy_kernel))**2
-    )
-
 
     initialized_data = {
         "psf_dfts": psf_dfts,
@@ -191,7 +179,7 @@ def init(psfs):
                 psf_dfts
             ),
         ),
-        "LAM": LAM
+        "LAM": get_LAM(rows=rows,cols=cols,order=kwargs['order'])
     }
 
     psfs.initialized_data = initialized_data
@@ -205,6 +193,32 @@ def iteration_end(psfs, lowest_psf_group_index):
         psfs.initialized_data['psf_dfts'][lowest_psf_group_index:lowest_psf_group_index + 1]
     )
 
+def get_LAM(*,rows,cols,order):
+    """Compute the spectrum of the discrete derivative matrix
+
+    Args:
+        rows (int): number of rows in the output
+        cols (int): number of cols in the output
+        order (int): {0,1,2} order of the derivative matrix
+
+    Returns:
+        2d array of the spectrum
+    """
+    if order is 0:
+        return np.ones((rows,cols))
+    else:
+        diffx_kernel = np.zeros((rows,cols))
+        diffy_kernel = np.zeros((rows,cols))
+        if order is 1:
+            diffx_kernel[0,0] = -1 ; diffx_kernel[0,1] = 1
+            diffy_kernel[0,0] = -1 ; diffy_kernel[1,0] = 1
+        elif order is 2:
+            diffx_kernel[0,0] = 1 ; diffx_kernel[0,1] = -2 ; diffx_kernel[0,2] = 1
+            diffy_kernel[0,0] = 1 ; diffy_kernel[1,0] = -2 ; diffx_kernel[2,0] = 1
+        return (
+            np.abs(np.fft.fft2(diffx_kernel))**2 +
+            np.abs(np.fft.fft2(diffy_kernel))**2
+        )
 
 def SIG_e_dft(psfs, lam):
     """Compute SIG_e_dft for given PSFs
@@ -216,7 +230,7 @@ def SIG_e_dft(psfs, lam):
 
     _, num_sources, _, _ = psfs.psfs.shape
 
-    SIG_e_dft = (
+    return (
         psfs.initialized_data['GAM'] +
         lam * np.einsum('ij,kl', np.eye(num_sources), psfs.initialized_data['LAM'])
     )
