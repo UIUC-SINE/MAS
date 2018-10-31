@@ -4,8 +4,8 @@
 from mas.psf_generator import PSFs, PhotonSieve, circ_incoherent_psf
 from mas.plotting import fourier_slices, plotter4d
 from mas.sse_cost import block_mul, block_inv, block_herm, SIG_e_dft
-from mas.pssi_fwd_model import get_measurements, add_noise, size_equalizer
-from mas.pssi_deconvolution import Reconstruction, tikhonov
+from mas.forward_model import get_measurements, add_noise, size_equalizer
+from mas.deconvolution import Reconstruction, tikhonov
 from mas.csbs import csbs
 from mas import sse_cost
 from matplotlib import pyplot as plt

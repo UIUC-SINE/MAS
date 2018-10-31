@@ -5,7 +5,7 @@ import numpy as np
 import logging
 from matplotlib import pyplot as plt
 from mas.sse_cost import block_mul, block_inv, block_herm, SIG_e_dft, get_LAM
-from mas.pssi_fwd_model import size_equalizer
+from mas.forward_model import size_equalizer
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
