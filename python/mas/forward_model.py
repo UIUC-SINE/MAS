@@ -4,6 +4,7 @@
 import numpy as np
 from mas.sse_cost import block_mul, block_herm
 from scipy.stats import poisson
+from PIL import Image
 
 def image_numpyer(*, inpath, outpath, size, upperleft):
     """
@@ -63,12 +64,31 @@ def image_selector(*, inpath, size, upperleft):
     ax2.imshow(x_c)
 
 
-def get_measurements(*, sources, psfs, mode = 'circular'):
+def rectangle_adder(*, image, size, upperleft):
+    """
+    Add a rectangle of value one to the specified position of a given image.
+
+    Args:
+        image (ndaray): input image on which the rectangle will be added
+        size (tuple): Integer or tuple of 2 integers indicating the height and
+        width of the rectangle, respectively.
+        upperleft (tuple): Tuple of 2 integers indicating the coordinate of
+        the upper left corner of the position of the added rectangle
+    """
+    if type(size) is int:
+        size = (size,size)
+    image[
+        upperleft[0]:upperleft[0]+size[0], upperleft[1]:upperleft[1]+size[1]
+    ] += np.ones(size)
+    return image
+
+def get_measurements(*, sources, psfs, meas_size, mode = 'circular'):
     """
     Convolve the sources and psfs to obtain measurements.
     Args:
         sources (ndarray): 4d array of sources
         psfs (PSFs): PSFs object containing psfs and other csbs state data
+        meas_size (tuple): 2d tuple of size of the detector array
         mode (string): {'circular', 'linear'} (default='circular')
         type of the convolution performed to obtain the measurements from psfs
         and sources
@@ -79,39 +99,76 @@ def get_measurements(*, sources, psfs, mode = 'circular'):
     assert sources.shape[0] == psfs.psfs.shape[1], "source and psf dimensions do not match"
     [p,_,aa,bb] = sources.shape
     [k,p,ss,ss] = psfs.psfs.shape
-    psfs.selected_psfs = np.zeros((k,p,aa,bb))
+    ta, tb = [aa + ss - 1, bb + ss - 1]
 
-    # reshape psfs
-    for i in range(k):
-        for j in range(p):
-            psfs.selected_psfs[i,j,:,:] = size_equalizer(psfs.psfs[i,j,:,:], [aa,bb])
+    if mode == 'linear':
+        psfs.selected_psfs = np.zeros((k,p,ta,tb))
+        sources_r = size_equalizer(sources, [ta,tb])
+        selected_psfs = size_equalizer(psfs.psfs, [ta,tb])
+        psfs.selected_psfs = size_equalizer(psfs.psfs, meas_size)
 
-    psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
-    psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
-    psfs.selected_psf_dfts_h = block_herm(psfs.selected_psf_dfts)
+        selected_psfs = np.repeat(selected_psfs, psfs.copies.astype(int), axis=0)
+        selected_psf_dfts = np.fft.fft2(selected_psfs)
+        psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
+        psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
+        psfs.selected_psf_dfts_h = block_herm(psfs.selected_psf_dfts)
+        psfs.selected_GAM = block_mul(
+            psfs.selected_psf_dfts_h,
+            psfs.selected_psf_dfts
+        )
 
-    # ----- forward -----
-    return np.real(
-        np.fft.ifft2(
-            block_mul(
-                psfs.selected_psf_dfts,
-                np.fft.fft2(sources)
+        # ----- forward -----
+        return np.fft.ifftshift(
+            size_equalizer(
+                np.fft.fftshift(
+                    np.real(
+                        np.fft.ifft2(
+                            block_mul(
+                                selected_psf_dfts,
+                                np.fft.fft2(sources_r)
+                            )
+                        )
+                    ), axes=(2,3)
+                ), meas_size
+            ), axes=(2,3)
+        )
+
+
+    elif mode == 'circular':
+        psfs.selected_psfs = np.zeros((k,p,aa,bb))
+
+        # reshape psfs
+        psfs.selected_psfs = size_equalizer(psfs.psfs, [aa,bb])
+
+        psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
+        psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
+        psfs.selected_psf_dfts_h = block_herm(psfs.selected_psf_dfts)
+        psfs.selected_GAM = block_mul(
+            psfs.selected_psf_dfts_h,
+            psfs.selected_psf_dfts
+        )
+
+        # ----- forward -----
+        return np.real(
+            np.fft.ifft2(
+                block_mul(
+                    psfs.selected_psf_dfts,
+                    np.fft.fft2(sources)
+                )
             )
         )
-    )
 
 
-def add_noise(signal, snr_db=None, exp_time=None, model='Gaussian', nonoise=False):
+def add_noise(signal, snr=None, model='Gaussian', nonoise=False):
     """
     Add noise to the given signal at the specified level.
 
     Args:
         (ndarray): noise-free input signal
-        snr_db (float): 10*log_10(SNR) where SNR is defined as the ratio of
-        variance of the input signal to the variance of the noise. Necessary
-        input for Gaussian noise.
-        exp_time (float): Exposure time in seconds. Necessary input for
-        Poisson noiseself.
+        snr (float): signal to noise ratio: for Gaussian noise model, it is
+        defined as the ratio of variance of the input signal to the variance of
+        the noise. For Poisson model, it is taken as the average snr where snr
+        of a pixel is given by the square root of its value.
         model (string): String that specifies the noise model. The 2 options are
         `Gaussian` and `Poisson`
         nonoise (bool): (default=False) If True, return the clean signal
@@ -124,14 +181,13 @@ def add_noise(signal, snr_db=None, exp_time=None, model='Gaussian', nonoise=Fals
     else:
         assert model == 'Gaussian' or 'Poisson', "select the model correctly"
         if model == 'Gaussian':
-            assert snr_db is not None, "please specify snr_db"
             var_sig = np.var(signal)
-            var_noise = var_sig / (10**(snr_db / 10))
+            var_noise = var_sig / snr
             out = np.random.normal(loc=signal, scale=np.sqrt(var_noise))
         elif model == 'Poisson':
-            assert exp_time is not None, "please specify exp_time in seconds"
-            beta = 1
-            out = poisson.rvs(signal * exp_time * beta)
+            avg_brightness = snr**2
+            sig_scaled = signal * (avg_brightness / signal.mean())
+            out = poisson.rvs(sig_scaled) * (signal.mean() / avg_brightness)
         return out
 
 
@@ -146,6 +202,12 @@ def size_equalizer(x, ref_size):
     Returns:
         ndarray that is the cropper/zero-padded version of the input
     """
+    if len(x.shape) == 4:
+        y = np.zeros(x.shape[:2]+tuple(ref_size))
+        for i in range(x.shape[0]):
+            for j in range(x.shape[1]):
+                y[i,j] = size_equalizer(x[i,j], ref_size)
+        return y
     [i1, i2] = x.shape
     [r1, r2] = ref_size
     [f1, f2] = [r1 - i1, r2 - i2]
@@ -159,7 +221,6 @@ def size_equalizer(x, ref_size):
     out = x
 
     for i,k in enumerate((f1,f2)):
-
         if k > 0:
             after = int(k/2)
             before = k - after

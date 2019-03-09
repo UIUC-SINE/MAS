@@ -7,6 +7,7 @@ from matplotlib.figure import figaspect
 import logging
 from matplotlib.widgets import Slider
 from matplotlib.colors import Normalize
+import matplotlib.animation as animation
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -70,7 +71,7 @@ def fourier_slices(measurements):
 
     fig.constrained_layout = True
 
-    return plt
+    return plt, copies_progression
 
 def psf_slider(psfs):
     """Plot 1 row of Measurements matrix, with a slider to adjust measurements
@@ -109,7 +110,7 @@ def psf_slider(psfs):
     return plt
 
 
-def plotter4d(data, title=''):
+def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8)):
     """Plot 4d ndarrays to the subplots of the first two dimensions
 
     Args:
@@ -117,17 +118,57 @@ def plotter4d(data, title=''):
         title (string): suptitle of the whole figure
     """
     k,p = data.shape[:2]
+    
+    if plt.fignum_exists(fignum):
+        figo = plt.gcf()
+        for i in figo.axes:
+            if len(i.images) > 0:
+                if i.images[0].colorbar is not None:
+                    i.images[0].colorbar.remove()
 
     fig, subplots = plt.subplots(
         k, p,
         squeeze=False,
-        figsize=(4,8)
+        num=fignum,
+        figsize=figsize
     )
     plt.suptitle(title)
 
     for data_row, subplot_row in zip(data, subplots):
         for data, subplot in zip(data_row, subplot_row):
-            im = subplot.imshow(data)
+            im = subplot.imshow(data, cmap=cmap)
             fig.colorbar(im, ax=subplot)
 
     plt.show()
+
+
+def image_animater(arr,
+        titlearray=None,
+        figsize=(7.4, 4.8),
+        cmap='gray',
+        vmin=None,
+        vmax=None,
+        title='',
+        interval=300
+):
+    if titlearray is None:
+        titlearray = np.arange(arr.shape[0]) + 1
+    num = arr.shape[0]
+    fig = plt.figure(figsize=figsize)
+    ax = plt.gca()
+    im = plt.imshow(arr[0], cmap=cmap)
+    cb = fig.colorbar(im, ax=ax)
+    if vmin is None:
+        def update(i):
+            plt.title(title.format(titlearray[i]))
+            vmin = np.min(arr[i])
+            vmax = np.max(arr[i])
+            im.set_clim(vmin, vmax)
+            im.set_data(arr[i])
+    else:
+        def update(i):
+            plt.title(title.format(titlearray[i]))
+            im.set_clim(vmin, vmax)
+            im.set_data(arr[i])
+
+    return animation.FuncAnimation(fig, update, frames=num, interval=interval)

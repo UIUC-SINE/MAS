@@ -5,15 +5,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from numpy.fft import fft2, fftshift, ifftshift
 
-class block_array(np.ndarray):
-    """Subclass of ndarray which redefines multiplication as block_mul
-    """
-    def __mul__(self, a):
-        return block_mul(self, a)
-    def __rmul__(self, a):
-        return self.__mul__(a)
-
-
 def block_herm(x):
     """Perform block Hermitian transpose on a matrix.
 
@@ -43,7 +34,7 @@ def block_mul(x, y):
     """
 
     assert x.shape[1] == y.shape[0] and x.shape[2:] == y.shape[2:], "Matrix dimensions do not agree"
-    return np.einsum('ijkl,jmkl->imkl', x, y).view(block_array)
+    return np.einsum('ijkl,jmkl->imkl', x, y)
 
 
 def block_inv(x, is_herm=False):
@@ -74,8 +65,6 @@ def block_inv(x, is_herm=False):
         (ndarray): matrix inverse. dimension (i, i, j, k)
     """
 
-    x = x.view(block_array)
-
     rows, cols, j, k = x.shape
 
     assert rows == cols, 'input array must be dimension (i, i, j, k)'
@@ -91,21 +80,21 @@ def block_inv(x, is_herm=False):
 
     # precompute inverse of d for efficiency
     d_inv = block_inv(d, is_herm=is_herm)
-    t1 = b * d_inv
-    t2 = d_inv * c
-    t3 = b * t2
+    t1 = block_mul(b, d_inv)
+    t2 = block_mul(d_inv, c)
+    t3 = block_mul(b, t2)
     A_inv = block_inv(a - t3, is_herm=is_herm)
 
     # https://en.wikipedia.org/wiki/Block_matrix#Block_matrix_inversion
-    B_inv = -A_inv * t1
+    B_inv = -block_mul(A_inv, t1)
     if not is_herm:
-        C_inv = -t2 * A_inv
+        C_inv = -block_mul(t2, A_inv)
     else:
         C_inv = block_herm(B_inv)
-    D_inv = d_inv - t2 * B_inv
+    D_inv = d_inv - block_mul(t2, B_inv)
 
     return np.concatenate((np.concatenate((A_inv, B_inv), axis=1),
-                           np.concatenate((C_inv, D_inv), axis=1)), axis=0).view(block_array)
+                           np.concatenate((C_inv, D_inv), axis=1)), axis=0)
 
 
 def block_inv2(x):
@@ -210,8 +199,8 @@ def get_LAM(*,rows,cols,order):
         diffx_kernel = np.zeros((rows,cols))
         diffy_kernel = np.zeros((rows,cols))
         if order is 1:
-            diffx_kernel[0,0] = -1 ; diffx_kernel[0,1] = 1
-            diffy_kernel[0,0] = -1 ; diffy_kernel[1,0] = 1
+            diffx_kernel[0,0] = 1 ; diffx_kernel[0,1] = -1
+            diffy_kernel[0,0] = 1 ; diffy_kernel[1,0] = -1
         elif order is 2:
             diffx_kernel[0,0] = 1 ; diffx_kernel[0,1] = -2 ; diffx_kernel[0,2] = 1
             diffy_kernel[0,0] = 1 ; diffy_kernel[1,0] = -2 ; diffx_kernel[2,0] = 1
@@ -248,4 +237,4 @@ def cost(psfs, psf_group_index, **kwargs):
         )
     )
 
-    return np.sum(np.trace(block_inv(iteration_SIG_e_dft)))
+    return np.real(np.sum(np.trace(block_inv(iteration_SIG_e_dft))))
