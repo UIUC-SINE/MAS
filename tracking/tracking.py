@@ -1,6 +1,7 @@
 from scipy.misc import imread
 import numpy as np
 from matplotlib import pyplot as plt
+import sys
 
 # import sympy as sp
 
@@ -14,7 +15,7 @@ from matplotlib import pyplot as plt
 # )
 
 # sp.plotting.plot(lam, (x, 0, 2))
-# TypeError: '<' not supported between instances of 'complex' and 'int' 
+# TypeError: '<' not supported between instances of 'complex' and 'int'
 
 
 
@@ -88,9 +89,9 @@ ccd_width = image_width // 4
 pixels_count = 1024
 pixel_width = ccd_width // pixels_count
 x = imread('sun.jpg')[image_width // 2, :, 0]
-# x = np.zeros(4096)
-# a = np.linspace(0, 1, 500)
-# x[500:1000] = a - 2 * (a - 0.5) * (a > 0.5)
+# x = np.ones(4096) * 0
+# x[1500:2000] = 100
+
 conv = convolution_matrix(x, N=ccd_width)
 
 pixel_photons = []
@@ -103,18 +104,30 @@ photons = []
 for pixel in range(pixels_count):
     print('pixel #{}'.format(pixel))
     lams = np.sum(conv[:, np.arange(pixel * pixel_width, pixel * pixel_width + pixel_width)], axis=1)
-    pixel_photons_count = 0
-    while pixel_photons_count < pixel_photons[pixel] // intensity_scaling:
-        photon_time = np.random.randint(0, len(lams))
-        photon_intensity = np.random.uniform(0, max(lams))
-        if photon_intensity < lams[photon_time]:
-            photons.append((photon_time, pixel))
-            pixel_photons_count += 1
+#     pixel_photons_count = 0
+#     while pixel_photons_count < pixel_photons[pixel] // intensity_scaling:
+#         photon_time = np.random.randint(0, len(lams))
+#         photon_intensity = np.random.uniform(0, max(lams))
+#         if photon_intensity < lams[photon_time]:
+#             photons.append((photon_time, pixel))
+#             pixel_photons_count += 1
 
-photons = np.array(photons)
+# photons = np.array(photons)
+# photons[:, 0] = photons[:, 0] * ccd_width / (image_width + ccd_width - 1)
+# middle_point = (512, 512)
+# photons = photons - middle_point
+# np.save('photons.npy', photons)
+# sys.exit()
+# photons = np.load('square.npy')
+photons = np.load('sun.npy')
+
 
 xlim = (0, pixels_count - 1)
 ylim = (0, len(lams) - 1)
+
+
+
+# photons = photons[np.linalg.norm(photons, axis=1) < 512]
 
 # samples = int(10e3)
 ylim = (0, 1023)
@@ -122,9 +135,10 @@ xlim = (0, 5118)
 # photons = np.random.uniform((xlim[0], ylim[0]), (xlim[1], ylim[1]), (samples, 2))
 
 plt.close()
-plt.subplot(3, 1, 1)
+plt.figure()
 plt.plot(x)
-plt.subplot(3, 1, 2)
+plt.figure()
+plt.subplot(3, 1, 1)
 # plt.scatter(photons[1600:3600, 1], photons[1600:3600, 0], s=1)
 plt.scatter(photons[:, 1], photons[:, 0], s=1)
 plt.ylim([1600, 3600])
@@ -156,17 +170,46 @@ def f(x, theta, xlim, ylim):
             - (y / x_1) * (x > x_0) * (x - x_0)
             )
 
+num_bins = 200
+hists = np.empty((0, num_bins))
+bins = np.empty((0, num_bins))
+projecteds = []
 scores = []
-thetas = np.linspace(1e-6, np.pi / 1.999, 20)
+thetas = np.linspace(1e-6 + np.pi / 100, np.pi - np.pi / 100, 20)
 for theta in thetas:
-    projected = photons @ np.array([[np.cos(theta)], [np.sin(theta)]])
+    # photons_masked = photons[
+    #     np.logical_and(
+    #         np.abs(photons @ np.array([np.cos(theta), np.sin(theta)])) < 305 * np.sqrt(2) / 2,
+    #         np.abs(photons @ np.array([np.cos(theta + np.pi / 2), np.sin(theta + np.pi / 2)])) < 305 * np.sqrt(2) / 2,
+
+    #     )
+    # ]
+    photons_masked = photons[np.linalg.norm(photons, axis=1) < 305]
+    projected = photons_masked @ np.array([[np.cos(theta)], [np.sin(theta)]])
     projected = projected.reshape(-1)
+    projecteds.append(projected)
+    count, bin_edges = np.histogram(projected, bins=num_bins)
+    hists = np.append(hists, count[np.newaxis, :], axis=0)
+    bins = np.append(bins, bin_edges[:-1][np.newaxis, :], axis=0)
     sorted = np.sort(projected)
-    score = np.sum((f((sorted[:-1] + sorted[1:]) / 2, theta, xlim, ylim) * np.diff(sorted))**2)
+    # score = np.sum((f((sorted[:-1] + sorted[1:]) / 2, theta, xlim, ylim) * np.diff(sorted))**2)
+    score = np.sum((np.diff(sorted))**2)
     scores.append(score)
 
-plt.subplot(3, 1, 3, projection='polar')
-plt.polar(thetas, scores)
+    plt.subplot(3, 1, 1)
+    # plt.scatter(photons_masked[:, 1], photons_masked[:, 0])
+    plt.subplot(3, 1, 2)
+    plt.cla()
+    plt.gca().set_aspect('equal')
+    plt.plot(count)
+    plt.subplot(3, 1, 3, projection='polar')
+    plt.polar(theta, score, 'o')
+    plt.show()
+    input()
+
+# plt.scatter(photons_diamond[:, 1], photons_diamond[:, 0])
+# plt.scatter(projecteds[:, 1], projecteds[:, 0])
+# plt.plot(hists[10, :])
+# plt.hist(projected, bins=100)
 plt.show()
 
-print(scores)
