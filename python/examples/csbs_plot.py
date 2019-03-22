@@ -23,6 +23,6 @@ psfs = PSFs(
 csbs(psfs, sse_cost, 10, lam=1e-2, order=0)
 
 # plot results
-plt = fourier_slices(psfs)
+plt, _ = fourier_slices(psfs)
 plt.show()
 # plt.savefig('csbs_fourier_slices.png')
