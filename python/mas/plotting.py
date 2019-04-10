@@ -110,15 +110,23 @@ def psf_slider(psfs):
     return plt
 
 
-def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8)):
+def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
+              colorbar=True, column_labels=None, row_labels=None,
+              sup_ylabel=None, sup_xlabel=None, scale=False):
     """Plot 4d ndarrays to the subplots of the first two dimensions
 
     Args:
         data (ndarray): 4d ndarray to be plotted
         title (string): suptitle of the whole figure
+        cmap (string), optional: colormap to use while plotting
+        figsize (tuple), optional: figsize to pass to plt.subplots
+        column_labels (list of strings), optional: titles on subplot columns
+        row_labels (list of strings), optional: titles on subplot rows
+        colorbar (boolean), optional: whether to use a colorbar
+        scale (boolean), default=False: use same colorscale for all images
     """
     k,p = data.shape[:2]
-    
+
     if plt.fignum_exists(fignum):
         figo = plt.gcf()
         for i in figo.axes:
@@ -130,16 +138,44 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8)):
         k, p,
         squeeze=False,
         num=fignum,
-        figsize=figsize
+        figsize=figsize,
+        sharex=True,
+        sharey=True
     )
     plt.suptitle(title)
 
+    if scale:
+        vmin, vmax = np.min(data), np.max(data)
+    else:
+        vmin, vmax = None, None
+
     for data_row, subplot_row in zip(data, subplots):
         for data, subplot in zip(data_row, subplot_row):
-            im = subplot.imshow(data, cmap=cmap)
-            fig.colorbar(im, ax=subplot)
+            im = subplot.imshow(data, cmap=cmap, vmin=vmin, vmax=vmax)
+            subplot.axes.get_xaxis().set_ticks([])
+            subplot.axes.get_yaxis().set_ticks([])
+            if colorbar:
+                fig.colorbar(im, ax=subplot)
+
+    if column_labels is not None:
+        for subplot, col in zip(subplots[0], column_labels):
+            subplot.set_title(col)
+
+    if row_labels is not None:
+        for subplot, row in zip(subplots[:,0], row_labels):
+            h = subplot.set_ylabel(row, rotation=0, size='large')
+            h.set_rotation(90)
+
+    # hack to add xlabel, ylabel
+    fig.add_subplot(111, frameon=False)
+    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    if sup_xlabel is not None:
+        plt.ylabel(sup_xlabel)
+    if sup_ylabel is not None:
+        plt.ylabel(sup_ylabel)
 
     plt.show()
+    return plt
 
 
 def image_animater(arr,

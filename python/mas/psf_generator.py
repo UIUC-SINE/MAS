@@ -191,7 +191,7 @@ class PhotonSieve():
     def __init__(
             self,
             smallest_hole_diameter=7e-6,
-            diameter=10e-3,
+            diameter=16e-2,
             open_area_ratio=0.6,
             hole_diameter_to_zone_width=1.53096
     ):
@@ -201,13 +201,14 @@ class PhotonSieve():
         self.open_area_ratio = open_area_ratio
         self.hole_diameter_to_zone_width = hole_diameter_to_zone_width
 
-        self.structure = sieve_structure(self)
 
-        outer_radii = [zone['outer_radius'] for zone in self.structure]
-        inner = self.structure[0]['inner_radius']
-        outer = self.structure[-1]['outer_radius']
+        def mask(self, x, y):
+            if not hasattr(self, 'structure'):
+                self.structure = sieve_structure(self)
 
-        def mask(x, y):
+            outer_radii = [zone['outer_radius'] for zone in self.structure]
+            inner = self.structure[0]['inner_radius']
+            outer = self.structure[-1]['outer_radius']
 
             radius = np.sqrt(x**2 + y**2)
             # return true if point falls inside hole
@@ -270,12 +271,12 @@ class PSFs():
             self,
             sieve,
             *,
-            source_wavelengths=np.array([33.4, 33.5, 33.6]) * 1e-9,
+            source_wavelengths=np.array([33.4, 33.5]) * 1e-9,
             measurement_wavelengths=30,
             image_width=301,
             num_copies=10,
-            psf_generator=sieve_incoherent_psf,
-            sampling_interval=2.2e-6
+            psf_generator=circ_incoherent_psf,
+            sampling_interval=3.5e-6
     ):
 
 
@@ -319,5 +320,6 @@ class PSFs():
         self.copies = np.ones((len(measurement_wavelengths))) * num_copies
         self.measurement_wavelengths = measurement_wavelengths
         self.source_wavelengths = source_wavelengths
+        self.sampling_interval = sampling_interval
         self.image_width = image_width
         self.copies_history = []
