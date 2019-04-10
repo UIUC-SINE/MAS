@@ -102,6 +102,8 @@ psfs = PSFs(
 # psfs.copies=np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 10., 0., 0., 0.,
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 #        0., 0., 10., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+raise Exception
+# FIXME: create fft function which fftshifts
 measured = get_measurements(sources=sources, psfs=psfs, meas_size=meas_size, mode='circular')
 sources = size_equalizer(sources, meas_size)
 # take multiple measurements with different noise

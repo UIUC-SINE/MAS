@@ -82,16 +82,19 @@ def rectangle_adder(*, image, size, upperleft):
     ] += np.ones(size)
     return image
 
-def get_measurements(*, sources, psfs, meas_size, mode = 'circular'):
+def get_measurements(real=False, *, sources, psfs, meas_size=None, mode='circular'):
     """
     Convolve the sources and psfs to obtain measurements.
     Args:
         sources (ndarray): 4d array of sources
         psfs (PSFs): PSFs object containing psfs and other csbs state data
-        meas_size (tuple): 2d tuple of size of the detector array
         mode (string): {'circular', 'linear'} (default='circular')
+        real (bool): (default=False) whether returned measurement should be real
         type of the convolution performed to obtain the measurements from psfs
         and sources
+
+    Optional:
+        meas_size (tuple): 2d tuple of size of the detector array
 
     Returns:
         ndarray that is the noisy version of the input
@@ -102,39 +105,42 @@ def get_measurements(*, sources, psfs, meas_size, mode = 'circular'):
     ta, tb = [aa + ss - 1, bb + ss - 1]
 
     if mode == 'linear':
-        psfs.selected_psfs = np.zeros((k,p,ta,tb))
-        sources_r = size_equalizer(sources, [ta,tb])
-        selected_psfs = size_equalizer(psfs.psfs, [ta,tb])
-        psfs.selected_psfs = size_equalizer(psfs.psfs, meas_size)
+        raise NotImplemented
+    #     psfs.selected_psfs = np.zeros((k,p,ta,tb))
+    #     sources_r = size_equalizer(sources, [ta,tb])
+    #     selected_psfs = size_equalizer(psfs.psfs, [ta,tb])
+    #     psfs.selected_psfs = size_equalizer(psfs.psfs, meas_size)
 
-        selected_psfs = np.repeat(selected_psfs, psfs.copies.astype(int), axis=0)
-        selected_psf_dfts = np.fft.fft2(selected_psfs)
-        psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
-        psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
-        psfs.selected_psf_dfts_h = block_herm(psfs.selected_psf_dfts)
-        psfs.selected_GAM = block_mul(
-            psfs.selected_psf_dfts_h,
-            psfs.selected_psf_dfts
-        )
+    #     selected_psfs = np.repeat(selected_psfs, psfs.copies.astype(int), axis=0)
+    #     selected_psf_dfts = np.fft.fft2(selected_psfs)
+    #     psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
+    #     psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
+    #     psfs.selected_psf_dfts_h = block_herm(psfs.selected_psf_dfts)
+    #     psfs.selected_GAM = block_mul(
+    #         psfs.selected_psf_dfts_h,
+    #         psfs.selected_psf_dfts
+    #     )
 
-        # ----- forward -----
-        return np.fft.ifftshift(
-            size_equalizer(
-                np.fft.fftshift(
-                    np.real(
-                        np.fft.ifft2(
-                            block_mul(
-                                selected_psf_dfts,
-                                np.fft.fft2(sources_r)
-                            )
-                        )
-                    ), axes=(2,3)
-                ), meas_size
-            ), axes=(2,3)
-        )
+    #     # ----- forward -----
+    #     return np.fft.ifftshift(
+    #         size_equalizer(
+    #             np.fft.fftshift(
+    #                 np.real(
+    #                     np.fft.ifft2(
+    #                         block_mul(
+    #                             selected_psf_dfts,
+    #                             np.fft.fft2(sources_r)
+    #                         )
+    #                     )
+    #                 ), axes=(2,3)
+    #             ), meas_size
+    #         ), axes=(2,3)
+    #     )
 
 
     elif mode == 'circular':
+        # FIXME: make it work for 2D input
+
         psfs.selected_psfs = np.zeros((k,p,aa,bb))
 
         # reshape psfs
@@ -149,14 +155,16 @@ def get_measurements(*, sources, psfs, meas_size, mode = 'circular'):
         )
 
         # ----- forward -----
-        return np.real(
+        measurement = np.fft.fftshift(
             np.fft.ifft2(
                 block_mul(
                     psfs.selected_psf_dfts,
                     np.fft.fft2(sources)
                 )
-            )
+            ),
+            axes=(2, 3)
         )
+        return measurement.real if real else measurement
 
 
 def add_noise(signal, snr=None, model='Gaussian', nonoise=False):
