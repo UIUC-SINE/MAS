@@ -213,7 +213,7 @@ def lowrank(i, patches_zeromean, window_size, imsize, threshold, group_size):
         patches_zeromean (ndarray): 2d array of zero mean patches
         window_size (tuple): tuple of size of the window in which the patches are searched
         imsize (tuple): length 2 tuple of size of the reconstructed image
-        threshold (float): threshold to be applied on the singular values of the group matrix
+        threshold (tuple): thresholds to be applied on the singular values of the group matrix
         group_size (int): number of patches in the group to be formed
 
     Returns:
@@ -221,14 +221,19 @@ def lowrank(i, patches_zeromean, window_size, imsize, threshold, group_size):
         ind (ndarray): array of indices of selected patches that are close to
             the `i`th patch
     """
+    # find out which image the index i correspond to (to apply threshold accordingly)
+    im = np.int(i / (imsize[0]*imsize[1]))
+
+    # get the indices inside the window
     ind_wind = ind_selector(i, imsize=imsize, window_size=window_size)
+
     ind = ind_wind[
         np.argsort(
             np.linalg.norm(patches_zeromean[ind_wind] - patches_zeromean[i], axis=1)
         )[:group_size]
     ]
     u, s, v_T = np.linalg.svd(patches_zeromean[ind].T, full_matrices=False)
-    return u @ np.diag(hard_thresholding(s, threshold=threshold)) @ v_T, ind
+    return u @ np.diag(hard_thresholding(s, threshold=threshold[im])) @ v_T, ind
 
 
 def ind_selector(i, *, imsize, window_size):
@@ -1041,11 +1046,19 @@ def strollr(
                 ]
 
             sparse_codes = recon.transform @ patches_3d
-            sparse_indices = (sparse_codes > recon.lam).astype(np.int)
-            if not sparse_indices.any():
-                sparse_codes = np.zeros_like(sparse_codes)
+            #FIXME - implement variable threshold for each image
+            # sparse_indices = (sparse_codes > recon.lam).astype(np.int)
+            # if not sparse_indices.any():
+            #     sparse_codes = np.zeros_like(sparse_codes)
+            #
+            # sparse_codes = sparse_codes * sparse_indices
 
-            sparse_codes = sparse_codes * sparse_indices
+            for i in range(p):
+                ind = np.arange(i*aa*bb, (i+1)*aa*bb)
+                sparse_codes[:,ind] = hard_thresholding(
+                    sparse_codes[:,ind],
+                    threshold = np.sqrt(2*recon.lam[i] / recon.s)
+                )
 
             if kwargs['learning'] is True:
                 u, s, v_T = np.linalg.svd(sparse_codes @ patches_3d.T)
@@ -1071,21 +1084,24 @@ def strollr(
         else:
             Fc = np.zeros_like(psfdfts_h_meas)
 
-        VhD = np.zeros_like(patches)
-        for i in range(recon.M):
-            VhD = indsum(VhD, D[:,:,i].T, indices[:, i])
+        if recon.lr > 0:
+            VhD = np.zeros_like(patches)
+            for i in range(recon.M):
+                VhD = indsum(VhD, D[:,:,i].T, indices[:, i])
 
-        indvals = np.array(list(Counter(indices.flatten()).values()))
-        indkeys = np.argsort(np.array(list(Counter(indices.flatten()).keys())))
-        VhD = VhD / indvals[indkeys]
+            indvals = np.array(list(Counter(indices.flatten()).values()))
+            indkeys = np.argsort(np.array(list(Counter(indices.flatten()).keys())))
+            VhD = VhD / indvals[indkeys]
 
-        Fd = np.fft.fft2(
-            patch_aggregator(
-                VhD,
-                patch_shape=recon.patch_shape,
-                image_shape=(p,1,aa,bb)
+            Fd = np.fft.fft2(
+                patch_aggregator(
+                    VhD,
+                    patch_shape=recon.patch_shape,
+                    image_shape=(p,1,aa,bb)
+                )
             )
-        )
+        else:
+            Fd = np.zeros_like(psfdfts_h_meas)
 
 
         recon.reconstructed = np.real(
@@ -1181,45 +1197,56 @@ def admm(
                 )
             )
         )
-
         ###### primal2 update ######
         pre_primal2 = domain_transformer(primal1, recon, **kwargs)
 
-        primal2 = thresholding(
-            pre_primal2 + dual, recon, **kwargs
-        )
+        #FIXME - implement variable threshold for each image
+        # primal2 = thresholding(
+        #     pre_primal2 + dual, recon, **kwargs
+        # )
+
+        for i in range(p):
+            ind = np.arange(i*aa*bb, (i+1)*aa*bb)
+            primal2[:,ind] = hard_thresholding(
+                pre_primal2[:,ind] + dual[:,ind],
+                threshold = np.sqrt(2*recon.lam[i] / recon.nu)
+            )
 
         ##### dual update #####
         dual += (pre_primal2 - primal2)
 
+        # if kwargs['learning'] is True:
+        #     u,s,vT = np.linalg.svd((recon.nu*primal2-dual) @ recon.patches.T)
+        #     recon.transform = u @ vT
+
         if kwargs['learning'] is True:
-            u,s,vT = np.linalg.svd((recon.nu*primal2-dual) @ recon.patches.T)
+            u,s,vT = np.linalg.svd((primal2-dual) @ recon.patches.T)
             recon.transform = u @ vT
 
-        mse_inner[:,iter] = np.mean(
-                (sources - primal1)**2,
-                axis=(1, 2, 3)
-        )
+        # mse_inner[:,iter] = np.mean(
+        #         (sources - primal1)**2,
+        #         axis=(1, 2, 3)
+        # )
+        #
+        # dfid = 0.5*(1/np.size(measurements))*np.sum(abs(
+        #     block_mul(
+        #     psfs.selected_psf_dfts, np.fft.fft2(primal1)
+        # ) - np.fft.fft2(measurements)
+        # )**2)
 
-        dfid = 0.5*(1/np.size(measurements))*np.sum(abs(
-            block_mul(
-            psfs.selected_psf_dfts, np.fft.fft2(primal1)
-        ) - np.fft.fft2(measurements)
-        )**2)
-
-        l1_reg = recon.lam * np.sum(abs(primal2))
-        l1_reg2 = recon.lam * np.sum(abs(pre_primal2))
-
-        residual = 0.5*recon.nu * np.sum((pre_primal2 - primal2)**2)
-
-        lagrange = recon.nu * np.sum(dual * (pre_primal2 - primal2))
+        # l1_reg = recon.lam * np.sum(abs(primal2))
+        # l1_reg2 = recon.lam * np.sum(abs(pre_primal2))
+        #
+        # residual = 0.5*recon.nu * np.sum((pre_primal2 - primal2)**2)
+        #
+        # lagrange = recon.nu * np.sum(dual * (pre_primal2 - primal2))
 
         # print(dfid, l1_reg, lagrange, residual, dfid+l1_reg+residual+lagrange)
-        cost[iter+1] = dfid + l1_reg2
-        itererror[iter] = np.sum((primal1-primal1_old)**2) / np.sum(primal1**2)
+        # cost[iter+1] = dfid + l1_reg2
+        # itererror[iter] = np.sum((primal1-primal1_old)**2) / np.sum(primal1**2)
 
         if iter % 100 == 0 or iter == recon.maxiter - 1:
-            print(dfid, l1_reg2, dfid+l1_reg2)
+            # print(dfid, l1_reg2, dfid+l1_reg2)
             ssim1 = np.zeros(p)
             mse1 = np.mean((sources - primal1)**2, axis=(1, 2, 3))
             psnr1 = 20 * np.log10(np.max(sources, axis=(1,2,3))/np.sqrt(mse1))
@@ -1233,11 +1260,11 @@ def admm(
             )
             plt.pause(0.5)
 
-    recon.mse_inner = mse_inner
-    recon.dfid.append(2*dfid)
-    recon.reg.append(l1_reg2/recon.lam)
-    recon.cost = cost
-    recon.itererror = itererror
+    # recon.mse_inner = mse_inner
+    # recon.dfid.append(2*dfid)
+    # recon.reg.append(l1_reg2/recon.lam)
+    # recon.cost = cost
+    # recon.itererror = itererror
     recon.reconstructed = primal1
 
 def tikhonov(recon, *, psfs, measurements, **kwargs):
@@ -1488,8 +1515,8 @@ class Reconstruction():
         s_array (list) [optional]: for strollr, its the list of sparsity parameters - `s`
         lr_array (list) [optional]: for strollr, its the list of low-rankness
             parameters - `lr`
-        theta_array (list) [optional]: for strollr, its the list of low-rankness
-            parameters - `theta`
+        theta (list) [optional]: for strollr, its the list of low-rankness
+            parameters - `theta`. Its length is equal to the number of sources.
     """
 
     def __init__(
@@ -1520,7 +1547,8 @@ class Reconstruction():
             iterable_params['nu'] = kwargs['nu']
             if isinstance(kwargs['lam'], (int, float)):
                 kwargs['lam'] = [kwargs['lam']]
-            iterable_params['lam'] = kwargs['lam']
+            #FIXME - this is done for variable threshold for each image
+            # iterable_params['lam'] = kwargs['lam']
 
             #set the parameters as the attributes of the Reconstruction object
             self.recon_init_method = kwargs['recon_init_method']
@@ -1528,7 +1556,8 @@ class Reconstruction():
             self.patch_shape = kwargs['patch_shape']
             self.transform = kwargs['transform']
             self.nu_array = kwargs['nu']
-            self.lam_array = kwargs['lam']
+            #FIXME - this is done for variable threshold for each image
+            self.lam = kwargs['lam']
             if 'tikhonov_lam' in kwargs:
                 self.tikhonov_lam = kwargs['tikhonov_lam']
                 self.tikhonov_order = kwargs['tikhonov_order']
@@ -1542,10 +1571,11 @@ class Reconstruction():
             iterable_params['lr'] = kwargs['lr']
             if isinstance(kwargs['lam'], (int, float)):
                 kwargs['lam'] = [kwargs['lam']]
-            iterable_params['lam'] = kwargs['lam']
-            if isinstance(kwargs['theta'], (int, float)):
-                kwargs['theta'] = [kwargs['theta']]
-            iterable_params['theta'] = kwargs['theta']
+            #FIXME - this is done for variable threshold for each image
+            # iterable_params['lam'] = kwargs['lam']
+            # if isinstance(kwargs['theta'], (int, float)):
+            #     kwargs['theta'] = [kwargs['theta']]
+            # iterable_params['theta'] = kwargs['theta']
 
             #set the parameters as the attributes of the Reconstruction object
             self.recon_init_method = kwargs['recon_init_method']
@@ -1557,8 +1587,9 @@ class Reconstruction():
             self.l = kwargs['l']
             self.s_array = kwargs['s']
             self.lr_array = kwargs['lr']
-            self.theta_array = kwargs['theta']
-            self.lam_array = kwargs['lam']
+            self.theta = kwargs['theta']
+            #FIXME - this is done for variable threshold for each image
+            self.lam = kwargs['lam']
             if 'tikhonov_lam' in kwargs:
                 self.tikhonov_lam = kwargs['tikhonov_lam']
                 self.tikhonov_order = kwargs['tikhonov_order']

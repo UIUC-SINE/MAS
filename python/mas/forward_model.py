@@ -167,7 +167,7 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None, mode='circula
         return measurement.real if real else measurement
 
 
-def add_noise(signal, snr=None, model='Gaussian', nonoise=False):
+def add_noise(signal, snr=None, maxcount=None, model='Poisson', nonoise=False):
     """
     Add noise to the given signal at the specified level.
 
@@ -177,6 +177,7 @@ def add_noise(signal, snr=None, model='Gaussian', nonoise=False):
         defined as the ratio of variance of the input signal to the variance of
         the noise. For Poisson model, it is taken as the average snr where snr
         of a pixel is given by the square root of its value.
+        maxcount (int): Max number of photon counts in the given signal
         model (string): String that specifies the noise model. The 2 options are
         `Gaussian` and `Poisson`
         nonoise (bool): (default=False) If True, return the clean signal
@@ -193,9 +194,14 @@ def add_noise(signal, snr=None, model='Gaussian', nonoise=False):
             var_noise = var_sig / snr
             out = np.random.normal(loc=signal, scale=np.sqrt(var_noise))
         elif model == 'Poisson':
-            avg_brightness = snr**2
-            sig_scaled = signal * (avg_brightness / signal.mean())
-            out = poisson.rvs(sig_scaled) * (signal.mean() / avg_brightness)
+            if maxcount is not None:
+                sig_scaled = signal * (maxcount / signal.max())
+                print('SNR:{}'.format(np.sqrt(sig_scaled.mean())))
+                out = poisson.rvs(sig_scaled) * (signal.max() / maxcount)
+            else:
+                avg_brightness = snr**2
+                sig_scaled = signal * (avg_brightness / signal.mean())
+                out = poisson.rvs(sig_scaled) * (signal.mean() / avg_brightness)
         return out
 
 

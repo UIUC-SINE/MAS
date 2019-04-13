@@ -12,18 +12,19 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import figaspect
 from scipy.io import readsav
 import numpy as np
-import imageio, pickle
+import imageio, pickle, h5py
 
 deconvolver = tikhonov
-sparsifyer = 'TV' # 'patch_based' or 'TV'
-thresholding = 'soft' # 'hard' or 'soft'
-learning = False
+sparsifyer = 'patch_based' # 'patch_based' or 'TV'
+thresholding = 'hard' # 'hard' or 'soft'
+learning = True
 nonoise = False
 lcurve = False
 store_recons = True
 num_instances = 1
 # aa = bb = 512
 psf_width = 201
+# source_wavelengths = np.array([9.4e-9])
 source_wavelengths = np.array([33.4e-9, 33.5e-9])
 num_sources = len(source_wavelengths)
 
@@ -32,6 +33,7 @@ num_sources = len(source_wavelengths)
 # )[:, np.newaxis, :, :]
 # sources[1,0] = scipy.misc.face(gray=True)[-aa:, -bb:]
 
+# source1 = np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0]
 source1 = rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,10))
 source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,60))
 # source2 = 10 * source1
@@ -41,8 +43,8 @@ source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperlef
 # source2 = np.load('/home/kamo/tmp/20181019_512c_0211.npy')[123:123+205,283:283+256]
 # source1 = np.load('/home/kamo/tmp/20181019_512c_0193.npy')[23:123+305,183:283+356]
 # source2 = np.load('/home/kamo/tmp/20181019_512c_0211.npy')[23:123+305,183:283+356]
-# source1 = readsav('/home/kamo/Research/mas/nanoflare_videos/movie0_1250strands_335.sav',python_dict=True)['movie'][500]
-# source2 = readsav('/home/kamo/Research/mas/nanoflare_videos/movie0_1250strands_94.sav',python_dict=True)['movie'][500]
+# source1 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_335.sav',python_dict=True)['movie'][500]
+# source2 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_94.sav',python_dict=True)['movie'][500]
 # source1 = source1/np.linalg.norm(source1)
 # source2 = source2/np.linalg.norm(source2)
 # source2 = source2 - np.mean(source2)
@@ -51,39 +53,39 @@ source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperlef
 [aa, bb] = source1.shape
 meas_size = tuple(np.array([aa,bb]) - 0)
 sources = np.zeros((len(source_wavelengths),1,aa,bb))
-sources[0,0] = source1# / source1.max()
-sources[1,0] = source2# / source2.max()
+sources[0,0] = source1 / source1.max()
+sources[1,0] = source2 / source2.max()
 # sources[1,0] = (sources[1,0] + 1) / 2
 # sources = sources / sources.max()
 
 csbs_order = 1
 tikhonov_order = 1
-tikhonov_lam = 1e-3
+tikhonov_lam = 8e-3
 tikhonov_matrix = 'derivative' # 'covariance' or 'derivative'
 tikhonov_scale = 'full' # 'patch' or 'full'
 iterproduct = True
 cmap = 'gist_heat'
 
-lam = 1e-4
-nu = 1e1
-s = 0#0.4e-4
-lr = 0.6e-3
+lam = 1e-3
+nu = 1e-1
+s = 0
+lr = 2e-3
 M = 70
 l = 8
-theta = 1e-1
+theta = (2e-1, 1e20)
 sparsity_ratio = 0.2
 sparsity_threshold = np.sqrt(2*np.array(lam)/np.array(nu))
 tv = 'aniso'
-recon_init_method = 'zeros'
+recon_init_method = 'tikhonov'
 patch_shape = (6,6,1)
 window_size = (30,30)
 transform = dctmtx((patch_shape[0],patch_shape[1],l))
 #FIXME
-transform = dctmtx((patch_shape[0],patch_shape[1],1))
-maxiter = 500
+# transform = dctmtx((patch_shape[0],patch_shape[1],1))
+maxiter = 4
 lcurve_param = {'tikhonov_lam': tikhonov_lam}
 
-ps = PhotonSieve(diameter=8e-2)
+ps = PhotonSieve(diameter=10e-2)
 # generate psfs
 psfs = PSFs(
     ps,
@@ -102,9 +104,7 @@ psfs = PSFs(
 # psfs.copies=np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 10., 0., 0., 0.,
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 #        0., 0., 10., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
-raise Exception
-# FIXME: create fft function which fftshifts
-measured = get_measurements(sources=sources, psfs=psfs, meas_size=meas_size, mode='circular')
+measured = get_measurements(real=True, sources=sources, psfs=psfs, meas_size=meas_size, mode='circular')
 sources = size_equalizer(sources, meas_size)
 # take multiple measurements with different noise
 measured_noisy_instances = np.zeros((num_instances,)+measured.shape)
@@ -112,7 +112,7 @@ for i in range(num_instances):
     for j in range(measured.shape[0]):
         measured_noisy_instances[i, j, 0] = add_noise(
             measured[j,0],
-            snr=10, nonoise=nonoise, model='Poisson'
+            snr=10, maxcount=500, nonoise=nonoise, model='Poisson'
             # snr=100, nonoise=nonoise, model='Gaussian'
         )
 if len(measured_noisy_instances.shape) == 4:
@@ -123,14 +123,15 @@ if len(measured_noisy_instances.shape) == 4:
 #     title='Noisy Meas',
 #     cmap='gist_heat'
 # )
-# plotter4d(sources,
-#     title='Orig',
-#     cmap='gist_heat'
-# )
+plotter4d(sources,
+    fignum=1,
+    title='Orig',
+    cmap='gist_heat'
+)
 
 recon = Reconstruction(
     sources=sources,
-    measurements=measured_noisy_instances,
+    measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4)),
     psfs=psfs,
     deconvolver=deconvolver,
     recon_init_method=recon_init_method,
