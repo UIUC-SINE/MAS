@@ -15,6 +15,7 @@ setup(
         "h5py",
         "numpy",
         "scipy",
+        "imageio"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
