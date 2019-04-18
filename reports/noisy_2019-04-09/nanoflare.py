@@ -11,8 +11,10 @@ from mas.forward_model import get_measurements
 import matplotlib.pyplot as plt
 from mas.plotting import plotter4d
 
-path = os.path.expanduser('~/documents/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')
-nanoflare_list = h5py.File(path)['NanoMovie0_2000strands_94'][0:20]
+# path = os.path.expanduser('~/documents/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')
+# nanoflare_list = h5py.File(path)['NanoMovie0_2000strands_94'][0:20]
+# np.save('nanoflare.npy', nanoflare_list)
+nanoflare_list = np.load('nanoflare.npy')
 
 # %% psfs -----
 
