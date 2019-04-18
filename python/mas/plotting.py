@@ -110,8 +110,8 @@ def psf_slider(psfs):
     return plt
 
 
-def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8),
-              colorbar=True, column_labels=None, row_labels=None,
+def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
+              colorbar=False, column_labels=None, row_labels=None,
               sup_ylabel=None, sup_xlabel=None, scale=False):
     """Plot 4d ndarrays to the subplots of the first two dimensions
 
@@ -158,8 +158,8 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8),
                 fig.colorbar(im, ax=subplot)
 
     if column_labels is not None:
-        for subplot, col in zip(subplots[0], column_labels):
-            subplot.set_title(col)
+        for subplot, col in zip(subplots[-1], column_labels):
+            subplot.set_xlabel(col)
 
     if row_labels is not None:
         for subplot, row in zip(subplots[:,0], row_labels):
@@ -170,7 +170,7 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8),
     fig.add_subplot(111, frameon=False)
     plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
     if sup_xlabel is not None:
-        plt.ylabel(sup_xlabel)
+        plt.xlabel(sup_xlabel)
     if sup_ylabel is not None:
         plt.ylabel(sup_ylabel)
 

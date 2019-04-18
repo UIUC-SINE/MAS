@@ -16,3 +16,7 @@ UIUC-SINE Group
 
     cd mas/python
     pip install -e .
+
+#### Running tests
+
+    python tests/tests.py
