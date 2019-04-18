@@ -1,0 +1,26 @@
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{float}
+\usepackage{bm}
+\usepackage{steinmetz}
+\usepackage{xparse,mathtools}
+\usepackage{amsmath}
+\let\origfigure\figure
+\let\endorigfigure\endfigure
+\renewenvironment{figure}[1][2] {
+    \expandafter\origfigure\expandafter[H]
+} {
+    \endorigfigure
+}
+\DeclareMathOperator{\sinc}{sinc}
+\DeclareMathOperator{\rect}{rect}
+\DeclareMathOperator{\cir}{circ}
+\DeclareMathOperator{\jinc}{jinc}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\E}{E}
+\let\origbm\bm
+\renewcommand{\bm}[1] {
+    \origbm{\mbox{#1}}
+}
+\renewcommand{\b}[1] {
+    \origbm{#1}
+}

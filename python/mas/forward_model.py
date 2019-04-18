@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-# Ulas Kamaci 2018-08-27
+# Ulas Kamaci, Evan Widloski - 2018-08-27
 
 import numpy as np
 from mas.sse_cost import block_mul, block_herm
+from mas.decorators import vectorize
 from scipy.stats import poisson
+from scipy.signal import fftconvolve
 from PIL import Image
 
 def image_numpyer(*, inpath, outpath, size, upperleft):
@@ -188,12 +190,12 @@ def add_noise(signal, snr=None, maxcount=None, model='Poisson', nonoise=False):
     if nonoise is True:
         return signal
     else:
-        assert model == 'Gaussian' or 'Poisson', "select the model correctly"
-        if model == 'Gaussian':
+        assert model.lower() in ('gaussian', 'poisson'), "invalid noise model"
+        if model.lower() == 'gaussian':
             var_sig = np.var(signal)
             var_noise = var_sig / snr
             out = np.random.normal(loc=signal, scale=np.sqrt(var_noise))
-        elif model == 'Poisson':
+        elif model.lower() == 'poisson':
             if maxcount is not None:
                 sig_scaled = signal * (maxcount / signal.max())
                 print('SNR:{}'.format(np.sqrt(sig_scaled.mean())))
@@ -205,7 +207,8 @@ def add_noise(signal, snr=None, maxcount=None, model='Poisson', nonoise=False):
         return out
 
 
-def size_equalizer(x, ref_size):
+@vectorize
+def size_equalizer(x, ref_size, mode='center'):
     """
     Crop or zero-pad a 2D array so that it has the size `ref_size`.
     Both cropping and zero-padding are done such that the symmetry of the
@@ -213,43 +216,78 @@ def size_equalizer(x, ref_size):
     Args:
         x (ndarray): array which will be cropped/zero-padded
         ref_size (list): list containing the desired size of the array [r1,r2]
+        mode (str): ('center', 'topleft') where x should be placed when zero padding
     Returns:
         ndarray that is the cropper/zero-padded version of the input
     """
-    if len(x.shape) == 4:
-        y = np.zeros(x.shape[:2]+tuple(ref_size))
-        for i in range(x.shape[0]):
-            for j in range(x.shape[1]):
-                y[i,j] = size_equalizer(x[i,j], ref_size)
-        return y
-    [i1, i2] = x.shape
-    [r1, r2] = ref_size
-    [f1, f2] = [r1 - i1, r2 - i2]
-    m1 = int(i1/2)
-    m2 = int(i2/2)
-    down = int((r1 - 1) / 2)
-    up = r1 - down - 1
-    right = int((r2 - 1) / 2)
-    left = r2 - right -1
+    assert len(x.shape) == 2, "invalid shape for x"
 
-    out = x
+    if x.shape[0] > ref_size[0]:
+        pad_left, pad_right = 0, 0
+        crop_left = 0 if mode == 'topleft' else (x.shape[0] - ref_size[0]) // 2
+        crop_right = crop_left + ref_size[0]
+    else:
+        crop_left, crop_right = 0, x.shape[0]
+        pad_left = 0 if mode == 'topleft' else (ref_size[0] - x.shape[0]) // 2
+        pad_right = ref_size[0] - pad_left - x.shape[0]
+    if x.shape[1] > ref_size[1]:
+        pad_top, pad_bottom = 0, 0
+        crop_top = 0 if mode == 'topleft' else (x.shape[1] - ref_size[1]) // 2
+        crop_bottom = crop_top + ref_size[1]
+    else:
+        crop_top, crop_bottom = 0, x.shape[1]
+        pad_top = 0 if mode == 'topleft' else (ref_size[1] - x.shape[1]) // 2
+        pad_bottom = ref_size[1] - pad_top - x.shape[1]
 
-    for i,k in enumerate((f1,f2)):
-        if k > 0:
-            after = int(k/2)
-            before = k - after
-            if i == 0:
-                out = np.pad(out, ((before, after), (0, 0)), mode = 'constant')
-            else:
-                out = np.pad(out, ((0, 0), (before, after)), mode = 'constant')
+    # crop x
+    cropped = x[crop_left:crop_right, crop_top:crop_bottom]
+    # pad x
+    padded = np.pad(
+        cropped,
+        ((pad_left, pad_right), (pad_top, pad_bottom)),
+        mode='constant'
+    )
 
-        elif k == 0:
-            out = np.pad(out, ((0, 0), (0, 0)), mode = 'constant')
+    return padded
 
-        elif k < 0:
-            if i == 0:
-                out = out[m1 - up : m1 + down + 1, :]
-            else:
-                out = out[:, m2 - left : m2 + right + 1]
 
-    return out
+def downsample(x, factor=2):
+    """
+    Downsample an image by average factor*factor sized patches.  Discards remaining pixels
+    on bottom and right edges
+
+    Args:
+        x (ndarray): input image to downsample
+        factor (int): factor to downsample image by
+
+    Returns:
+        ndarray containing downsampled image
+    """
+
+    return fftconvolve(
+        x,
+        np.ones((factor, factor)) / factor**2,
+        mode='valid'
+    )[::factor, ::factor]
+
+def upsample(x, factor=2):
+    """
+    Upsample an image by turning 1 pixel into a factor*factor sized patch
+
+    Args:
+        x (ndarray): input image to upsample
+        factor (int): factor to upsample image by
+
+    Returns:
+        ndarray containing upsampled image
+    """
+
+    return np.repeat(
+        np.repeat(
+            x,
+            repeats=factor,
+            axis=0
+        ),
+        repeats=factor,
+        axis=1
+    )
