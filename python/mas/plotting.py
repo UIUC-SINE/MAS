@@ -110,7 +110,7 @@ def psf_slider(psfs):
     return plt
 
 
-def plotter4d(data, title='', fignum=None, cmap=None, figsize=(4.6, 8),
+def plotter4d(data, title='', fignum=None, cmap=None, figsize=(5.6, 8),
               colorbar=True, column_labels=None, row_labels=None,
               sup_ylabel=None, sup_xlabel=None, scale=False):
     """Plot 4d ndarrays to the subplots of the first two dimensions
