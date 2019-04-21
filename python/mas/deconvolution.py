@@ -2,7 +2,7 @@
 # Ulas Kamaci 2018-08-27
 
 import numpy as np
-import logging, itertools, functools, multiprocessing
+import logging, itertools, functools, multiprocessing, pybm3d
 from matplotlib import pyplot as plt
 from mas.sse_cost import block_mul, block_inv, block_herm, SIG_e_dft, get_LAM
 from mas.forward_model import size_equalizer
@@ -438,7 +438,7 @@ def sparsepatch(
     [k,num_sources,aa,bb] = psfs.selected_psfs.shape[:2] + sources.shape[2:]
     psize = np.size(np.empty(patch_shape))
     # mse_inner = np.zeros((num_sources,recon.maxiter))
-    if type(lam) is np.float:
+    if type(lam) is np.float or type(lam) is np.int:
         lam = np.ones(num_sources) * lam
 
     ################## initialize the primal/dual variables ##################
@@ -472,10 +472,11 @@ def sparsepatch(
         )
 
         sparse_codes = transform @ patches
-        sparse_codes = hard_thresholding(
-            sparse_codes,
-            threshold=np.sqrt(2*lam/nu)
-        )
+        for i in range(num_sources):
+            sparse_codes[:,i*aa*bb:(i+1)*aa*bb] = hard_thresholding(
+                sparse_codes[:,i*aa*bb:(i+1)*aa*bb],
+                threshold=np.sqrt(lam[i]/nu)
+            )
 
         # ----- Image Update -----
         Fc = np.fft.fft2(
@@ -516,7 +517,7 @@ def sparsepatch(
         # )-sparse_codes)**2)
 
 
-        if iter % 50 == 0:
+        if iter % 1 == 0:
             # print(dfid,sp_error,dfid+sp_error)
             ssim1 = np.zeros(num_sources)
             mse1 = np.mean((sources - recon)**2, axis=(1, 2, 3))
@@ -527,6 +528,7 @@ def sparsepatch(
             plotter4d(recon,
                 cmap='gist_heat',
                 fignum=3,
+                figsize=(5.6,8),
                 title='Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter, ssim1, psnr1)
             )
             plt.pause(0.5)
@@ -732,6 +734,7 @@ def strollr(
             plotter4d(recon,
                 cmap='gist_heat',
                 fignum=3,
+                figsize=(5.6,8),
                 title='Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter, ssim1, psnr1)
             )
             plt.pause(0.5)
@@ -768,6 +771,9 @@ def admm(
     """
 
     [k,num_sources,aa,bb] = psfs.selected_psfs.shape[:2] + sources.shape[2:]
+    if 'lam' in kwargs.keys():
+        if type(kwargs['lam']) is np.float:
+            kwargs['lam'] = np.ones(num_sources) * kwargs['lam']
 
     ################## initialize the primal/dual variables ##################
     if recon_init_method is 'zeros':
@@ -812,7 +818,7 @@ def admm(
             u,s,vT = np.linalg.svd((primal2-dual) @ kwargs['patches'].T)
             kwargs['transform'] = u @ vT
 
-        if iter % 50 == 0 or iter == iternum - 1:
+        if iter % 5 == 0 or iter == iternum - 1:
             # print(dfid, l1_reg2, dfid+l1_reg2)
             ssim1 = np.zeros(num_sources)
             mse1 = np.mean((sources - primal1)**2, axis=(1, 2, 3))
@@ -823,6 +829,7 @@ def admm(
             plotter4d(primal1,
                 cmap='gist_heat',
                 fignum=3,
+                figsize=(5.6,8),
                 title='Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter, ssim1, psnr1)
             )
             plt.pause(0.5)
@@ -902,6 +909,10 @@ def get_SIG_inv(
         LAM = psize * np.ones((aa,bb))
         spectrum = nu * np.einsum('ij,kl->ijkl', np.eye(num_sources), LAM)
 
+    elif regularizer is 'bm3d_pnp':
+        LAM = np.ones((aa,bb))
+        spectrum = nu * np.einsum('ij,kl->ijkl', np.eye(num_sources), LAM)
+
     return block_inv(psfs.selected_GAM + spectrum)
 
 
@@ -965,6 +976,9 @@ def primal1_update(
             image_shape=(num_sources, 1, aa, bb)
         )
 
+    elif regularizer is 'bm3d_pnp':
+        pre_primal1 = primal2 - dual
+
     return np.real(
         np.fft.ifft2(
             block_mul(
@@ -1016,8 +1030,6 @@ def primal2_update(
             primal1, patch_shape = kwargs['patch_shape']
         )
         pre_primal2 = kwargs['transform'] @ kwargs['patches']
-        if type(kwargs['lam']) is np.float:
-            kwargs['lam'] = np.ones(num_sources) * kwargs['lam']
         for i in range(num_sources):
             ind = np.arange(i*aa*bb, (i+1)*aa*bb)
             primal2[:,ind] = hard_thresholding(
@@ -1032,8 +1044,6 @@ def primal2_update(
         patch_means = np.mean(patches, axis=0)
         dual_means = np.mean(dual, axis=1)
         patches_zeromean = (patches - patch_means).T
-        if type(kwargs['lam']) is np.float:
-            kwargs['lam'] = np.ones(num_sources) * kwargs['lam']
 
         pool = multiprocessing.Pool()
         block_matching_i = functools.partial(block_matching,
@@ -1073,6 +1083,12 @@ def primal2_update(
             'ik,j->ijk', patch_means[indices], np.ones(patches.shape[0])
         ) + np.einsum('ik,j->ijk', dual_means, np.ones(dual.shape[1]))
         kwargs['indices'] = indices
+
+
+    elif regularizer is 'bm3d_pnp':
+        pre_primal2 = primal1
+        for i in range(num_sources):
+            primal2[i,0] = pybm3d.bm3d.bm3d(primal1[i,0]+dual[i,0], np.sqrt(kwargs['lam'][i]/nu))
 
     return primal2, pre_primal2, kwargs
 
@@ -1129,5 +1145,8 @@ def primal2_init(
             'ik,j->ijk', patch_means[indices], np.ones(patches.shape[0])
         )
         kwargs['indices'] = indices
+
+    elif regularizer is 'bm3d_pnp':
+        primal2 = np.zeros_like(primal1)
 
     return primal2, kwargs
