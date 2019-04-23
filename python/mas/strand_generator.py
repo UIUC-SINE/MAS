@@ -1,10 +1,11 @@
 import numpy as np
 import cv2, skimage
+from scipy.sparse import coo_matrix
 
 def strand(theta, x, thickness=7, intensity=1, image_width=160):
     """Generate single strand image"""
 
-    pt1 = (x - int(image_width * np.tan(theta)), 0) # point where it crosses y=0 line
+    pt1 = (x + int(image_width * np.tan(np.deg2rad(theta))), 0) # point where it crosses y=0 line
     pt2 = (x, image_width) # point where it crosses y=image_width line
 
     img = np.zeros((image_width, image_width))
@@ -26,10 +27,10 @@ def strands(numstrands=100, thickness=7, max_angle=20,
 
     img = np.zeros((image_width,image_width))
     for _ in range(numstrands):
-        theta = np.random.uniform(-max_angle, max_angle) / 180 * np.pi
+        theta = np.random.uniform(-max_angle, max_angle)
         x  = np.random.randint(
-            0 if theta > 0 else image_width * np.tan(theta),
-            image_width + image_width * np.tan(theta) if theta > 0 else image_width
+            0 if theta < 0 else image_width * -np.tan(np.deg2rad(theta)),
+            image_width - image_width * np.tan(np.deg2rad(theta)) if theta < 0 else image_width
         )
         intensity = np.random.rand()
 
