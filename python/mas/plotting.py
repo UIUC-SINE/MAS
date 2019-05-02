@@ -68,6 +68,7 @@ def fourier_slices(measurements):
 
     else:
         logging.warning("No copies_history/copies/csbs_params.  Did you run CSBS?")
+        copies_progression = None
 
     fig.constrained_layout = True
 
