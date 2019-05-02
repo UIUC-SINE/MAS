@@ -92,8 +92,8 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None, mode='circula
         psfs (PSFs): PSFs object containing psfs and other csbs state data
         mode (string): {'circular', 'linear'} (default='circular')
         real (bool): (default=False) whether returned measurement should be real
-        type of the convolution performed to obtain the measurements from psfs
-        and sources
+            type of the convolution performed to obtain the measurements from psfs
+            and sources
 
     Optional:
         meas_size (tuple): 2d tuple of size of the detector array
@@ -141,7 +141,9 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None, mode='circula
 
 
     elif mode == 'circular':
-        # FIXME: make it work for 2D input
+        # FIXME: make it work for 2D input, remove selected_psfs
+        # FIXME: ;move psf_dft computation to PSFs (make PSFs accept sampling_interval and o
+        # output size arguments)
 
         psfs.selected_psfs = np.zeros((k,p,aa,bb))
 
@@ -169,7 +171,49 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None, mode='circula
         return measurement.real if real else measurement
 
 
-def add_noise(signal, snr=None, maxcount=None, model='Poisson', nonoise=False):
+def get_contributions(real=False, *, sources, psfs):
+    """
+    Convolve the sources and psfs to obtain contributions.
+    Args:
+        sources (ndarray): 4d array of sources
+        psfs (PSFs): PSFs object containing psfs and other csbs state data
+        real (bool): (default=False) whether returned measurement should be real
+            type of the convolution performed to obtain the measurements from psfs
+            and sources
+
+    Returns:
+        ndarray that is the noisy version of the input
+    """
+    assert sources.shape[0] == psfs.psfs.shape[1], "source and psf dimensions do not match"
+
+    # FIXME: make it work for 2D input
+    # FIXME: ;move psf_dft computation to PSFs (make PSFs accept sampling_interval and o
+    # output size arguments)
+
+    # reshape psfs
+    [p,aa,bb] = sources.shape
+    [k,p,ss,ss] = psfs.psfs.shape
+    psfs.psfs = size_equalizer(psfs.psfs, [aa,bb])
+
+    psfs.psfs = np.repeat(psfs.psfs, psfs.copies.astype(int), axis=0)
+    psfs.psf_dfts = np.fft.fft2(psfs.psfs)
+
+    # ----- forward -----
+    measurement = np.fft.fftshift(
+        np.fft.ifft2(
+            np.einsum(
+                'ijkl,jkl->ijkl',
+                psfs.psf_dfts,
+                np.fft.fft2(sources)
+            )
+        ),
+        axes=(2, 3)
+    )
+    return measurement.real if real else measurement
+
+
+@vectorize
+def add_noise(signal, snr=None, max_count=None, model='Poisson', no_noise=False):
     """
     Add noise to the given signal at the specified level.
 
@@ -179,15 +223,15 @@ def add_noise(signal, snr=None, maxcount=None, model='Poisson', nonoise=False):
         defined as the ratio of variance of the input signal to the variance of
         the noise. For Poisson model, it is taken as the average snr where snr
         of a pixel is given by the square root of its value.
-        maxcount (int): Max number of photon counts in the given signal
+        max_count (int): Max number of photon counts in the given signal
         model (string): String that specifies the noise model. The 2 options are
         `Gaussian` and `Poisson`
-        nonoise (bool): (default=False) If True, return the clean signal
+        no_noise (bool): (default=False) If True, return the clean signal
 
     Returns:
         ndarray that is the noisy version of the input
     """
-    if nonoise is True:
+    if no_noise is True:
         return signal
     else:
         assert model.lower() in ('gaussian', 'poisson'), "invalid noise model"
@@ -196,10 +240,10 @@ def add_noise(signal, snr=None, maxcount=None, model='Poisson', nonoise=False):
             var_noise = var_sig / snr
             out = np.random.normal(loc=signal, scale=np.sqrt(var_noise))
         elif model.lower() == 'poisson':
-            if maxcount is not None:
-                sig_scaled = signal * (maxcount / signal.max())
-                print('SNR:{}'.format(np.sqrt(sig_scaled.mean())))
-                out = poisson.rvs(sig_scaled) * (signal.max() / maxcount)
+            if max_count is not None:
+                sig_scaled = signal * (max_count / signal.max())
+                # print('SNR:{}'.format(np.sqrt(sig_scaled.mean())))
+                out = poisson.rvs(sig_scaled) * (signal.max() / max_count)
             else:
                 avg_brightness = snr**2
                 sig_scaled = signal * (avg_brightness / signal.mean())

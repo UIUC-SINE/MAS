@@ -57,8 +57,8 @@ for i in range(num_instances):
     for j in range(measured.shape[0]):
         measured_noisy_instances[i, j, 0] = np.fft.fftshift(add_noise(
             measured[j,0],
-            snr=10, maxcount=500, model='Poisson'
-            # snr=100, nonoise=nonoise, model='Gaussian'
+            snr=10, max_count=500, model='Poisson'
+            # snr=100, no_noise=no_noise, model='Gaussian'
         ))
 if len(measured_noisy_instances.shape) == 4:
     measured_noisy_instances = measured_noisy_instances[np.newaxis]
