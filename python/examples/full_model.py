@@ -1,3 +1,4 @@
+# %% import_load
 #!/usr/bin/env python3
 # Ulas Kamaci 2018-10-27
 
@@ -14,19 +15,24 @@ from skimage.measure import compare_ssim as ssim
 from scipy.io import readsav
 import numpy as np
 import imageio, pickle, h5py
+from keras.models import load_model
 
+# model = load_model('/home/kamo/Projects/DnCNN-keras/snapshot/save_DnCNN_maxcount500_2019-04-21-16-55-59/model_10.h5')
+# model = load_model('/home/kamo/Projects/DnCNN-keras/snapshot/save_DnCNN_maxcount10_2019-04-25-01-09-20/model_20.h5')
+
+# %% meas
 deconvolver = admm
-regularizer = 'bm3d_pnp' # ['patch_based', 'TV', 'strollr', 'bm3d_pnp']
+regularizer = 'bm3d_pnp' # ['patch_based', 'TV', 'strollr', 'bm3d_pnp', 'dncnn']
 thresholding = 'hard' # 'hard' or 'soft' - NotImplemented
 nonoise = False
 num_instances = 1
 psf_width = 201
-# source_wavelengths = np.array([9.4e-9])
-source_wavelengths = np.array([33.4e-9, 33.5e-9])
+source_wavelengths = np.array([33.5e-9])
+# source_wavelengths = np.array([33.4e-9, 33.5e-9])
 num_sources = len(source_wavelengths)
 
-source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[1000], (100,100))
-source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[1999], (100,100))
+source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0], (160,160))
+# source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[1999], (160,160))
 # source1 = rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,10))
 # source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,60))
 # source1 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_335.sav',python_dict=True)['movie'][500]
@@ -35,14 +41,14 @@ source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_v
 meas_size = tuple(np.array([aa,bb]) - 0)
 sources = np.zeros((len(source_wavelengths),1,aa,bb))
 sources[0,0] = source1 / source1.max()
-sources[1,0] = source2 / source2.max()
+# sources[1,0] = source2 / source2.max()
 # sources = sources / sources.max()
 
-ps = PhotonSieve(diameter=8e-2)
+ps = PhotonSieve(diameter=6e-2, smallest_hole_diameter=20e-6)
 # generate psfs
 psfs = PSFs(
     ps,
-    sampling_interval=3.5e-6,
+    sampling_interval=10e-6,
     measurement_wavelengths=source_wavelengths,
     source_wavelengths=source_wavelengths,
     psf_generator=circ_incoherent_psf,
@@ -58,7 +64,7 @@ for i in range(num_instances):
     for j in range(measured.shape[0]):
         measured_noisy_instances[i, j, 0] = add_noise(
             measured[j,0],
-            snr=10, maxcount=500, nonoise=nonoise, model='Poisson'
+            snr=10, maxcount=100, nonoise=nonoise, model='Poisson'
             # snr=100, nonoise=nonoise, model='Gaussian'
         )
 if len(measured_noisy_instances.shape) == 4:
@@ -69,19 +75,21 @@ plotter4d(measured_noisy_instances[0],
     figsize=(5.6,8),
     title='Noisy Meas'
 )
-plotter4d(sources,
-    title='Orig',
-    figsize=(5.6,8),
-    cmap='gist_heat'
-)
+# plotter4d(sources,
+#     title='Orig',
+#     figsize=(5.6,8),
+#     cmap='gist_heat'
+# )
 
+
+# %% recon
 if deconvolver==tikhonov:
     recon = tikhonov(
         sources=sources,
         measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4))[0],
         psfs=psfs,
-        tikhonov_lam=2e-2,
-        tikhonov_order=1,
+        tikhonov_lam=5e-2,
+        tikhonov_order=1
     )
 elif deconvolver==admm:
     recon = admm(
@@ -90,16 +98,17 @@ elif deconvolver==admm:
         psfs=psfs,
         regularizer=regularizer,
         recon_init_method='tikhonov',
-        iternum=500,
-        nu=1e-3,
-        lam=1e-5,
-        tikhonov_lam=2e-2,
-        tikhonov_order=2,
+        iternum=30,
+        nu=14e-2,
+        lam=5e-5,
+        tikhonov_lam=1e-1,
+        tikhonov_order=1,
         patch_shape=(6,6,1),
         transform=dctmtx((6,6,8)),
         learning=True,
         window_size=(30,30),
-        group_size=70,
+        group_size=70
+        # model=model
     )
 elif deconvolver==strollr:
     recon = strollr(
@@ -107,11 +116,11 @@ elif deconvolver==strollr:
         measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4))[0],
         psfs=psfs,
         recon_init_method='tikhonov',
-        tikhonov_lam=2e-2,
-        tikhonov_order=2,
+        tikhonov_lam=1e-1,
+        tikhonov_order=1,
         iternum=12,
-        lr=2e-3,
-        theta=2e-1,
+        lr=5e-3,
+        theta=[1,1],
         s=0,
         lam=2e-1,
         patch_shape=(6,6,1),
@@ -128,7 +137,7 @@ elif deconvolver==sparsepatch:
         psfs=psfs,
         recon_init_method='tikhonov',
         tikhonov_lam=2e-2,
-        tikhonov_order=2,
+        tikhonov_order=1,
         iternum=500,
         nu=1e-2,
         lam=1e-5,
@@ -150,3 +159,4 @@ plotter4d(recon,
     figsize=(5.6,8),
     title='Recon. SSIM={}\n Recon. PSNR={}'.format(ssim_, psnr_)
 )
+print('ssim:{:.3f}, psnr:{:.2f}'.format(ssim_[0],psnr_[0]))

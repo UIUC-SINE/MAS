@@ -913,6 +913,10 @@ def get_SIG_inv(
         LAM = np.ones((aa,bb))
         spectrum = nu * np.einsum('ij,kl->ijkl', np.eye(num_sources), LAM)
 
+    elif regularizer is 'dncnn':
+        LAM = np.ones((aa,bb))
+        spectrum = nu * np.einsum('ij,kl->ijkl', np.eye(num_sources), LAM)
+
     return block_inv(psfs.selected_GAM + spectrum)
 
 
@@ -977,6 +981,9 @@ def primal1_update(
         )
 
     elif regularizer is 'bm3d_pnp':
+        pre_primal1 = primal2 - dual
+
+    elif regularizer is 'dncnn':
         pre_primal1 = primal2 - dual
 
     return np.real(
@@ -1090,6 +1097,13 @@ def primal2_update(
         for i in range(num_sources):
             primal2[i,0] = pybm3d.bm3d.bm3d(primal1[i,0]+dual[i,0], np.sqrt(kwargs['lam'][i]/nu))
 
+
+    elif regularizer is 'dncnn':
+        pre_primal2 = primal1
+        for i in range(num_sources):
+            noisy = np.reshape(primal1[i,0]+dual[i,0], (1,aa,bb,1))
+            primal2[i,0] = kwargs['model'].predict(noisy)[0,:,:,0]
+
     return primal2, pre_primal2, kwargs
 
 def primal2_init(
@@ -1147,6 +1161,9 @@ def primal2_init(
         kwargs['indices'] = indices
 
     elif regularizer is 'bm3d_pnp':
+        primal2 = np.zeros_like(primal1)
+
+    elif regularizer is 'dncnn':
         primal2 = np.zeros_like(primal1)
 
     return primal2, kwargs
