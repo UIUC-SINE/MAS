@@ -24,7 +24,7 @@ from keras.models import load_model
 deconvolver = admm
 regularizer = 'bm3d_pnp' # ['patch_based', 'TV', 'strollr', 'bm3d_pnp', 'dncnn']
 thresholding = 'hard' # 'hard' or 'soft' - NotImplemented
-nonoise = False
+no_noise = False
 num_instances = 1
 psf_width = 201
 source_wavelengths = np.array([33.5e-9])
@@ -64,8 +64,8 @@ for i in range(num_instances):
     for j in range(measured.shape[0]):
         measured_noisy_instances[i, j, 0] = add_noise(
             measured[j,0],
-            snr=10, maxcount=100, nonoise=nonoise, model='Poisson'
-            # snr=100, nonoise=nonoise, model='Gaussian'
+            snr=10, max_count=500, no_noise=no_noise, model='Poisson'
+            # snr=100, no_noise=no_noise, model='Gaussian'
         )
 if len(measured_noisy_instances.shape) == 4:
     measured_noisy_instances = measured_noisy_instances[np.newaxis]

@@ -10,7 +10,8 @@ def _vectorize(signature='(m,n)->(i,j)'):
     def decorator(func):
         return np.vectorize(
             func,
-            excluded=np.arange(1, func.__code__.co_argcount) ,
+            # excluded=np.arange(1, func.__code__.co_argcount) ,
+            excluded=func.__code__.co_varnames[:func.__code__.co_argcount],
             signature=signature
         )
     return decorator

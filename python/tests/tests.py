@@ -61,6 +61,21 @@ class ForwardModelTests(TestCase):
             self.simple_array
         )
 
+class StrandGeneratorTests(TestCase):
+    def test_strand(self):
+        from mas.strand_generator import strand
+
+        generated = strand(0, 0, thickness=1, intensity=1, image_width=4)
+        self.assertEqualNp(
+            generated,
+            np.array(
+                ((1, 0, 0, 0),
+                 (1, 0, 0, 0),
+                 (1, 0, 0, 0),
+                 (1, 0, 0, 0))
+            )
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
