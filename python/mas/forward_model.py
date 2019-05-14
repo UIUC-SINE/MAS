@@ -272,16 +272,16 @@ def size_equalizer(x, ref_size, mode='center'):
         crop_right = crop_left + ref_size[0]
     else:
         crop_left, crop_right = 0, x.shape[0]
-        pad_left = 0 if mode == 'topleft' else (ref_size[0] - x.shape[0]) // 2
-        pad_right = ref_size[0] - pad_left - x.shape[0]
+        pad_right = ref_size[0] - x.shape[0] if mode == 'topleft' else (ref_size[0] - x.shape[0]) // 2
+        pad_left = ref_size[0] - pad_right - x.shape[0]
     if x.shape[1] > ref_size[1]:
         pad_top, pad_bottom = 0, 0
         crop_top = 0 if mode == 'topleft' else (x.shape[1] - ref_size[1]) // 2
         crop_bottom = crop_top + ref_size[1]
     else:
         crop_top, crop_bottom = 0, x.shape[1]
-        pad_top = 0 if mode == 'topleft' else (ref_size[1] - x.shape[1]) // 2
-        pad_bottom = ref_size[1] - pad_top - x.shape[1]
+        pad_bottom = ref_size[1] - x.shape[1] if mode == 'topleft' else (ref_size[1] - x.shape[1]) // 2
+        pad_top = ref_size[1] - pad_bottom - x.shape[1]
 
     # crop x
     cropped = x[crop_left:crop_right, crop_top:crop_bottom]
