@@ -1,7 +1,8 @@
 from setuptools import setup
 
 setup(
-    name='mas',
+    name='uiuc-mas',
+    version='2',
     packages=['mas'],
     author="Evan Widloski",
     author_email="evan@evanw.org",
@@ -16,7 +17,7 @@ setup(
         "numpy",
         "scipy",
         "imageio",
-        "pybm3d"
+        "opencv-python"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
