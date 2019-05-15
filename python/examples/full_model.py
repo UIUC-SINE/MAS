@@ -25,20 +25,18 @@ deconvolver = admm
 regularizer = 'bm3d_pnp' # ['patch_based', 'TV', 'strollr', 'bm3d_pnp', 'dncnn']
 thresholding = 'hard' # 'hard' or 'soft' - NotImplemented
 no_noise = False
-num_instances = 1
 psf_width = 201
 source_wavelengths = np.array([33.5e-9])
 # source_wavelengths = np.array([33.4e-9, 33.5e-9])
 num_sources = len(source_wavelengths)
 
-source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0], (160,160))
-# source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[1999], (160,160))
+source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0], ref_size=(160,160))
+# source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[1999], ref_size=(160,160))
 # source1 = rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,10))
 # source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,60))
 # source1 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_335.sav',python_dict=True)['movie'][500]
 # source2 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_94.sav',python_dict=True)['movie'][500]
 [aa, bb] = source1.shape
-meas_size = tuple(np.array([aa,bb]) - 0)
 sources = np.zeros((len(source_wavelengths),1,aa,bb))
 sources[0,0] = source1 / source1.max()
 # sources[1,0] = source2 / source2.max()
@@ -56,21 +54,17 @@ psfs = PSFs(
     num_copies=1
 )
 
-measured = get_measurements(real=True, sources=sources, psfs=psfs, meas_size=meas_size, mode='circular')
-sources = size_equalizer(sources, meas_size)
+measured = get_measurements(real=True, sources=sources, psfs=psfs, mode='circular')
 # take multiple measurements with different noise
-measured_noisy_instances = np.zeros((num_instances,)+measured.shape)
-for i in range(num_instances):
-    for j in range(measured.shape[0]):
-        measured_noisy_instances[i, j, 0] = add_noise(
-            measured[j,0],
-            snr=10, max_count=500, no_noise=no_noise, model='Poisson'
-            # snr=100, no_noise=no_noise, model='Gaussian'
-        )
-if len(measured_noisy_instances.shape) == 4:
-    measured_noisy_instances = measured_noisy_instances[np.newaxis]
+measured_noisy_instances = np.zeros_like(measured)
+# for i in range(measured.shape[0]):
+measured_noisy_instances = add_noise(
+    measured,
+    snr=10, max_count=100, no_noise=no_noise, model='Poisson'
+    # snr=100, no_noise=no_noise, model='Gaussian'
+)
 
-plotter4d(measured_noisy_instances[0],
+plotter4d(measured_noisy_instances,
     cmap='gist_heat',
     figsize=(5.6,8),
     title='Noisy Meas'
@@ -86,7 +80,7 @@ plotter4d(measured_noisy_instances[0],
 if deconvolver==tikhonov:
     recon = tikhonov(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4))[0],
+        measurements=np.fft.fftshift(measured_noisy_instances, axes=(2,3)),
         psfs=psfs,
         tikhonov_lam=5e-2,
         tikhonov_order=1
@@ -94,7 +88,7 @@ if deconvolver==tikhonov:
 elif deconvolver==admm:
     recon = admm(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4))[0],
+        measurements=np.fft.fftshift(measured_noisy_instances, axes=(2,3)),
         psfs=psfs,
         regularizer=regularizer,
         recon_init_method='tikhonov',
@@ -113,7 +107,7 @@ elif deconvolver==admm:
 elif deconvolver==strollr:
     recon = strollr(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4))[0],
+        measurements=np.fft.fftshift(measured_noisy_instances, axes=(2,3)),
         psfs=psfs,
         recon_init_method='tikhonov',
         tikhonov_lam=1e-1,

@@ -148,7 +148,7 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None, mode='circula
         psfs.selected_psfs = np.zeros((k,p,aa,bb))
 
         # reshape psfs
-        psfs.selected_psfs = size_equalizer(psfs.psfs, [aa,bb])
+        psfs.selected_psfs = size_equalizer(psfs.psfs, ref_size=[aa,bb])
 
         psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
         psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
@@ -193,7 +193,7 @@ def get_contributions(real=False, *, sources, psfs):
     # reshape psfs
     [p,aa,bb] = sources.shape
     [k,p,ss,ss] = psfs.psfs.shape
-    psfs.psfs = size_equalizer(psfs.psfs, [aa,bb])
+    psfs.psfs = size_equalizer(psfs.psfs, ref_size=[aa,bb])
 
     psfs.psfs = np.repeat(psfs.psfs, psfs.copies.astype(int), axis=0)
     psfs.psf_dfts = np.fft.fft2(psfs.psfs)
