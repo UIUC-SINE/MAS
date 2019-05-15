@@ -1,18 +1,26 @@
 import numpy as np
 
-def _vectorize(signature='(m,n)->(i,j)'):
+def _vectorize(signature='(m,n)->(i,j)', included=[0]):
     """Decorator to make a 2D functions work with higher dimensional arrays
     Last 2 dimensions are taken to be images
+    Iterate over first position argument.
 
     Args:
         signature (str): override mapping behavior
+        included (list): list of ints and strs of position/keyword arguments to iterate over
     """
     def decorator(func):
-        return np.vectorize(
-            func,
-            excluded=list(range(1, func.__code__.co_argcount)) + list(func.__code__.co_varnames[:func.__code__.co_argcount]),
-            signature=signature
-        )
+
+        def foo(*args, **kwargs):
+
+            # exclude everything except included
+            excluded = set(range(len(args))).union(set(kwargs.keys()))
+            excluded -= set(included)
+
+            return np.vectorize(func, excluded=excluded, signature=signature)(*args, **kwargs)
+
+        return foo
+
     return decorator
 
 vectorize = _vectorize()

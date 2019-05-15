@@ -3,7 +3,7 @@
 
 from mas.psf_generator import PSFs, PhotonSieve, circ_incoherent_psf
 from mas.plotting import fourier_slices, plotter4d
-from mas.sse_cost import block_mul, block_inv, block_herm, SIG_e_dft, get_LAM
+from mas.block import block_mul, block_inv, block_herm, SIG_e_dft, get_LAM
 from mas.forward_model import get_measurements, add_noise, size_equalizer, rectangle_adder
 from mas.deconvolution import tikhonov, sparsepatch, admm, dctmtx, strollr
 from matplotlib import pyplot as plt

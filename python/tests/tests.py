@@ -1,6 +1,9 @@
 import unittest
 import numpy as np
-from mas.forward_model import (upsample, downsample, size_equalizer)
+from mas.forward_model import (
+    upsample, downsample, size_equalizer, get_measurements, add_noise
+)
+from mas.psf_generator import PhotonSieve, PSFs
 
 # subclass unittest.TestCase to add assertEqualNp
 class TestCase(unittest.TestCase):
@@ -8,7 +11,20 @@ class TestCase(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(a, b)))
 
 class BlockFunctionTests(TestCase):
-    pass
+    def setUp(self):
+        self.x = np.random.random((3, 4, 5, 5))
+        self.y = np.random.random((4, 3, 5, 5))
+
+    def test_block_mul(self):
+        from mas.block import block_mul
+
+        # matrix x matrix
+        result = block_mul(self.x, self.y)
+        self.assertEqual(result.shape, (3, 3, 5, 5))
+
+        # matrix x col vec
+        result = block_mul(self.x, self.y[:, 0, :, :])
+        self.assertEqual(result.shape, (3, 5, 5))
 
 class ForwardModelTests(TestCase):
 
@@ -60,6 +76,58 @@ class ForwardModelTests(TestCase):
             downsample(upsampled, factor=2),
             self.simple_array
         )
+
+class DeconvolutionTests(TestCase):
+    def setUp(self):
+        self.sources = np.ones((2, 4, 4))
+        self.ps = PhotonSieve()
+        wavelengths = np.array([33.4e-9, 33.5e-9])
+        self.psfs = PSFs(
+            self.ps,
+            source_wavelengths=wavelengths,
+            measurement_wavelengths=wavelengths
+        )
+        measured = get_measurements(
+            sources=self.sources,
+            psfs=self.psfs,
+            real=True
+        )
+        self.measured_noisy = add_noise(measured, max_count=10, model='poisson')
+
+    def test_tikhonov(self):
+        from mas.deconvolution import tikhonov
+
+        recon = tikhonov(
+            sources=self.sources,
+            measurements=np.fft.fftshift(self.measured_noisy, axes=(1, 2)),
+            psfs=self.psfs,
+            tikhonov_lam=5e-2,
+            tikhonov_order=1
+        )
+
+    def test_admm(self):
+        from mas.deconvolution import admm
+
+        recon = admm(
+            sources=sources,
+            measurements=np.fft.fftshift(measured_noisy, axes=(2,3)),
+            psfs=psfs,
+            regularizer=regularizer,
+            recon_init_method='tikhonov',
+            iternum=30,
+            nu=14e-2,
+            lam=5e-5,
+            tikhonov_lam=1e-1,
+            tikhonov_order=1,
+            patch_shape=(6,6,1),
+            transform=dctmtx((6,6,8)),
+            learning=True,
+            window_size=(30,30),
+            group_size=70
+            # model=model
+        )
+
+
 
 class StrandGeneratorTests(TestCase):
     def test_strand(self):

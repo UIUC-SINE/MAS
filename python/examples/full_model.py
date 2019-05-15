@@ -1,10 +1,9 @@
-# %% import_load
 #!/usr/bin/env python3
 # Ulas Kamaci 2018-10-27
 
 from mas.psf_generator import PSFs, PhotonSieve, circ_incoherent_psf
 from mas.plotting import fourier_slices, plotter4d
-from mas.sse_cost import block_mul, block_inv, block_herm, SIG_e_dft
+from mas.block import block_mul, block_inv, block_herm, SIG_e_dft
 from mas.forward_model import get_measurements, add_noise, size_equalizer, rectangle_adder
 from mas.deconvolution import tikhonov, sparsepatch, admm, dctmtx, strollr
 from mas.csbs import csbs
@@ -16,11 +15,13 @@ from scipy.io import readsav
 import numpy as np
 import imageio, pickle, h5py
 from keras.models import load_model
+from mas.data import strands
 
 # model = load_model('/home/kamo/Projects/DnCNN-keras/snapshot/save_DnCNN_maxcount500_2019-04-21-16-55-59/model_10.h5')
 # model = load_model('/home/kamo/Projects/DnCNN-keras/snapshot/save_DnCNN_maxcount10_2019-04-25-01-09-20/model_20.h5')
 
-# %% meas
+# %% meas -------------------------------------
+
 deconvolver = admm
 regularizer = 'bm3d_pnp' # ['patch_based', 'TV', 'strollr', 'bm3d_pnp', 'dncnn']
 thresholding = 'hard' # 'hard' or 'soft' - NotImplemented
@@ -28,21 +29,11 @@ no_noise = False
 psf_width = 201
 source_wavelengths = np.array([33.5e-9])
 # source_wavelengths = np.array([33.4e-9, 33.5e-9])
-num_sources = len(source_wavelengths)
 
-source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0], ref_size=(160,160))
-# source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[1999], ref_size=(160,160))
-# source1 = rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,10))
-# source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,60))
-# source1 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_335.sav',python_dict=True)['movie'][500]
-# source2 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_94.sav',python_dict=True)['movie'][500]
-[aa, bb] = source1.shape
-sources = np.zeros((len(source_wavelengths),1,aa,bb))
-sources[0,0] = source1 / source1.max()
-# sources[1,0] = source2 / source2.max()
-# sources = sources / sources.max()
+sources = strands[0:1]
 
-ps = PhotonSieve(diameter=6e-2, smallest_hole_diameter=20e-6)
+ps = PhotonSieve()
+
 # generate psfs
 psfs = PSFs(
     ps,
@@ -54,17 +45,17 @@ psfs = PSFs(
     num_copies=1
 )
 
-measured = get_measurements(real=True, sources=sources, psfs=psfs, mode='circular')
+measured = get_measurements(sources, real=True, psfs=psfs, mode='circular')
 # take multiple measurements with different noise
-measured_noisy_instances = np.zeros_like(measured)
+measured_noisy = np.zeros_like(measured)
 # for i in range(measured.shape[0]):
-measured_noisy_instances = add_noise(
+measured_noisy = add_noise(
     measured,
     snr=10, max_count=100, no_noise=no_noise, model='Poisson'
     # snr=100, no_noise=no_noise, model='Gaussian'
 )
 
-plotter4d(measured_noisy_instances,
+plotter4d(measured_noisy,
     cmap='gist_heat',
     figsize=(5.6,8),
     title='Noisy Meas'
@@ -76,11 +67,12 @@ plotter4d(measured_noisy_instances,
 # )
 
 
-# %% recon
+# %% recon ------------------------------------
+
 if deconvolver==tikhonov:
     recon = tikhonov(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(2,3)),
+        measurements=np.fft.fftshift(measured_noisy, axes=(2,3)),
         psfs=psfs,
         tikhonov_lam=5e-2,
         tikhonov_order=1
@@ -88,7 +80,7 @@ if deconvolver==tikhonov:
 elif deconvolver==admm:
     recon = admm(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(2,3)),
+        measurements=np.fft.fftshift(measured_noisy, axes=(2,3)),
         psfs=psfs,
         regularizer=regularizer,
         recon_init_method='tikhonov',
@@ -107,7 +99,7 @@ elif deconvolver==admm:
 elif deconvolver==strollr:
     recon = strollr(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(2,3)),
+        measurements=np.fft.fftshift(measured_noisy, axes=(2,3)),
         psfs=psfs,
         recon_init_method='tikhonov',
         tikhonov_lam=1e-1,
@@ -127,7 +119,7 @@ elif deconvolver==strollr:
 elif deconvolver==sparsepatch:
     recon = sparsepatch(
         sources=sources,
-        measurements=np.fft.fftshift(measured_noisy_instances, axes=(3,4))[0],
+        measurements=np.fft.fftshift(measured_noisy, axes=(3,4))[0],
         psfs=psfs,
         recon_init_method='tikhonov',
         tikhonov_lam=2e-2,
@@ -141,6 +133,7 @@ elif deconvolver==sparsepatch:
     )
 
 ###### COMPUTE PERFORMANCE METRICS ######
+num_sources = len(source_wavelengths)
 ssim_ = np.zeros(num_sources)
 mse_ = np.mean((sources - recon)**2, axis=(1, 2, 3))
 psnr_ = 20 * np.log10(np.max(sources, axis=(1,2,3))/np.sqrt(mse_))

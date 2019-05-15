@@ -2,8 +2,8 @@
 # Ulas Kamaci, Evan Widloski - 2018-08-27
 
 import numpy as np
-from mas.sse_cost import block_mul, block_herm
-from mas.decorators import vectorize
+from mas.block import block_mul, block_herm
+from mas.decorators import vectorize, _vectorize
 from scipy.stats import poisson
 from scipy.signal import fftconvolve
 from PIL import Image
@@ -84,7 +84,8 @@ def rectangle_adder(*, image, size, upperleft):
     ] += np.ones(size)
     return image
 
-def get_measurements(real=False, *, sources, psfs, meas_size=None):
+@_vectorize(signature='(i,j,k)->(m,n,o)', included=[0, 'sources'])
+def get_measurements(*, sources, psfs, real=False, meas_size=None, **kwargs):
     """
     Convolve the sources and psfs to obtain measurements.
     Args:
@@ -101,9 +102,9 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None):
     Returns:
         ndarray that is the noisy version of the input
     """
-    assert sources.shape[0] == psfs.psfs.shape[1], "source and psf dimensions do not match"
-    [p,_,aa,bb] = sources.shape
-    [k,p,ss,ss] = psfs.psfs.shape
+
+    [p, aa, bb] = sources.shape
+    [k, p, ss, ss] = psfs.psfs.shape
     ta, tb = [aa + ss - 1, bb + ss - 1]
 
 
@@ -127,12 +128,13 @@ def get_measurements(real=False, *, sources, psfs, meas_size=None):
     # ----- forward -----
     measurement = np.fft.fftshift(
         np.fft.ifft2(
-            block_mul(
+            np.einsum(
+                'ijkl,jkl->ikl',
                 psfs.selected_psf_dfts,
                 np.fft.fft2(sources)
             )
         ),
-        axes=(2, 3)
+        axes=(1, 2)
     )
     return measurement.real if real else measurement
 
