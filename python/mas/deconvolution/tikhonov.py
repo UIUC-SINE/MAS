@@ -39,7 +39,7 @@ def tikhonov(
                     ),
                     block_mul(
                         psfs.selected_psf_dfts_h,
-                        np.fft.fft2(measurements)
+                        np.fft.fft2(np.fft.fftshift(measurements, axes=(1,2)))
                     )
                 )
         )

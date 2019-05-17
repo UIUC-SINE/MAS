@@ -42,6 +42,7 @@ def csbs(psfs, cost_module, end_copies, **kwargs):
         lowest_psf_group_index = None
         lowest_psf_group_cost = float('inf')
         # iterate psf_group combinations and find the lowest cost
+        costs = []
         for psf_group_index in range(len(psfs.psfs)):
             # only evaluate groups with nonzero copies
             if psfs.copies[psf_group_index] >= 1:
@@ -50,10 +51,13 @@ def csbs(psfs, cost_module, end_copies, **kwargs):
                     psf_group_index,
                     **kwargs
                 )
-                if psf_group_cost < lowest_psf_group_cost:
+                costs.append(psf_group_cost)
+                # if psf_group_cost < lowest_psf_group_cost:
+                if (psf_group_cost < lowest_psf_group_cost) and not np.isclose(psf_group_cost, lowest_psf_group_cost, rtol=0, atol=1e-13):
                     lowest_psf_group_cost = psf_group_cost
                     lowest_psf_group_index = psf_group_index
 
+        # import ipdb; ipdb.set_trace()
         # permanently remove the psf group which incurred the lowest cost
         psfs.copies[lowest_psf_group_index] -= 1
         psfs.copies_history.append(lowest_psf_group_index)
