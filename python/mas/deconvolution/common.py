@@ -1,6 +1,9 @@
 import numpy as np
 from collections import Counter
 from scipy.fftpack import dct, dctn, idctn
+from skimage.measure import compare_ssim
+from mas.plotting import plotter4d
+from matplotlib import pyplot as plt
 
 def patch_extractor(image, *, patch_shape):
     """Create a patch matrix where each column is a vectorized patch.
@@ -9,7 +12,7 @@ def patch_extractor(image, *, patch_shape):
     the patches have the same dimension.
 
     Args:
-        image (ndarray): 4d array of spectral images
+        image (ndarray): 3d array of spectral images
         patch_shape (tuple): tuple of length 3: (dim_x, dim_y, dim_z)
 
     Returns:
@@ -20,14 +23,14 @@ def patch_extractor(image, *, patch_shape):
     """
     assert len(patch_shape) == 3, 'patch_shape must have length=3'
 
-    [p,_,aa,bb] = image.shape
+    [p,aa,bb] = image.shape
     patch_size = np.size(np.empty(patch_shape))
     patch_mtx = np.zeros((patch_size, np.size(image)))
 
     # periodically extend the input image
-    temp = np.concatenate((image, image[:patch_shape[2] - 1,:,:,:]), axis = 0)
-    temp = np.concatenate((temp, temp[:,:,:patch_shape[0] - 1,:]), axis = 2)
-    temp = np.concatenate((temp, temp[:,:,:,:patch_shape[1] - 1]), axis = 3)
+    temp = np.concatenate((image, image[:patch_shape[2] - 1,:,:]), axis = 0)
+    temp = np.concatenate((temp, temp[:,:patch_shape[0] - 1,:]), axis = 1)
+    temp = np.concatenate((temp, temp[:,:,:patch_shape[1] - 1]), axis = 2)
     [rows, cols, slices] = np.unravel_index(
         range(patch_size), patch_shape
     )
@@ -35,9 +38,8 @@ def patch_extractor(image, *, patch_shape):
         patch_mtx[i,:] = np.reshape(
             temp[
                 slices[i] : p + slices[i],
-                :,
                 rows[i] : aa + rows[i],
-                cols[i] : bb + cols[i],
+                cols[i] : bb + cols[i]
             ],
             -1
         )
@@ -53,16 +55,15 @@ def patch_aggregator(patch_mtx, *, patch_shape, image_shape):
         columns. Number of columns (patches) is equal to the number of pixels
         (or voxels) in the image.
         patch_shape (tuple): tuple of length 3: (dim_x, dim_y, dim_z)
-        image_shape (tuple): tuple of length 3: (dim_z, 1, dim_x, dim_y)
+        image_shape (tuple): tuple of length 3: (dim_z, dim_x, dim_y)
 
     Returns:
         image (ndarray): 3D matrix consisting of the aggregated patches
     """
     temp = np.zeros(
         (image_shape[0]+patch_shape[2] - 1,) +
-        (1,) +
-        (image_shape[2]+patch_shape[0] - 1,) +
-        (image_shape[3]+patch_shape[1] - 1,)
+        (image_shape[1]+patch_shape[0] - 1,) +
+        (image_shape[2]+patch_shape[1] - 1,)
     )
 
     [rows, cols, slices] = np.unravel_index(
@@ -71,18 +72,17 @@ def patch_aggregator(patch_mtx, *, patch_shape, image_shape):
     for i in range(patch_mtx.shape[0]):
         temp[
             slices[i] : image_shape[0] + slices[i],
-            :,
-            rows[i] : image_shape[2] + rows[i],
-            cols[i] : image_shape[3] + cols[i]
+            rows[i] : image_shape[1] + rows[i],
+            cols[i] : image_shape[2] + cols[i]
         ] += np.reshape(
             patch_mtx[i,:], image_shape
         )
 
-    temp[:patch_shape[2] - 1,:,:,:] += temp[image_shape[0]:,:,:,:]
-    temp[:,:,:patch_shape[0] - 1,:] += temp[:,:,image_shape[2]:,:]
-    temp[:,:,:,:patch_shape[1] - 1] += temp[:,:,:,image_shape[3]:]
+    temp[:patch_shape[2] - 1,:,:] += temp[image_shape[0]:,:,:]
+    temp[:,:patch_shape[0] - 1,:] += temp[:,image_shape[1]:,:]
+    temp[:,:,:patch_shape[1] - 1] += temp[:,:,image_shape[2]:]
 
-    return temp[:image_shape[0],:,:image_shape[2],:image_shape[3]]
+    return temp[:image_shape[0],:image_shape[1],:image_shape[2]]
 
 
 def lowrank(i, patches_zeromean, window_size, imsize, threshold, group_size):
@@ -269,3 +269,27 @@ def get_LAM(*,rows,cols,order):
             np.abs(np.fft.fft2(diffx_kernel))**2 +
             np.abs(np.fft.fft2(diffy_kernel))**2
         )
+
+def deconv_plotter(*, sources, recons, iter):
+    """Function that plots the deconvolved images as the iterations go.
+
+    Args:
+        sources (ndarray): 3d array of sources
+        recons (ndarray): 3d array of reconstructions
+        iter (int): current iteration number
+
+    """
+    num_sources = sources.shape[0]
+    ssim1 = np.zeros(num_sources)
+    mse1 = np.mean((sources - recons)**2, axis=(1, 2))
+    psnr1 = 20 * np.log10(np.max(sources, axis=(1,2))/np.sqrt(mse1))
+    for i in range(num_sources):
+        ssim1[i] = compare_ssim(sources[i], recons[i],
+            data_range=np.max(recons[i])-np.min(recons[i]))
+    plotter4d(recons,
+        cmap='gist_heat',
+        fignum=3,
+        figsize=(5.6,8),
+        title='Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter+1, ssim1, psnr1)
+    )
+    plt.pause(0.01)

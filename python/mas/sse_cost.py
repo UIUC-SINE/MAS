@@ -34,7 +34,8 @@ def init(psfs, **kwargs):
     """
     """
     _, _, rows, cols = psfs.psfs.shape
-    psf_dfts = np.fft.fft2(psfs.psfs, axes=(2, 3))
+    # psf_dfts = np.fft.fft2(psfs.psfs, axes=(2, 3))
+    psf_dfts = psfs.psf_dfts
 
     initialized_data = {
         "psf_dfts": psf_dfts,

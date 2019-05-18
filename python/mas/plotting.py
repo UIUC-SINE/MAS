@@ -72,7 +72,7 @@ def fourier_slices(measurements):
 
     fig.constrained_layout = True
 
-    return plt, copies_progression
+    return plt
 
 def psf_slider(psfs):
     """Plot 1 row of Measurements matrix, with a slider to adjust measurements
@@ -103,7 +103,7 @@ def psf_slider(psfs):
         print(measurement_plane_index)
         for n, im in enumerate(ims):
             im.set_array(psfs.psfs[measurement_plane_index, n])
-            im.set_norm(Normalize())
+            # im.set_norm(Normalize())
         fig.canvas.draw_idle()
 
     slider.on_changed(update)
@@ -126,6 +126,8 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
         colorbar (boolean), optional: whether to use a colorbar
         scale (boolean), default=False: use same colorscale for all images
     """
+    if len(data.shape) == 3:
+        data = data[:, np.newaxis, :, :]
     k,p = data.shape[:2]
 
     if plt.fignum_exists(fignum):

@@ -1,11 +1,12 @@
 import numpy as np
-from mas.deconvolution.common import indsum
+from mas.deconvolution.common import indsum, lowrank, deconv_plotter, hard_thresholding
 from mas.deconvolution.common import patch_extractor, patch_aggregator
 from skimage.measure import compare_ssim
 from mas.plotting import plotter4d
 from mas.block import block_mul, block_inv
 import functools
 import multiprocessing
+from collections import Counter
 
 # @profile
 def strollr(
@@ -13,10 +14,9 @@ def strollr(
         sources,
         psfs,
         measurements,
-        recon_init_method,
-        tikhonov_lam,
-        tikhonov_order,
+        recon_init,
         iternum,
+        periter,
         lr,
         theta,
         s,
@@ -38,12 +38,9 @@ def strollr(
         sources (ndarray): 4d array of sources
         psfs (PSFs): PSFs object containing psfs and related data
         measurements (ndarray): 4d array of measurements
-        recon_init_method (str): ['zeros' or 'tikhonov'] string specifying the
-            initialization method for the reconstructions
-        tikhonov_lam (float): regularization parameter of tikhonov
-        tikhonov_order (int): [0,1 or 2] order of the discrete derivative
-            operator used in the tikhonov regularization
+        recon_init (ndarray): initialization for the reconstructed image(s)
         iternum (int): number of iterations of ADMM
+        periter (int): iteration period of displaying the reconstructions
         lr (float): augmented Lagrangian parameter of the low-rank term
         theta (float): penalty parameter of the low-rank term
         s (float): augmented Lagrangian parameter of the sparsity term
@@ -56,25 +53,15 @@ def strollr(
         group_size (int): the number of patches in each group (of similar patches)
         group_size_s (int): the number of patches in each group (for sparsity)
     """
-    [k,num_sources,aa,bb] = psfs.selected_psfs.shape[:2] + sources.shape[2:]
+    k, num_sources = psfs.selected_psfs.shape[:2]
+    aa, bb = sources.shape[1:]
     psize = np.size(np.empty(patch_shape))
     if type(theta) is np.float:
         theta = np.ones(num_sources) * theta
     if type(lam) is np.float:
         lam = np.ones(num_sources) * lam
 
-    ################## initialize the primal/dual variables ##################
-    if recon_init_method is 'zeros':
-        recon = np.zeros((num_sources,1,aa,bb))
-
-    elif recon_init_method is 'tikhonov':
-        recon = tikhonov(
-            sources=sources,
-            psfs=psfs,
-            measurements=measurements,
-            tikhonov_lam=tikhonov_lam,
-            tikhonov_order=tikhonov_order
-        )
+    recon = recon_init
 
     ################# pre-compute some arrays for efficiency #################
     patcher_spectrum = np.einsum(
@@ -88,7 +75,7 @@ def strollr(
     )
     psfdfts_h_meas = block_mul(
         psfs.selected_psf_dfts_h,
-        np.fft.fft2(measurements)
+        np.fft.fft2(np.fft.fftshift(measurements, axes=(1,2)))
     )
 
     for iter in range(iternum):
@@ -140,7 +127,7 @@ def strollr(
                 ind = np.arange(i*aa*bb, (i+1)*aa*bb)
                 sparse_codes[:,ind] = hard_thresholding(
                     sparse_codes[:,ind],
-                    threshold = np.sqrt(2*lam[i] / s)
+                    threshold = np.sqrt(lam[i] / s)
                 )
 
             if learning is True:
@@ -161,7 +148,7 @@ def strollr(
                 patch_aggregator(
                     Whb1,
                     patch_shape=patch_shape,
-                    image_shape=(num_sources,1,aa,bb)
+                    image_shape=(num_sources,aa,bb)
                 )
             )
         else:
@@ -180,7 +167,7 @@ def strollr(
                 patch_aggregator(
                     VhD,
                     patch_shape=patch_shape,
-                    image_shape=(num_sources,1,aa,bb)
+                    image_shape=(num_sources,aa,bb)
                 )
             )
         else:
@@ -196,19 +183,7 @@ def strollr(
             )
         )
 
-        if iter % 1 == 0 or iter == iternum - 1:
-            ssim1 = np.zeros(num_sources)
-            mse1 = np.mean((sources - recon)**2, axis=(1, 2, 3))
-            psnr1 = 20 * np.log10(np.max(sources, axis=(1,2,3))/np.sqrt(mse1))
-            for i in range(num_sources):
-                ssim1[i] = compare_ssim(sources[i,0], recon[i,0],
-                    data_range=np.max(recon[i,0])-np.min(recon[i,0]))
-            plotter4d(recon,
-                cmap='gist_heat',
-                fignum=3,
-                figsize=(5.6,8),
-                title='Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter, ssim1, psnr1)
-            )
-            plt.pause(0.5)
+        if (iter+1) % periter == 0 or iter == iternum - 1:
+            deconv_plotter(sources=sources, recons=recon, iter=iter)
 
     return recon
