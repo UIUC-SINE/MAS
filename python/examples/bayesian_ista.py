@@ -21,27 +21,30 @@ psfs = PSFs(
 measured = get_measurements(psfs=psfs, sources=truth, real=True)
 measured = add_noise(measured, model='poisson', max_count=10)
 
-def cost(lam, time_step):
+def cost(lam_exp, time_step_exp):
 
     recon = ista(
         psfs=psfs,
         measurements=measured,
-        lam=lam,
-        time_step=time_step,
+        lam=10**lam_exp,
+        time_step=10**time_step_exp,
         iterations=100
     )[0]
 
     plt.imshow(recon)
     plt.show()
     plt.pause(.05)
-    return compare_ssim(
+
+    cost = compare_ssim(
         truth[0],
         recon
     )
 
+    return cost if cost > 0 else 0
+
 
 # Bounded region of parameter space
-pbounds = {'lam': (1e-5, 1e-1), 'time_step':(1e-5, 1e-1)}
+pbounds = {'lam_exp': (-5, -1), 'time_step_exp':(-5, -1)}
 optimizer = BayesianOptimization(
     cost,
     pbounds=pbounds,
@@ -52,6 +55,8 @@ optimizer = BayesianOptimization(
 
 np.seterr(all='ignore')
 optimizer.maximize(
+    acq='ucb',
+    kappa=0.1,
     init_points=2,
-    n_iter=30,
+    n_iter=10,
 )
