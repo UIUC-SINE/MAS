@@ -108,24 +108,29 @@ class DeconvolutionTests(TestCase):
     def test_admm(self):
         from mas.deconvolution import admm
 
-        recon = admm(
-            sources=sources,
-            measurements=np.fft.fftshift(measured_noisy, axes=(2,3)),
-            psfs=psfs,
-            regularizer=regularizer,
-            recon_init_method='tikhonov',
-            iternum=30,
-            nu=14e-2,
-            lam=5e-5,
-            tikhonov_lam=1e-1,
-            tikhonov_order=1,
-            patch_shape=(6,6,1),
-            transform=dctmtx((6,6,8)),
-            learning=True,
-            window_size=(30,30),
-            group_size=70
-            # model=model
-        )
+        # recon = admm(
+        #     sources=self.sources,
+        #     measurements=np.fft.fftshift(self.measured_noisy, axes=(2,3)),
+        #     psfs=self.psfs,
+        #     regularizer=regularizer,
+        #     recon_init_method='tikhonov',
+        #     iternum=30,
+        #     nu=14e-2,
+        #     lam=5e-5,
+        #     tikhonov_lam=1e-1,
+        #     tikhonov_order=1,
+        #     patch_shape=(6,6,1),
+        #     transform=dctmtx((6,6,8)),
+        #     learning=True,
+        #     window_size=(30,30),
+        #     group_size=70
+        #     # model=model
+        # )
+
+    def test_ista(self):
+        from mas.deconvolution import ista
+
+        recon = ista(measurements=self.measured_noisy, psfs=self.psfs)
 
 
 
