@@ -41,9 +41,11 @@ def fourier_slices(measurements):
 
     # show csbs parameters
     if hasattr(measurements, 'csbs_params'):
-        plt.figtext(0.98, 0.98, str(measurements.csbs_params),
-                    horizontalalignment='right',
-                    rotation='vertical')
+        plt.figtext(
+            0.98, 0.98, str(measurements.csbs_params),
+            horizontalalignment='right',
+            rotation='vertical', fontsize='xx-small'
+        )
         # plot copies at each plane vs iterations
         copies_progression = np.empty((0, len(measurements.copies)))
         copies = np.ones(len(measurements.copies)) * measurements.num_copies
@@ -64,6 +66,7 @@ def fourier_slices(measurements):
         )
         subplots[-1].set_title('Final Iteration')
         subplots[-1].set_xlabel('Plane Location (m)')
+        subplots[-1].set_ylabel('Copies')
         subplots[-1].grid(True)
 
     else:
@@ -161,11 +164,11 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
                 fig.colorbar(im, ax=subplot)
 
     if column_labels is not None:
-        for subplot, col in zip(subplots[-1], column_labels):
-            subplot.set_xlabel(col)
+        for subplot, col in zip(subplots[0], column_labels):
+            subplot.set_title(col)
 
     if row_labels is not None:
-        for subplot, row in zip(subplots[:,0], row_labels):
+        for subplot, row in zip(subplots[:, 0], row_labels):
             h = subplot.set_ylabel(row, rotation=0, size='large')
             h.set_rotation(90)
 
@@ -178,6 +181,7 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
         plt.ylabel(sup_ylabel)
 
     plt.show()
+
     return plt
 
 
