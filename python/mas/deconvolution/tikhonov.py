@@ -7,7 +7,7 @@ def tikhonov(
             sources,
             psfs,
             measurements,
-            tikhonov_lam,
+            tikhonov_lam=0.129,
             tikhonov_order=1
 ):
     """Perform Tikhonov regularization based image reconstruction for PSSI.

@@ -1,26 +1,65 @@
 from mas.decorators import vectorize
+from mas.forward_model import get_measurements
 from skimage.transform import radon, iradon
 import numpy as np
 import pywt
+import sys
+from mas.forward_model import size_equalizer
 
 @vectorize
-def radon_forward(x, psfs):
+def radon_forward(x,):
     theta = np.linspace(-30., 30., x.shape[0], endpoint=False)
     return radon(x, theta=theta, circle=False)
 
 @vectorize
-def radon_adjoint(x, psfs):
+def radon_adjoint(x):
     theta = np.linspace(-30., 30., x.shape[1], endpoint=False)
     return iradon(x, theta=theta, circle=False, filter=None)
 
-def ista(*, measurements, psfs, forward=radon_adjoint, adjoint=radon_forward,
-         lam=0.025, time_step=0.0005, iterations=100,
+def default_adjoint(x, psfs):
+    [p, aa, bb] = x.shape
+    [k, p, ss, ss] = psfs.psfs.shape
+    ta, tb = [aa + ss - 1, bb + ss - 1]
+
+
+    # FIXME: make it work for 2D input, remove selected_psfs
+    # FIXME: ;move psf_dft computation to PSFs (make PSFs accept sampling_interval and o
+    # output size arguments)
+
+    # reshape psfs
+    expanded_psfs = size_equalizer(psfs.psfs, ref_size=[aa,bb])
+
+    expanded_psfs = np.repeat(expanded_psfs, psfs.copies.astype(int), axis=0)
+    expanded_psf_dfts = np.fft.fft2(expanded_psfs).transpose((1, 0, 2, 3))
+
+    # ----- forward -----
+    im = np.fft.fftshift(
+        np.fft.ifft2(
+            np.einsum(
+                'ijkl,jkl->ikl',
+                expanded_psf_dfts,
+                np.fft.fft2(x)
+            )
+        ),
+        axes=(1, 2)
+    )
+    # im = get_measurements(sources=x, psfs=psfs, real=True)
+    return radon_forward(im)
+
+def default_forward(x, psfs):
+    im = radon_adjoint(x)
+    return get_measurements(sources=im, psfs=psfs, real=True)
+
+
+def ista(*, measurements, psfs, lam=10**-5.854, time_step=10**-1.621, iterations=100,
+         forward=default_forward, adjoint=default_adjoint, final=radon_adjoint,
          rescale=False, liveplot=False, plt=None):
     """ISTA for arbitrary forward/adjoint transform
 
     Args:
         forward (function): transformation from sparse -> image domain
         adjoint (function): transformation from image -> sparse domain
+        final (function): transformation from sparse -> image domain w/out blur
         lam (float): soft-threshold value
         time_step (float): gradient step size
         iterations (int): total number of iterations
@@ -35,7 +74,8 @@ def ista(*, measurements, psfs, forward=radon_adjoint, adjoint=radon_forward,
     x = adjoint(measurements, psfs)
 
     for n in range(iterations):
-        # print(f'iteration {n}')
+        sys.stdout.write('\033[K')
+        print(f'ISTA iteration {n}/{iterations}\r', end='')
 
         im = forward(x, psfs)
 
@@ -56,4 +96,8 @@ def ista(*, measurements, psfs, forward=radon_adjoint, adjoint=radon_forward,
             lam
         )
 
-    return forward(x, psfs)
+    result = final(x)
+    result -= np.min(result)
+    result /= np.max(result)
+
+    return result
