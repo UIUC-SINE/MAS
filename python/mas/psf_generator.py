@@ -285,6 +285,7 @@ class PSFs():
             approx_end = sieve.diameter * sieve.smallest_hole_diameter / (min(focal_lengths) - 10 * min(dofs))
             measurement_wavelengths = np.linspace(approx_start, approx_end, measurement_wavelengths)
             measurement_wavlengths = np.insert(
+            measurement_wavelengths = np.insert(
                 measurement_wavelengths,
                 np.searchsorted(measurement_wavelengths, source_wavelengths),
                 source_wavelengths
