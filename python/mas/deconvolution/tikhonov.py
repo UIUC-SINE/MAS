@@ -4,7 +4,6 @@ from mas.deconvolution.common import get_LAM
 
 def tikhonov(
             *,
-            sources,
             psfs,
             measurements,
             tikhonov_lam=0.129,
@@ -16,7 +15,6 @@ def tikhonov(
     discrete derivative operator of order `tikhonov_order`.
 
     Args:
-        sources (ndarray): 4d array of ground truth spectral images
         psfs (PSFs): PSFs object containing psfs and other csbs state data
         measured_noisy (ndarray): 4d array of noisy measurements
         tikhonov_lam (float): regularization parameter of tikhonov
@@ -26,16 +24,15 @@ def tikhonov(
     Returns:
         4d array of the reconstructed images
     """
-    k, num_sources = psfs.selected_psfs.shape[:2]
-    aa, bb = sources.shape[1:]
+    rows, cols = measurements.shape[1:]
     # DFT of the kernel corresponding to (D^TD)
-    LAM = get_LAM(rows=aa,cols=bb,order=tikhonov_order)
+    LAM = get_LAM(rows=rows, cols=cols, order=tikhonov_order)
     return np.real(
         np.fft.ifft2(
                 block_mul(
                     block_inv(
                         psfs.selected_GAM +
-                        tikhonov_lam * np.einsum('ij,kl', np.eye(num_sources), LAM)
+                        tikhonov_lam * np.einsum('ij,kl', np.eye(psfs.num_sources), LAM)
                     ),
                     block_mul(
                         psfs.selected_psf_dfts_h,
