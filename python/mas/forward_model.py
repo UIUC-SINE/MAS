@@ -181,13 +181,13 @@ def get_contributions(real=False, *, sources, psfs):
 
 
 @vectorize
-def add_noise(signal, snr=None, max_count=None, model='Poisson', no_noise=False):
+def add_noise(signal, dbsnr=None, max_count=None, model='Poisson', no_noise=False):
     """
     Add noise to the given signal at the specified level.
 
     Args:
         (ndarray): noise-free input signal
-        snr (float): signal to noise ratio: for Gaussian noise model, it is
+        dbsnr (float): signal to noise ratio in dB: for Gaussian noise model, it is
         defined as the ratio of variance of the input signal to the variance of
         the noise. For Poisson model, it is taken as the average snr where snr
         of a pixel is given by the square root of its value.
@@ -205,7 +205,7 @@ def add_noise(signal, snr=None, max_count=None, model='Poisson', no_noise=False)
         assert model.lower() in ('gaussian', 'poisson'), "invalid noise model"
         if model.lower() == 'gaussian':
             var_sig = np.var(signal)
-            var_noise = var_sig / snr
+            var_noise = var_sig / 10**(dbsnr / 10)
             out = np.random.normal(loc=signal, scale=np.sqrt(var_noise))
         elif model.lower() == 'poisson':
             if max_count is not None:
@@ -213,7 +213,7 @@ def add_noise(signal, snr=None, max_count=None, model='Poisson', no_noise=False)
                 # print('SNR:{}'.format(np.sqrt(sig_scaled.mean())))
                 out = poisson.rvs(sig_scaled) * (signal.max() / max_count)
             else:
-                avg_brightness = snr**2
+                avg_brightness = 10**(dbsnr / 10)**2
                 sig_scaled = signal * (avg_brightness / signal.mean())
                 out = poisson.rvs(sig_scaled) * (signal.mean() / avg_brightness)
         return out
