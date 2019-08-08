@@ -6,7 +6,6 @@ from mas.block import block_mul, block_herm
 
 def tikhonov(
             *,
-            sources,
             psfs,
             measurements,
             tikhonov_lam=0.129,
@@ -18,7 +17,6 @@ def tikhonov(
     discrete derivative operator of order `tikhonov_order`.
 
     Args:
-        sources (ndarray): 4d array of ground truth spectral images
         psfs (PSFs): PSFs object containing psfs and other csbs state data
         measured_noisy (ndarray): 4d array of noisy measurements
         tikhonov_lam (float): regularization parameter of tikhonov

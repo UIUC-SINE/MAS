@@ -86,3 +86,52 @@ def reproject_image_into_polar(data, origin=None, Jacobian=False,
         output = output*r_i[:, np.newaxis]
 
     return output, r_grid, theta_grid
+
+def fast_prony2d(y):
+    """Fast 2D Prony's method for a single exponential
+
+    Args:
+        (ndarray): 2D input array, should be a 2D complex exponential
+
+    Returns:
+        (ndarray): length 2 array containing exponential frequency estimate (in Hz, assuming f_s=1)
+    """
+
+    def zeropad(x, padded_size):
+        """zeropad 1D array x to size padded_size"""
+
+        return np.pad(
+            x,
+            [(0, padded_size - x.shape[0]), (0, padded_size - x.shape[1])],
+            mode='constant'
+        )
+
+    y_hat_m = y[:-1, :]
+    b_hat_m = -y[1:, :]
+    y_hat_n = y[:, :-1]
+    b_hat_n = -y[:, 1:]
+
+    padded_size_m = len(y_hat_m) + len(b_hat_m) - 1
+    h_hat_m = np.fft.ifft2(
+        np.fft.fft2(zeropad(b_hat_m, padded_size_m)) / np.fft.fft2(zeropad(y_hat_m, padded_size_m))
+    )
+    h_m = [1, h_hat_m[0, 0]]
+
+    padded_size_n = len(y_hat_n) + len(b_hat_n) - 1
+    h_hat_n = np.fft.ifft2(
+        np.fft.fft2(zeropad(b_hat_n, padded_size_n)) / np.fft.fft2(zeropad(y_hat_n, padded_size_n))
+    )
+    h_n = [1, h_hat_n[0, 0]]
+
+    omega_m_reconstructed = np.log(np.roots(h_m)) / (1j * 2 * np.pi / 100)
+    omega_n_reconstructed = np.log(np.roots(h_n)) / (1j * 2 * np.pi / 100)
+
+    return (omega_m_reconstructed, omega_n_reconstructed)
+
+def phase_correlate(x, y):
+    """Perform normalized phase-correlation"""
+
+    return np.fft.ifftn(
+        np.fft.fftn(x) * np.fft.fftn(y).conj() /
+        np.abs(np.fft.fftn(x) * np.fft.fftn(y))
+    )

@@ -11,15 +11,21 @@ def _vectorize(signature='(m,n)->(i,j)', included=[0]):
     """
     def decorator(func):
 
-        def foo(*args, **kwargs):
+        def new_func(*args, **kwargs):
+            nonlocal signature
 
             # exclude everything except included
             excluded = set(range(len(args))).union(set(kwargs.keys()))
             excluded -= set(included)
 
+            # allow signature override
+            if 'signature' in kwargs.keys():
+                signature = kwargs['signature']
+                kwargs.pop('signature')
+
             return np.vectorize(func, excluded=excluded, signature=signature)(*args, **kwargs)
 
-        return foo
+        return new_func
 
     return decorator
 

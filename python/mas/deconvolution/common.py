@@ -243,7 +243,7 @@ def dctmtx(shape):
     return mtx
 
 
-def get_LAM(*,rows,cols,order):
+def get_LAM(*, rows, cols, order):
     """Compute the spectrum of the discrete derivative matrix
 
     Args:

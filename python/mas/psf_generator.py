@@ -338,3 +338,7 @@ class PSFs():
         self.sampling_interval = sampling_interval
         self.cropped_width = cropped_width
         self.copies_history = []
+
+    @property
+    def num_sources(self):
+        return self.psfs.shape[1]
