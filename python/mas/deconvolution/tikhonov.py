@@ -1,6 +1,8 @@
 import numpy as np
 from mas.block import block_mul, block_inv
 from mas.deconvolution.common import get_LAM
+from mas.forward_model import size_equalizer
+from mas.block import block_mul, block_herm
 
 def tikhonov(
             *,
@@ -26,19 +28,27 @@ def tikhonov(
     Returns:
         4d array of the reconstructed images
     """
-    k, num_sources = psfs.selected_psfs.shape[:2]
-    aa, bb = sources.shape[1:]
+    num_sources = psfs.psfs.shape[1]
+    rows, cols = measurements.shape[1:]
+    psfs.psf_dfts = np.repeat(
+            np.fft.fft2(size_equalizer(psfs.psfs, ref_size=[rows,cols])),
+            psfs.copies.astype(int), axis=0
+    )
+    psfs.psf_GAM = block_mul(
+        block_herm(psfs.psf_dfts),
+        psfs.psf_dfts
+    )
     # DFT of the kernel corresponding to (D^TD)
-    LAM = get_LAM(rows=aa,cols=bb,order=tikhonov_order)
+    LAM = get_LAM(rows=rows,cols=cols,order=tikhonov_order)
     return np.real(
         np.fft.ifft2(
                 block_mul(
                     block_inv(
-                        psfs.selected_GAM +
+                        psfs.psf_GAM +
                         tikhonov_lam * np.einsum('ij,kl', np.eye(num_sources), LAM)
                     ),
                     block_mul(
-                        psfs.selected_psf_dfts_h,
+                        block_herm(psfs.psf_dfts),
                         np.fft.fft2(np.fft.fftshift(measurements, axes=(1,2)))
                     )
                 )

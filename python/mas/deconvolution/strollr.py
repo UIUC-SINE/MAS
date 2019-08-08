@@ -53,8 +53,8 @@ def strollr(
         group_size (int): the number of patches in each group (of similar patches)
         group_size_s (int): the number of patches in each group (for sparsity)
     """
-    k, num_sources = psfs.selected_psfs.shape[:2]
-    aa, bb = sources.shape[1:]
+    num_sources = psfs.psfs.shape[1]
+    rows, cols = measurements.shape[1:]
     psize = np.size(np.empty(patch_shape))
     if type(theta) is np.float:
         theta = np.ones(num_sources) * theta
@@ -67,15 +67,23 @@ def strollr(
     patcher_spectrum = np.einsum(
         'ij,kl->ijkl',
         np.eye(num_sources),
-        psize * np.ones((aa,bb))
+        psize * np.ones((rows,cols))
     )
-    SIG_inv = block_inv(
-        psfs.selected_GAM +
-        (s + lr) * patcher_spectrum
+    psfs.psf_dfts = np.repeat(
+            np.fft.fft2(size_equalizer(psfs.psfs, ref_size=[rows,cols])),
+            psfs.copies.astype(int), axis=0
+    )
+    psfs.psf_GAM = block_mul(
+        block_herm(psfs.psf_dfts),
+        psfs.psf_dfts
     )
     psfdfts_h_meas = block_mul(
-        psfs.selected_psf_dfts_h,
+        block_herm(psfs.psf_dfts),
         np.fft.fft2(np.fft.fftshift(measurements, axes=(1,2)))
+    ) # this is reshaped FA^Ty term where F is DFT matrix
+    SIG_inv = block_inv(
+        psfs.psf_GAM +
+        (s + lr) * patcher_spectrum
     )
 
     for iter in range(iternum):
@@ -94,7 +102,7 @@ def strollr(
         lowrank_i = functools.partial(lowrank,
             patches_zeromean=patches_zeromean,
             window_size=window_size,
-            imsize=(aa,bb),
+            imsize=(rows,cols),
             threshold=theta,
             group_size=group_size
         )
@@ -124,7 +132,7 @@ def strollr(
             # sparse_codes = sparse_codes * sparse_indices
 
             for i in range(num_sources):
-                ind = np.arange(i*aa*bb, (i+1)*aa*bb)
+                ind = np.arange(i*rows*cols, (i+1)*rows*cols)
                 sparse_codes[:,ind] = hard_thresholding(
                     sparse_codes[:,ind],
                     threshold = np.sqrt(lam[i] / s)
@@ -148,7 +156,7 @@ def strollr(
                 patch_aggregator(
                     Whb1,
                     patch_shape=patch_shape,
-                    image_shape=(num_sources,aa,bb)
+                    image_shape=(num_sources,rows,cols)
                 )
             )
         else:
@@ -167,7 +175,7 @@ def strollr(
                 patch_aggregator(
                     VhD,
                     patch_shape=patch_shape,
-                    image_shape=(num_sources,aa,bb)
+                    image_shape=(num_sources,rows,cols)
                 )
             )
         else:

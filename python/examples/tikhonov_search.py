@@ -3,9 +3,9 @@
 
 from mas.psf_generator import PSFs, PhotonSieve, circ_incoherent_psf
 from mas.plotting import fourier_slices, plotter4d
-from mas.block import block_mul, block_inv, block_herm, SIG_e_dft, get_LAM
+from mas.block import block_mul, block_inv
+from mas.deconvolution.common import get_LAM
 from mas.forward_model import get_measurements, add_noise, size_equalizer, rectangle_adder
-from mas.deconvolution import tikhonov, sparsepatch, admm, dctmtx, strollr
 from matplotlib import pyplot as plt
 from skimage.measure import compare_ssim
 from scipy.io import readsav
@@ -22,8 +22,8 @@ psf_width = 201
 source_wavelengths = np.array([33.4e-9, 33.5e-9])
 num_sources = len(source_wavelengths)
 
-source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0], (100,100))
-source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[250], (100,100))
+source1 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[0], (160,160))
+source2 = size_equalizer(np.array(h5py.File('/home/kamo/Research/mas/nanoflare_videos/NanoMovie0_2000strands_94.h5')['NanoMovie0_2000strands_94'])[250], (160,160))
 # source1 = rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,10))
 # source2 = 10 * rectangle_adder(image=np.zeros((100,100)), size=(30,30), upperleft=(35,60))
 # source1 = readsav('/home/kamo/Research/mas/nanoflare_videos/old/movie0_1250strands_335.sav',python_dict=True)['movie'][500]
@@ -37,7 +37,7 @@ sources[1,0] = source2 / source2.max()
 
 cmap = 'gist_heat'
 
-ps = PhotonSieve(diameter=10e-2)
+ps = PhotonSieve(diameter=16e-2)
 # generate psfs
 psfs = PSFs(
     ps,
@@ -49,7 +49,7 @@ psfs = PSFs(
     num_copies=1
 )
 
-measured = get_measurements(real=True, sources=sources, psfs=psfs, meas_size=meas_size, mode='circular')
+measured = get_measurements(real=True, sources=sources, psfs=psfs, meas_size=meas_size)
 sources = size_equalizer(sources, meas_size)
 # take multiple measurements with different noise
 measured_noisy_instances = np.zeros((num_instances,)+measured.shape)

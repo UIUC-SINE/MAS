@@ -85,14 +85,17 @@ def rectangle_adder(*, image, size, upperleft):
     return image
 
 @_vectorize(signature='(i,j,k)->(m,n,o)', included=[0, 'sources'])
-def get_measurements(*, sources, psfs, real=False, meas_size=None, **kwargs):
+def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, **kwargs):
     """
     Convolve the sources and psfs to obtain measurements.
     Args:
         sources (ndarray): 4d array of sources
         psfs (PSFs): PSFs object containing psfs and other csbs state data
-        mode (string): {'circular', 'linear'} (default='circular')
-        real (bool): (default=False) whether returned measurement should be real
+        mode (string): {'circular', 'valid'} (default='valid') convolution mode.
+            `circular`: circular convolution of the source and the psfs. `valid`:
+            linearly convolve the sources and psfs, then take the fully overlapping
+            part.
+        real (bool): (default=True) whether returned measurement should be real
             type of the convolution performed to obtain the measurements from psfs
             and sources
 
@@ -102,50 +105,71 @@ def get_measurements(*, sources, psfs, real=False, meas_size=None, **kwargs):
     Returns:
         ndarray that is the noisy version of the input
     """
+    if mode == 'circular':
+        if meas_size is not None:
+            sources = size_equalizer(sources, ref_size=meas_size)
 
-    [p, aa, bb] = sources.shape
-    [k, p, ss, ss] = psfs.psfs.shape
-    ta, tb = [aa + ss - 1, bb + ss - 1]
+        # reshape psfs and sources
+        psfs_ext = np.repeat(
+            size_equalizer(psfs.psfs, ref_size=meas_size),
+            psfs.copies.astype(int),axis=0
+        )
 
+        # ----- forward -----
+        measurement = np.fft.fftshift(
+            np.fft.ifft2(
+                np.einsum(
+                    'ijkl,jkl->ikl',
+                    np.fft.fft2(psfs_ext),
+                    np.fft.fft2(sources)
+                )
+            ),
+            axes=(1, 2)
+        )
 
-    # FIXME: make it work for 2D input, remove selected_psfs
-    # FIXME: ;move psf_dft computation to PSFs (make PSFs accept sampling_interval and o
-    # output size arguments)
+    if mode == 'valid':
+        [p, aa, bb] = sources.shape
+        [k, p, ss, ss] = psfs.psfs.shape
+        if meas_size is not None:
+            [ma, mb] = meas_size
+            sources = size_equalizer(sources, ref_size=[ma + ss - 1, mb + ss - 1])
+            [p, aa, bb] = sources.shape
+            ta, tb = [aa + ss - 1, bb + ss - 1]
+            fa, fb = [aa - ss + 1, bb - ss + 1]
+        else:
+            ta, tb = [aa + ss - 1, bb + ss - 1]
+            fa, fb = [aa - ss + 1, bb - ss + 1]
 
-    psfs.selected_psfs = np.zeros((k,p,aa,bb))
+        # reshape psfs and sources
+        psfs_ext = np.repeat(
+            size_equalizer(psfs.psfs, ref_size=[ta,tb]),
+            psfs.copies.astype(int),axis=0
+        )
+        sources_ext = size_equalizer(sources, ref_size=[ta,tb])
 
-    # reshape psfs
-    psfs.selected_psfs = size_equalizer(psfs.psfs, ref_size=[aa,bb])
+        # ----- forward -----
+        measurement = np.fft.fftshift(
+            np.fft.ifft2(
+                np.einsum(
+                    'ijkl,jkl->ikl',
+                    np.fft.fft2(psfs_ext),
+                    np.fft.fft2(sources_ext)
+                )
+            ),
+            axes=(1, 2)
+        )
+        measurement = size_equalizer(measurement, ref_size=[fa,fb])
 
-    psfs.selected_psfs = np.repeat(psfs.selected_psfs, psfs.copies.astype(int), axis=0)
-    psfs.selected_psf_dfts = np.fft.fft2(psfs.selected_psfs)
-    psfs.selected_psf_dfts_h = block_herm(psfs.selected_psf_dfts)
-    psfs.selected_GAM = block_mul(
-        psfs.selected_psf_dfts_h,
-        psfs.selected_psf_dfts
-    )
-
-    # ----- forward -----
-    measurement = np.fft.fftshift(
-        np.fft.ifft2(
-            np.einsum(
-                'ijkl,jkl->ikl',
-                psfs.selected_psf_dfts,
-                np.fft.fft2(sources)
-            )
-        ),
-        axes=(1, 2)
-    )
     return measurement.real if real else measurement
 
 
-def get_contributions(real=False, *, sources, psfs):
+def get_contributions(real=True, *, sources, psfs):
     """
     Convolve the sources and psfs to obtain contributions.
     Args:
         sources (ndarray): 4d array of sources
         psfs (PSFs): PSFs object containing psfs and other csbs state data
-        real (bool): (default=False) whether returned measurement should be real
+        real (bool): (default=True) whether returned measurement should be real
             type of the convolution performed to obtain the measurements from psfs
             and sources
 
@@ -154,24 +178,20 @@ def get_contributions(real=False, *, sources, psfs):
     """
     assert sources.shape[0] == psfs.psfs.shape[1], "source and psf dimensions do not match"
 
-    # FIXME: make it work for 2D input
-    # FIXME: ;move psf_dft computation to PSFs (make PSFs accept sampling_interval and o
-    # output size arguments)
-
     # reshape psfs
     [p,aa,bb] = sources.shape
     [k,p,ss,ss] = psfs.psfs.shape
-    psfs.psfs = size_equalizer(psfs.psfs, ref_size=[aa,bb])
+    psfs = size_equalizer(psfs.psfs, ref_size=[aa,bb])
 
-    psfs.psfs = np.repeat(psfs.psfs, psfs.copies.astype(int), axis=0)
-    psfs.psf_dfts = np.fft.fft2(psfs.psfs)
+    psfs = np.repeat(psfs, psfs.copies.astype(int), axis=0)
+    psf_dfts = np.fft.fft2(psfs)
 
     # ----- forward -----
     measurement = np.fft.fftshift(
         np.fft.ifft2(
             np.einsum(
                 'ijkl,jkl->ijkl',
-                psfs.psf_dfts,
+                psf_dfts,
                 np.fft.fft2(sources)
             )
         ),
@@ -262,6 +282,31 @@ def size_equalizer(x, ref_size, mode='center'):
 
     return padded
 
+def size_compressor(signal, energy_ratio=0.9995):
+    """
+    Crop the borders of an image such that the given `energy_ratio` is achieved
+
+    Args:
+        signal (ndarray): input image to crop
+        energy_ratio (float): ratio of output to input signal energies
+
+    Returns:
+        ndarray containing cropped image
+    """
+
+    energy0 = sum(sum(signal**2))
+    energy_target = energy0 * energy_ratio
+    width = int(signal.shape[0] / 2) + 1
+    width_change = signal.shape[0] - width
+    while width_change > 1:
+        energy2 = sum(sum((size_equalizer(signal,[width,width]))**2))
+        width_change = int(width_change / 2)
+        if energy2 >= energy_target:
+            width -= width_change
+        else:
+            width += width_change
+    width = int(width / 2) * 2 + 1
+    return width
 
 def downsample(x, factor=2):
     """

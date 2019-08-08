@@ -7,6 +7,8 @@ from decimal import Decimal
 import math
 import functools
 import sys
+from mas.forward_model import size_compressor
+from mas.forward_model import size_equalizer
 
 def circ_incoherent_psf(
         *,
@@ -255,7 +257,9 @@ class PSFs():
     Args:
         source_wavelengths (ndarray): array of source wavelengths
         measurement_wavelengths (int/ndarray): an array of wavelengths to measure at.  if an int is given, this array is computed automatically based on source_wavelengths
-        image_width (int): width of psfs (must be odd)
+        image_width (int): initial width of psfs to be generated (must be odd)
+        cropped_width (int): width of the cropped psfs (must be odd). if set to None, it is computed based on preserving a given energy level in the psfs.
+        energy_ratio (float): energy ratio of cropped psfs to initial psfs
         num_copies (int): number of repeated measurements to initialize with
         psf_generator (def): function to generate photon sieve psf (default, mas.psf_generator.sieve_incoherent_psf)
 
@@ -271,12 +275,13 @@ class PSFs():
             *,
             source_wavelengths=np.array([33.4, 33.5]) * 1e-9,
             measurement_wavelengths=30,
-            image_width=301,
-            num_copies=10,
+            image_width=1001,
+            cropped_width=None,
+            energy_ratio=0.9995,
+            num_copies=1,
             psf_generator=circ_incoherent_psf,
             sampling_interval=3.5e-6
     ):
-
 
         focal_lengths = sieve.diameter * sieve.smallest_hole_diameter / source_wavelengths
         dofs = 2 * sieve.smallest_hole_diameter**2 / source_wavelengths
@@ -294,8 +299,6 @@ class PSFs():
 
         # generate incoherent measurements for each wavelength and plane location
         for m, measurement_wavelength in enumerate(measurement_wavelengths):
-
-
             psf_group = np.empty((0, image_width, image_width))
             for n, source_wavelength in enumerate(source_wavelengths):
                 sys.stdout.write('\033[K')
@@ -318,6 +321,14 @@ class PSFs():
                 psf_group = np.append(psf_group, [psf], axis=0)
             psfs = np.append(psfs, [psf_group], axis=0)
 
+        if cropped_width is not None:
+            psfs = size_equalizer(psfs, [cropped_width, cropped_width])
+        else:
+            width0 = size_compressor(psfs[0,-1], energy_ratio=energy_ratio)
+            width1 = size_compressor(psfs[-1,0], energy_ratio=energy_ratio)
+            width = max(width0, width1)
+            psfs = size_equalizer(psfs, [width, width])
+
         self.psfs = psfs
         self.psf_dfts = np.fft.fft2(psfs)
         self.num_copies = num_copies
@@ -325,5 +336,5 @@ class PSFs():
         self.measurement_wavelengths = measurement_wavelengths
         self.source_wavelengths = source_wavelengths
         self.sampling_interval = sampling_interval
-        self.image_width = image_width
+        self.cropped_width = cropped_width
         self.copies_history = []
