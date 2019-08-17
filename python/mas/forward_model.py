@@ -256,7 +256,7 @@ def size_equalizer(x, ref_size, mode='center'):
 
     if x.shape[0] > ref_size[0]:
         pad_left, pad_right = 0, 0
-        crop_left = 0 if mode == 'topleft' else (x.shape[0] - ref_size[0]) // 2
+        crop_left = 0 if mode == 'topleft' else (x.shape[0] - ref_size[0] + 1) // 2
         crop_right = crop_left + ref_size[0]
     else:
         crop_left, crop_right = 0, x.shape[0]
@@ -264,7 +264,7 @@ def size_equalizer(x, ref_size, mode='center'):
         pad_left = ref_size[0] - pad_right - x.shape[0]
     if x.shape[1] > ref_size[1]:
         pad_top, pad_bottom = 0, 0
-        crop_top = 0 if mode == 'topleft' else (x.shape[1] - ref_size[1]) // 2
+        crop_top = 0 if mode == 'topleft' else (x.shape[1] - ref_size[1] + 1) // 2
         crop_bottom = crop_top + ref_size[1]
     else:
         crop_top, crop_bottom = 0, x.shape[1]
