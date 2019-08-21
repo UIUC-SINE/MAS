@@ -106,12 +106,15 @@ def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, 
         ndarray that is the noisy version of the input
     """
     if mode == 'circular':
+        [p, aa, bb] = sources.shape
+        [k, p, ss, ss] = psfs.psfs.shape
         if meas_size is not None:
             sources = size_equalizer(sources, ref_size=meas_size)
+            [p, aa, bb] = sources.shape
 
         # reshape psfs and sources
         psfs_ext = np.repeat(
-            size_equalizer(psfs.psfs, ref_size=meas_size),
+            size_equalizer(psfs.psfs, ref_size=[aa,bb]),
             psfs.copies.astype(int),axis=0
         )
 
