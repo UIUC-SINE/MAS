@@ -10,4 +10,4 @@
 **/*.mp4
 python/build
 python/dist
-python/mas.egg-info/
+**/*.egg-info/

@@ -321,6 +321,8 @@ class PSFs():
                 psf_group = np.append(psf_group, [psf], axis=0)
             psfs = np.append(psfs, [psf_group], axis=0)
 
+        print()
+
         if cropped_width is not None:
             psfs = size_equalizer(psfs, [cropped_width, cropped_width])
         else:

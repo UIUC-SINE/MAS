@@ -65,3 +65,5 @@ def csbs(psfs, cost_module, end_copies, **kwargs):
         # call 'iteration_end' if it exists
         if hasattr(cost_module, 'iteration_end'):
             cost_module.iteration_end(psfs, lowest_psf_group_index)
+
+    print()
