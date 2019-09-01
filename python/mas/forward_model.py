@@ -6,7 +6,10 @@ from mas.block import block_mul, block_herm
 from mas.decorators import vectorize, _vectorize
 from scipy.stats import poisson
 from scipy.signal import fftconvolve
+import logging
 from PIL import Image
+
+log = logging.getLogger(name=__name__)
 
 def image_numpyer(*, inpath, outpath, size, upperleft):
     """
@@ -85,7 +88,7 @@ def rectangle_adder(*, image, size, upperleft):
     return image
 
 @_vectorize(signature='(i,j,k)->(m,n,o)', included=[0, 'sources'])
-def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, **kwargs):
+def get_measurements(*, sources, psfs, mode='auto', real=True, meas_size=None, **kwargs):
     """
     Convolve the sources and psfs to obtain measurements.
     Args:
@@ -94,7 +97,7 @@ def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, 
         mode (string): {'circular', 'valid'} (default='valid') convolution mode.
             `circular`: circular convolution of the source and the psfs. `valid`:
             linearly convolve the sources and psfs, then take the fully overlapping
-            part.
+            part.  `auto`: use `valid` if possible, then fall back to `circular`
         real (bool): (default=True) whether returned measurement should be real
             type of the convolution performed to obtain the measurements from psfs
             and sources
@@ -105,6 +108,17 @@ def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, 
     Returns:
         ndarray that is the noisy version of the input
     """
+
+    if mode == 'auto':
+        _, source_width, _ = sources.shape
+        _, _, psf_width, _ = psfs.psfs.shape
+
+        if source_width > psf_width:
+            mode = 'valid'
+        else:
+            mode = 'circular'
+            log.warning('Falling back to circular convolution')
+
     if mode == 'circular':
         [p, aa, bb] = sources.shape
         [k, p, ss, ss] = psfs.psfs.shape
@@ -285,6 +299,38 @@ def size_equalizer(x, ref_size, mode='center'):
 
     return padded
 
+
+def crop(im, *, center, width):
+    """
+    Return a cropped rectangle from an input image
+
+    Args:
+        im (ndarray): input image
+        center (tuple): coordinate pair of center of cropped rectangle
+        width (int, tuple): length of each axis of cropped rectangle.  returns square if integer
+
+    Returns:
+        cropped rectangle of input image
+    """
+
+    if type(width) is int:
+        width = (width, width)
+
+    assert (
+        (0 <= center[0] - width[0]) and
+        (0 <= center[1] - width[1]) and
+        (im.shape[0] >= center[0] + width[0]) and
+        (im.shape[1] >= center[1] + width[1])
+    ), "Cropped region falls outside image bounds"
+
+    crop_left = (im.shape[0] - width[0] + 1) // 2
+    crop_right = crop_left + width[0]
+    crop_top = (im.shape[1] - width[1] + 1) // 2
+    crop_bottom = crop_top + width[1]
+
+    return im[crop_left:crop_right, crop_top:crop_bottom]
+
+
 def size_compressor(signal, energy_ratio=0.9995):
     """
     Crop the borders of an image such that the given `energy_ratio` is achieved
@@ -311,6 +357,7 @@ def size_compressor(signal, energy_ratio=0.9995):
     width = int(width / 2) * 2 + 1
     return width
 
+
 def downsample(x, factor=2):
     """
     Downsample an image by average factor*factor sized patches.  Discards remaining pixels
@@ -329,6 +376,7 @@ def downsample(x, factor=2):
         np.ones((factor, factor)) / factor**2,
         mode='valid'
     )[::factor, ::factor]
+
 
 def upsample(x, factor=2):
     """
