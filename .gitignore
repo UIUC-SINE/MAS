@@ -3,7 +3,8 @@
 **/*.pdf
 **/*.jpg
 **/*.JPG
-**/*.png
+python/**/*.png
+octave/**/*.png
 **/octave-workspace
 **/*.mat
 **/*.txt
@@ -11,3 +12,8 @@
 python/build
 python/dist
 **/*.egg-info/
+reports/**/*.aux
+reports/**/*.log
+reports/**/*.bst
+reports/**/*.bbl
+reports/**/*.blg
