@@ -1,10 +1,9 @@
-
 % Template for ICASSP-2018 paper; to be used with:
 %          spconf.sty  - ICASSP/ICIP LaTeX style file, and
 %          IEEEbib.bst - IEEE bibliography style file.
 % --------------------------------------------------------------------------
 \documentclass{article}
-\usepackage{spconf,amsmath,amssymb,graphicx}
+\usepackage{spconf,amsmath,amssymb,graphicx,bm}
 \graphicspath{{figures/}}
 
 \newcommand{\R}{\mathbb{R}}
@@ -20,7 +19,7 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
-\title{Optimal Measurement Configuration in \\ Computational Spectral Imaging With a Diffractive Lens}
+\title{Optimal Measurement Configuration in \\ Computational Multispectral Imaging With a Diffractive Lens}
 
 \name{Evan Widloski \qquad Ulas Kamaci \qquad Farzad Kamalabadi}
 \address{
@@ -32,9 +31,9 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 \maketitle
 
 \begin{abstract}
-Spectral imaging, forming images of a scene as a function of wavelength, is a
-fundamental diagnostic technique with various applications. Diffractive lenses
-can achieve very high resolution in x-ray and UV regimes as compared to
+Spectral imaging, forming images of a scene at many wavelengths, is a
+fundamental analysis technique with many scientific applications. Diffractive
+lenses can achieve very high resolution in x-ray and UV regimes as compared to
 reflective and refractive optics. Their wavelength dependent focal length
 enables them to be used in spectral imaging of polychromatic sources, where the
 focused image of each spectral component is formed at different distances from
@@ -52,41 +51,58 @@ backward selection, subset selection
 
 \section{Introduction}
 \label{sec:intro}
-Spectral imaging, forming images of a scene as a function of wavelength, is a
-fundamental diagnostic technique in various fields such as astronomy,
-surveillance, agriculture and medicine \cite{shaw2003spectral},
-\cite{garini2006spectral}. Forming a three dimensional (3D) data-cube (one
-wavelength and two spatial dimensions) with two dimensional (2D) detector
-measurements can be done by taking multiple exposures. To capture the spectrum
-of a scene, conventional spectral imagers combine regular camera optics with
-either additional wavelength filters or dispersive elements (e.g diffraction
-grating).
+Spectral imaging is the formation of images at different wavelengths in the
+electromagnetic spectrum.  With images usually taken in the visible, x-ray,
+ultraviolet (UV), or infrared bands (IR), it has applications in medicine, geographic
+surveying, astronomy, and solar physics.  Spectral imaging can be further broken
+down into the categories of \emph{hyperspectral imaging} and \emph{multispectral imaging}.
+Hyperspectral imaging is the capture of a scene over a contiguous spectrum,
+while multispectral imaging is the capture of a set narrow, usually non-adjacent
+bands of interest.  In both cases, a polychromatic source must be first
+separated into its spectral components before being captured.  There are a
+number of ways to achieve this, but a common method is to use a set of
+configurable optical filters.  For example, the spectral imager on the Solar
+Dynamics Observatory uses a rotating drum of optical filters to selectively pass
+light of specific wavelengths of interest.
 
-A different approach is to use a diffractive lens to perform spectral imaging.
-Diffractive lenses focus light using the diffraction principle. They have
-wavelength dependent focal length which is the property that enables them to be
-used as spectral imagers (see Figure \ref{fig:diff_lens}). Examples to
-diffractive lenses are Fresnel zone plates and their modifications (e.g. photon
-sieve) (see Figure \ref{fig:diff_lens}). Diffractive lenses are preferred in
-applications in UV and x-ray regimes where they can provide high resolution
-whereas reflective optics are very costly to manufacture to achieve high
-resolution and refractive lenses cannot be used due to light absorption in these
-regimes.
+% Spectral imaging is forming images of a scene as a function of wavelength, is a
+% fundamental diagnostic technique in various fields such as astronomy,
+% surveillance, agriculture and medicine \cite{shaw2003spectral},
+% \cite{garini2006spectral}. Forming a three dimensional (3D) data-cube (one
+% wavelength and two spatial dimensions) with two dimensional (2D) detector
+% measurements can be done by taking multiple exposures. To capture the spectrum
+% of a scene, conventional spectral imagers combine regular camera optics with
+% either additional wavelength filters or dispersive elements (e.g diffraction
+% grating).
 
+An alternative approach is to use a diffractive lens to perform spectral
+imaging.  Diffractive lenses have the property that light at different
+wavelengths will exit the lens at different angles, which has the effect of
+creating a focused image of the light source at separate planes for each
+spectral component of the source (Figure \ref{fig:diff_lens}(a)).
+
+Diffractive lenses are often preferred in the UV or x-ray regimes over
+reflective optics because manufacturing tolerances at these wavelengths must be
+much tighter than in the visible regime in order to get a similar optical
+performance.  Since diffractive optics can be manufactured using a
+photolithographic process they can be produced at a higher precision than
+the grinding process used to produce conventional reflective optics.
+Similarly, refractive optics are unsuitable for UV or x-ray imaging because
+glass is opaque at these wavelengths. Figures \ref{fig:diff_lens}(b) and
+\ref{fig:diff_lens}(c) are two examples of a pattern that can be etched into
+silicon wafer to produce a diffractive lens.
 
 \begin{figure}[htb]
 
 \begin{minipage}[b]{0.48\linewidth}
   \centering
   \centerline{\includegraphics[width=4.0cm]{diffraction_ps_rgb}}
-%  \vspace{1.5cm}
   \centerline{(a)}\medskip
 \end{minipage}
 \hfill
 \begin{minipage}[b]{0.24\linewidth}
   \centering
   \centerline{\includegraphics[width=2.0cm]{zoneplate}}
-%  \vspace{1.5cm}
   \centerline{(b)}\medskip
 \end{minipage}
 \hfill
@@ -96,37 +112,59 @@ regimes.
 %  \vspace{1.5cm}
   \centerline{(c)}\medskip
 \end{minipage}
-\caption{(a) diffractive lens working principle (b) Fresnel zone
+\caption{(a) diffraction of a polychromatic wave through a diffractive lens (b) Fresnel zone
 plate (c) photon sieve}
 \label{fig:diff_lens}
 %
 \end{figure}
 
-Photon sieve spectral imaging (PSSI) is a modality that takes the advantage of
-the wavelength dependent focal length of a photon sieve to perform high
-resolution spectral imaging \cite{oktem2014icip}. It takes multiple exposures of
-the scene at different distances from the lens. Figure \ref{fig:pssi_drawing}
-illustrates the PSSI measurements for a scene radiating at two wavelengths
-$\lambda_1$ and $\lambda_2$. Each measurement consists of blurred superposition
-of the spectral images. The spectral images are then reconstructed from these
-measurements by solving a multi-frame deconvolution problem.
+While diffraction produces a focused image of each source at separate planes, it
+.  This means that each measurement is actually a sum of all spectral
+components of the source at varying degrees of focus.  An inverse problem
+consisting of disentangling and deblurring of measurements must be solved in
+order to recover the original source components.  Traditionally, measurement
+locations are selected at the plane of focus for each spectral component.
+However, as we show later in this paper, it is possible to improve on the
+reconstruction qualit by making measurements away from these focal positions.
+Additionally, we propose a greedy backward selection algorithm for automatically
+discovering such a measurement configuration.
+
+% A different approach is to use a diffractive lens to perform spectral imaging.
+% Diffractive lenses focus light using the diffraction principle. They have
+% wavelength dependent focal length which is the property that enables them to be
+% used as spectral imagers (see Figure \ref{fig:diff_lens}). Examples of
+% diffractive lenses are Fresnel zone plates and their modifications (e.g. photon
+% sieve) (see Figure \ref{fig:diff_lens}). Diffractive lenses are preferred in
+% applications in UV and x-ray regimes where they can provide high resolution
+% whereas reflective optics are very costly to manufacture to achieve high
+% resolution and refractive lenses cannot be used due to light absorption in these
+% regimes.
+
+
+% Photon sieve spectral imaging (PSSI) is a modality that takes the advantage of
+% the wavelength dependent focal length of a photon sieve to perform high
+% resolution spectral imaging \cite{oktem2014icip}. It takes multiple exposures of
+% the scene at different distances from the lens. Figure \ref{fig:pssi_drawing}
+% illustrates the PSSI measurements for a scene radiating at two wavelengths
+% $\lambda_1$ and $\lambda_2$. Each measurement consists of blurred superposition
+% of the spectral images. The spectral images are then reconstructed from these
+% measurements by solving a multi-frame deconvolution problem.
+
 
 \begin{figure}[htb]
-
-\begin{minipage}[b]{1\linewidth}
-  \centering
-  \centerline{\includegraphics[width=8.5cm]{drawing}}
-%  \vspace{1.5cm}
-\end{minipage}
-\caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
-$\lambda_2$. Measurement planes are at each focal length, where one wavelength
-is in focus and the other is out of focus.}
-\label{fig:pssi_drawing}
+  \begin{minipage}[b]{1\linewidth}
+    \centering
+    \centerline{\includegraphics[width=8.5cm]{drawing}}
+  \end{minipage}
+  \caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
+  $\lambda_2$. Measurement planes are at each focal length, where one wavelength
+  is in focus and the other is out of focus.}
+  \label{fig:pssi_drawing}
 \end{figure}
 
-Coice of measurement planes is an important factor affecting the reconstruction
-quality of the spectral images. Where to take measurements to maximize the
-fidelity of the reconstructions?
+% Choice of measurement planes is an important factor affecting the reconstruction
+% quality of the spectral images. Where to take measurements to maximize the
+% fidelity of the reconstructions?
 
 % One way is to scan the
 % wavelength dimension by using color filters with narrow bandpass to filter
@@ -158,24 +196,43 @@ fidelity of the reconstructions?
 
 \section{Forward Model}
 \label{sec:format}
-In this section, we mathematically model the photon sieve imaging system.
-Consider a polychromatic source that has spectral emissions at $P$ distinct
-wavelengths $\lambda_1, \lambda_2, \dots, \lambda_P$. Using a moving detector,
-we take measurements at $K$ different measurement planes, with distances to the
-sieve denoted by $d_k$, $k=1,2,\dots,K$ (see Figure \ref{fig:meas}). With this,
-the discrete model that relates the noiseless measurements to the sources is
-given by the following model:
-\begin{equation}
-y_k[m,n] = \sum_{p=1}^P h_{d_k,\lambda_p}[m,n] \ast x_p[m,n] \ , \ k = 1,2,\dots, K
-\label{eq:fwd}
-\end{equation}
-where $m,n=-N/2, \dots, N/2-1$ assuming that the detector has $N\times N$
-pixels. Here, $x_p$ denotes the discretized intensity of the source with
-wavelength $\lambda_p$, and $h_{d_k,\lambda_p}$ denotes the discretized point
-spread function (PSF) of the photon sieve for the wavelength $\lambda_p$ and
-plane distance $d_k$, which has a closed form expression given in
-\cite{oktem2013icip}. So, each measurement $y_k$ is a superposition of all the
-sources $x_p$ convolved with their corresponding PSFs $h_{d_k,\lambda_p}$.
+In this section, we mathematically model a multispectral diffractive imaging
+system.  Consider a polychromatic source that has $S$ two dimensional spectral components
+$\bm{x}_1, \dots, \bm{x}_S$.  Using a moving detector, we make $M$ two
+dimensional measurements $\bm{y}_1, \dots, \bm{y}_M$ at different distances from
+the lens. Due to linearity, each measurement is a superposition of blurred
+versions of the $S$ sources.  More formally,
+
+$$
+\bm{y}_m = \sum_{s=1}^S \bm{h}_{m,s} \ast \bm{x}_s
+$$
+
+where $\bm{h}_{m,s}$ is a blurring kernel known as a \emph{point spread
+  function} (PSF).  Each PSF depends on the associated source wavelength and
+measurement location and can be computed analytically.
+
+% In this section, we mathematically model a multispectral diffractive imaging system.
+% Consider a polychromatic source that has spectral emissions at $S$ distinct
+% wavelengths $\lambda_1, \dots, \lambda_S$. Using a moving detector,
+% we take measurements at $M$ different measurement planes, with distances from the
+% sieve $d_1, \dots, d_M$ (see Figure \ref{fig:meas}).  Each of these $M$
+% measurements is a sum over the $S$ sources, with each source blurred to varying
+% degrees.
+
+% With this,
+% the discrete model that relates the noiseless measurements to the sources is
+% given by the following model:
+% \begin{equation}
+% y_k[m,n] = \sum_{p=1}^P h_{d_k,\lambda_p}[m,n] \ast x_p[m,n] \ , \ k = 1,2,\dots, K
+% \label{eq:fwd}
+% \end{equation}
+% where $m,n=-N/2, \dots, N/2-1$ assuming that the detector has $N\times N$
+% pixels. Here, $x_p$ denotes the discretized intensity of the source with
+% wavelength $\lambda_p$, and $h_{d_k,\lambda_p}$ denotes the discretized point
+% spread function (PSF) of the photon sieve for the wavelength $\lambda_p$ and
+% plane distance $d_k$, which has a closed form expression given in
+% \cite{oktem2013icip}. So, each measurement $y_k$ is a superposition of all the
+% sources $x_p$ convolved with their corresponding PSFs $h_{d_k,\lambda_p}$.
 
 \begin{figure}[h]
 \includegraphics[width=0.45\textwidth]{poster1}
@@ -183,35 +240,36 @@ sources $x_p$ convolved with their corresponding PSFs $h_{d_k,\lambda_p}$.
 \label{fig:meas}
 \end{figure}
 
-Since \eqref{eq:fwd} is a linear relation between the sources and the
-measurements, we can represent it using matrix-vector form which will be useful
-in formulating the inverse problem. Denote by $\vx_p$ and $\vy_k$ the vectorized
-versions of $x_p[m,n]$ and $y_k[m,n]$. Then, we have
-\begin{equation}
-\vy = \vec A \vx + \vec w
-\label{eq:mtx-vec}
-\end{equation}
-with
-\begin{equation}
-\vy = \begin{bmatrix}
-\vy_1 \\ \vdots \\ \vy_K
-\end{bmatrix}, \vA = \begin{bmatrix}
-\vA_{11} \hspace{-.1 in}& \dots \hspace{-.1 in}& \vA_{1P} \\
-\vdots \hspace{-.1 in}& \ddots \hspace{-.1 in}& \vdots \\
-\vA_{K1} \hspace{-.1 in}& \dots \hspace{-.1 in}& \vA_{KP}
-\end{bmatrix}, \vx = \begin{bmatrix}
-\vx_1 \\ \vdots \\ \vx_P
-\end{bmatrix}, \vw = \begin{bmatrix}
-\vw_1 \\ \vdots \\ \vw_K
-\end{bmatrix}
-\end{equation}
 
-where $\vw_k \in \R^{N^2}$ is additive Gaussian noise vector with $(\vw_k)_i
-\sim \mathcal N (0, \sigma_k^2)$; and $\vA_{k,p} \in \R^{N^2 \times N^2}$ is the
-convolution matrix corresponding to the PSF $h_{d_k,\lambda_p}$. We assume that
-the periodic boundary conditions hold, which makes the matrices $\vA_{k,p}$
-block circulant with circulant blocks (BCCB). This allows computationally
-efficient algorithms in the image reconstruction.
+% Since \eqref{eq:fwd} is a linear relation between the sources and the
+% measurements, we can represent it using matrix-vector form which will be useful
+% in formulating the inverse problem. Denote by $\vx_p$ and $\vy_k$ the vectorized
+% versions of $x_p[m,n]$ and $y_k[m,n]$. Then, we have
+% \begin{equation}
+% \vy = \vec A \vx + \vec w
+% \label{eq:mtx-vec}
+% \end{equation}
+% with
+% \begin{equation}
+% \vy = \begin{bmatrix}
+% \vy_1 \\ \vdots \\ \vy_K
+% \end{bmatrix}, \vA = \begin{bmatrix}
+% \vA_{11} \hspace{-.1 in}& \dots \hspace{-.1 in}& \vA_{1P} \\
+% \vdots \hspace{-.1 in}& \ddots \hspace{-.1 in}& \vdots \\
+% \vA_{K1} \hspace{-.1 in}& \dots \hspace{-.1 in}& \vA_{KP}
+% \end{bmatrix}, \vx = \begin{bmatrix}
+% \vx_1 \\ \vdots \\ \vx_P
+% \end{bmatrix}, \vw = \begin{bmatrix}
+% \vw_1 \\ \vdots \\ \vw_K
+% \end{bmatrix}
+% \end{equation}
+
+% where $\vw_k \in \R^{N^2}$ is additive Gaussian noise vector with $(\vw_k)_i
+% \sim \mathcal N (0, \sigma_k^2)$; and $\vA_{k,p} \in \R^{N^2 \times N^2}$ is the
+% convolution matrix corresponding to the PSF $h_{d_k,\lambda_p}$. We assume that
+% the periodic boundary conditions hold, which makes the matrices $\vA_{k,p}$
+% block circulant with circulant blocks (BCCB). This allows computationally
+% efficient algorithms in the image reconstruction.
 
 
 \section{Inverse Problem}
