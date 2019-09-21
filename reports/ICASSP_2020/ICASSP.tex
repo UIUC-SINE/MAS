@@ -31,17 +31,28 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 \maketitle
 
 \begin{abstract}
-Spectral imaging, forming images of a scene at many wavelengths, is a
-fundamental analysis technique with many scientific applications. Diffractive
-lenses can achieve very high resolution in x-ray and UV regimes as compared to
-reflective and refractive optics. Their wavelength dependent focal length
-enables them to be used in spectral imaging of polychromatic sources, where the
-focused image of each spectral component is formed at different distances from
-the diffractive lens. If measurements are taken at each of these focus
-locations, it is possible to computationally reconstruct the spectral scene by
-solving an inverse problem. In this paper, we propose a greedy algorithm for
-finding a measurement configuration which results in better reconstructions than
-a conventional configuration selection strategy.
+% Spectral imaging, forming images of a scene at many wavelengths, is a
+% fundamental analysis technique with many scientific applications. Diffractive
+% lenses can achieve very high resolution in x-ray and UV regimes as compared to
+% reflective and refractive optics. Their wavelength dependent focal length
+% enables them to be used in spectral imaging of polychromatic sources, where the
+% focused image of each spectral component is formed at different distances from
+% the diffractive lens. If measurements are taken at each of these focus
+% locations, it is possible to computationally reconstruct the spectral scene by
+% solving an inverse problem. In this paper, we propose a greedy algorithm for
+% finding a measurement configuration which results in better reconstructions than
+% a conventional configuration selection strategy.
+
+In this paper, we investigate the problem of data acquisition in a multispectral
+diffractive imaging system.  Diffractive systems have the property that the
+spectral components of a polychromatic source are focused at different distances
+from the lens.  This means that in order to image a source at more than one
+wavelength, multiple measurements must be made with a moving detector. However,
+the choice of where to make these measurements is non-obvious and has
+implications on the quality of the reconstructions. Furthermore, an exhaustive
+search of all possible measurement configurations grows exponentially with the
+number of sources and is computationally infeasible. We propose a greedy
+backward elimination algorithm
 \end{abstract}
 
 \begin{keywords}
@@ -125,9 +136,11 @@ consisting of disentangling and deblurring of measurements must be solved in
 order to recover the original source components.  Traditionally, measurement
 locations are selected at the plane of focus for each spectral component.
 However, as we show later in this paper, it is possible to improve on the
-reconstruction qualit by making measurements away from these focal positions.
-Additionally, we propose a greedy backward selection algorithm for automatically
-discovering such a measurement configuration.
+reconstruction quality in some situations by making measurements away from these
+focal positions. We propose a greedy backward selection algorithm for
+automatically discovering such a measurement configuration. Additionally, we
+provide some bounds under which the greedy algorithm outperforms the traditional
+selection approach.
 
 % A different approach is to use a diffractive lens to perform spectral imaging.
 % Diffractive lenses focus light using the diffraction principle. They have
@@ -157,7 +170,7 @@ discovering such a measurement configuration.
     \centerline{\includegraphics[width=8.5cm]{drawing}}
   \end{minipage}
   \caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
-  $\lambda_2$. Measurement planes are at each focal length, where one wavelength
+  $\lambda_2$. Measurements $y_1$ and $y_2$ are taken at two positions where one wavelength
   is in focus and the other is out of focus.}
   \label{fig:pssi_drawing}
 \end{figure}
@@ -197,10 +210,10 @@ discovering such a measurement configuration.
 \section{Forward Model}
 \label{sec:format}
 In this section, we mathematically model a multispectral diffractive imaging
-system.  Consider a polychromatic source that has $S$ two dimensional spectral components
-$\bm{x}_1, \dots, \bm{x}_S$.  Using a moving detector, we make $M$ two
-dimensional measurements $\bm{y}_1, \dots, \bm{y}_M$ at different distances from
-the lens. Due to linearity, each measurement is a superposition of blurred
+system. Consider a polychromatic source that has $S$ two-dimensional spectral
+components $\bm{x}_1, \dots, \bm{x}_S$. Using a moving detector, we make $M$
+two-dimensional measurements $\bm{y}_1, \dots, \bm{y}_M$ at different distances
+from the lens. Due to linearity, each measurement is a superposition of blurred
 versions of the $S$ sources.  More formally,
 
 $$
@@ -234,11 +247,11 @@ measurement location and can be computed analytically.
 % \cite{oktem2013icip}. So, each measurement $y_k$ is a superposition of all the
 % sources $x_p$ convolved with their corresponding PSFs $h_{d_k,\lambda_p}$.
 
-\begin{figure}[h]
-\includegraphics[width=0.45\textwidth]{poster1}
-\caption{PSSI measurement configuration.}
-\label{fig:meas}
-\end{figure}
+% \begin{figure}[h]
+% \includegraphics[width=0.45\textwidth]{poster1}
+% \caption{PSSI measurement configuration.}
+% \label{fig:meas}
+% \end{figure}
 
 
 % Since \eqref{eq:fwd} is a linear relation between the sources and the
@@ -302,7 +315,7 @@ The first paragraph in each section should not be indented, but all the
 following paragraphs within the section should be indented as these paragraphs
 demonstrate.
 
-\section{MAJOR HEADINGS}
+\section{Reconstruction Results}
 \label{sec:majhead}
 
 Major headings, for example, "1. Introduction", should appear in all capital
@@ -324,7 +337,7 @@ must use them, they should appear in lower case (initial word
 capitalized) and start at the left margin on a separate line, with paragraph
 text beginning on the following line.  They should be in italics.
 
-\section{PRINTING YOUR PAPER}
+\section{Bounds}
 \label{sec:print}
 
 Print your properly formatted text on high-quality, 8.5 x 11-inch white printer
