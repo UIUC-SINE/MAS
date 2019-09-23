@@ -9,6 +9,7 @@ import functools
 import sys
 from mas.forward_model import size_compressor
 from mas.forward_model import size_equalizer
+from mas.decorators import _vectorize
 
 def circ_incoherent_psf(
         *,
@@ -128,6 +129,7 @@ def sieve_structure(sieve):
 
     Args:
         (PhotonSieve): a PhotonSieve instance holding sieve parameters
+        random (bool): whether to randomize white zone angles
 
     Returns:
         A list of dictionaries representing each 'open' zone with the following keys:
@@ -202,34 +204,33 @@ class PhotonSieve():
         self.hole_diameter_to_zone_width = hole_diameter_to_zone_width
 
 
-        def mask(self, x, y):
-            if not hasattr(self, 'structure'):
-                self.structure = sieve_structure(self)
+    @_vectorize(signature='(),()->()', included=[1, 2])
+    def mask(self, x, y):
+        if not hasattr(self, 'structure'):
+            self.structure = sieve_structure(self)
 
-            outer_radii = [zone['outer_radius'] for zone in self.structure]
-            inner = self.structure[0]['inner_radius']
-            outer = self.structure[-1]['outer_radius']
+        outer_radii = [zone['outer_radius'] for zone in self.structure]
+        inner = self.structure[0]['inner_radius']
+        outer = self.structure[-1]['outer_radius']
 
-            radius = np.sqrt(x**2 + y**2)
-            # return true if point falls inside hole
-            if radius >= inner and radius < outer:
-                white_zone = self.structure[np.searchsorted(outer_radii, radius)]
-                theta = np.arctan2(y, x)
-                closest_hole = int(
-                    np.round(len(white_zone['hole_coordinates']) * theta / (2 * np.pi))
-                )
-                # check if point falls in hole
-                if np.sqrt(
-                        (x - white_zone['hole_coordinates'][closest_hole][0])**2 +
-                        (y - white_zone['hole_coordinates'][closest_hole][1])**2
-                ) < white_zone['hole_diameter'] / 2:
-                    return True
-                else:
-                    return False
+        radius = np.sqrt(x**2 + y**2)
+        # return true if point falls inside hole
+        if radius >= inner and radius < outer:
+            white_zone = self.structure[np.searchsorted(outer_radii, radius)]
+            theta = np.arctan2(y, x)
+            closest_hole = int(
+                np.round(len(white_zone['hole_coordinates']) * theta / (2 * np.pi))
+            )
+            # check if point falls in hole
+            if np.sqrt(
+                    (x - white_zone['hole_coordinates'][closest_hole][0])**2 +
+                    (y - white_zone['hole_coordinates'][closest_hole][1])**2
+            ) < white_zone['hole_diameter'] / 2:
+                return True
             else:
                 return False
-
-        self.mask = np.vectorize(mask)
+        else:
+            return False
 
     def get_mask(self, mask_width):
         """
@@ -248,7 +249,7 @@ class PhotonSieve():
         ) / mask_width
         yy = xx
         x, y = np.meshgrid(xx, yy)
-        return self.mask(x,y)
+        return self.mask(x, y)
 
 
 class PSFs():
@@ -320,6 +321,8 @@ class PSFs():
 
                 psf_group = np.append(psf_group, [psf], axis=0)
             psfs = np.append(psfs, [psf_group], axis=0)
+
+        print()
 
         if cropped_width is not None:
             psfs = size_equalizer(psfs, [cropped_width, cropped_width])

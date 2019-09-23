@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
 from mas.forward_model import (
-    upsample, downsample, size_equalizer, get_measurements, add_noise
+    upsample, downsample, size_equalizer, get_measurements, add_noise,
+    crop
 )
 from mas.psf_generator import PhotonSieve, PSFs
 
@@ -77,6 +78,13 @@ class ForwardModelTests(TestCase):
             self.simple_array
         )
 
+    def test_crop(self):
+        self.assertEqualNp(
+            crop(self.simple_array, center=(1, 1), width=1),
+            np.array((4))
+        )
+
+
 class DeconvolutionTests(TestCase):
     def setUp(self):
         self.sources = np.ones((2, 4, 4))
@@ -98,7 +106,6 @@ class DeconvolutionTests(TestCase):
         from mas.deconvolution import tikhonov
 
         recon = tikhonov(
-            sources=self.sources,
             measurements=np.fft.fftshift(self.measured_noisy, axes=(1, 2)),
             psfs=self.psfs,
             tikhonov_lam=5e-2,

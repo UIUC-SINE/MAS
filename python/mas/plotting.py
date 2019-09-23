@@ -33,6 +33,7 @@ def fourier_slices(measurements):
     )
     for source_index, subplot in enumerate(subplots[:-2]):
         subplot.imshow(np.abs(slices[:, source_index].T), cmap='magma', interpolation='nearest', aspect='auto')
+        subplot.grid(False)
         # subplot.set(adjustable='box', aspect=1/4)
         subplot.set_title('Source {}'.format(source_index))
         subplot.set_ylabel('Frequency support')
