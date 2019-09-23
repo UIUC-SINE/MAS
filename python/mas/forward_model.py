@@ -6,6 +6,8 @@ from mas.block import block_mul, block_herm
 from mas.decorators import vectorize, _vectorize
 from scipy.stats import poisson
 from scipy.signal import fftconvolve
+from scipy.signal import convolve2d
+from scipy.ndimage.filters import gaussian_filter
 from PIL import Image
 
 def image_numpyer(*, inpath, outpath, size, upperleft):
@@ -85,7 +87,18 @@ def rectangle_adder(*, image, size, upperleft):
     return image
 
 @_vectorize(signature='(i,j,k)->(m,n,o)', included=[0, 'sources'])
-def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, **kwargs):
+def get_measurements(
+    *,
+    sources,
+    psfs,
+    mode='circular',
+    real=True,
+    meas_size=None,
+    blur_sigma=None,
+    noise_sigma=None,
+    drift_amount=None,
+    **kwargs
+):
     """
     Convolve the sources and psfs to obtain measurements.
     Args:
@@ -101,6 +114,8 @@ def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, 
 
     Optional:
         meas_size (tuple): 2d tuple of size of the detector array
+        blur_sigma (float): std deviation of additional blur applied to the PSFs
+        noise_sigma (float): std deviation of additional noise applied to the PSFs
 
     Returns:
         ndarray that is the noisy version of the input
@@ -117,6 +132,31 @@ def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, 
             size_equalizer(psfs.psfs, ref_size=[aa,bb]),
             psfs.copies.astype(int),axis=0
         )
+
+        if blur_sigma is not None:
+            for i in range(psfs_ext.shape[0]):
+                for j in range(psfs_ext.shape[1]):
+                    psfs_ext[i,j] = gaussian_filter(psfs_ext[i,j], sigma=blur_sigma)
+                    psfs.psfs_modified = size_equalizer(psfs_ext, ref_size=[ss,ss])
+
+        if drift_amount is not None:
+            kernel = np.zeros((drift_amount,drift_amount))
+            for i in range(drift_amount):
+                for j in range(drift_amount):
+                    if i+j == drift_amount - 1:
+                        kernel[i,j] = 1 / drift_amount
+            for i in range(psfs_ext.shape[0]):
+                for j in range(psfs_ext.shape[1]):
+                    psfs_ext[i,j] = convolve2d(
+                        psfs_ext[i,j], kernel, mode='same')
+            psfs.psfs_modified = size_equalizer(psfs_ext, ref_size=[ss,ss])
+
+
+        if noise_sigma is not None:
+            psfs_ext = np.random.normal(loc=psfs_ext, scale=noise_sigma)
+            psfs_ext[psfs_ext < 0] = 0
+            psfs.psfs_modified = size_equalizer(psfs_ext, ref_size=[ss,ss])
+
 
         # ----- forward -----
         measurement = np.fft.fftshift(
@@ -148,6 +188,30 @@ def get_measurements(*, sources, psfs, mode='valid', real=True, meas_size=None, 
             size_equalizer(psfs.psfs, ref_size=[ta,tb]),
             psfs.copies.astype(int),axis=0
         )
+
+        if blur_sigma is not None:
+            for i in range(psfs_ext.shape[0]):
+                for j in range(psfs_ext.shape[1]):
+                    psfs_ext[i,j] = gaussian_filter(psfs_ext[i,j], sigma=blur_sigma)
+                    psfs.psfs_modified = size_equalizer(psfs_ext, ref_size=[ss,ss])
+
+        if drift_amount is not None:
+            kernel = np.zeros((drift_amount,drift_amount))
+            for i in range(drift_amount):
+                for j in range(drift_amount):
+                    if i+j == drift_amount - 1:
+                        kernel[i,j] = 1 / drift_amount
+            for i in range(psfs_ext.shape[0]):
+                for j in range(psfs_ext.shape[1]):
+                    psfs_ext[i,j] = convolve2d(
+                        psfs_ext[i,j], kernel, mode='same')
+            psfs.psfs_modified = size_equalizer(psfs_ext, ref_size=[ss,ss])
+
+        if noise_sigma is not None:
+            psfs_ext = np.random.normal(loc=psfs_ext, scale=noise_sigma)
+            psfs_ext[psfs_ext < 0] = 0
+            psfs.psfs_modified = size_equalizer(psfs_ext, ref_size=[ss,ss])
+
         sources_ext = size_equalizer(sources, ref_size=[ta,tb])
 
         # ----- forward -----
