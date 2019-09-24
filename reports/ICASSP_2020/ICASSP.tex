@@ -207,22 +207,57 @@ selection approach.
 % working principle of PSSI. It takes multiple exposures at different distances
 % from the lens to sample the measurement space.
 
-\section{Forward Model}
+\section{Forward Model and Inverse Problem}
 \label{sec:format}
 In this section, we mathematically model a multispectral diffractive imaging
-system. Consider a polychromatic source that has $S$ two-dimensional spectral
-components $\bm{x}_1, \dots, \bm{x}_S$. Using a moving detector, we make $M$
+system and describe the process of recovering the spectral components. Consider
+a polychromatic source that has $S$ two-dimensional spectral components
+$\bm{x}_1, \dots, \bm{x}_S$. Using a moving detector, we make $M$
 two-dimensional measurements $\bm{y}_1, \dots, \bm{y}_M$ at different distances
 from the lens. Due to linearity, each measurement is a superposition of blurred
-versions of the $S$ sources.  More formally,
+versions of the $S$ sources. More formally,
 
 $$
-\bm{y}_m = \sum_{s=1}^S \bm{h}_{m,s} \ast \bm{x}_s
+\bm{y}_m = \sum_{s=1}^S \bm{h}_{m,s} \ast \bm{x}_s + \bm{n}_s
 $$
 
 where $\bm{h}_{m,s}$ is a blurring kernel known as a \emph{point spread
-  function} (PSF).  Each PSF depends on the associated source wavelength and
-measurement location and can be computed analytically.
+function} (PSF) and $\ast$ is a 2D convolution. Each PSF depends on the
+associated source wavelength and measurement location and can be computed
+analytically.
+
+\begin{figure}[htb]
+  \begin{minipage}[b]{1\linewidth}
+    \centering
+    \centerline{\includegraphics[width=5cm]{psfs}}
+  \end{minipage}
+  \caption{Example point spread functions for measuring a source with 2 spectral
+    components at the focal planes of each component.}
+  \label{fig:pssi_drawing}
+\end{figure}
+
+The goal is to recover the $S$ source components $\bm{x}_s$ from the
+measurements $\bm{y}_m$. Since each measurement is a superposition of blurred
+sources,
+
+$$
+% \underbrace{
+  \begin{bmatrix}Y_1 \\ \vdots \\ Y_M\end{bmatrix}
+% }_{\text{measurements}}
+=
+% \underbrace{
+  \begin{bmatrix}
+    H_{1, 1} & \hdots & H_{1, S} \\
+    \vdots & & \vdots \\
+    H_{M, 1} & \hdots & H_{M, S}
+  \end{bmatrix}
+% }_{\text{convolution with PSFs}}
+% \underbrace{
+  \begin{bmatrix}X_1 \\ \vdots \\ X_S\end{bmatrix}
+% }_{\text{sources}}
++
+\begin{bmatrix}N_1 \\ \vdots \\ N_S\end{bmatrix}
+$$
 
 % In this section, we mathematically model a multispectral diffractive imaging system.
 % Consider a polychromatic source that has spectral emissions at $S$ distinct
@@ -297,149 +332,24 @@ that papers should not be submitted blind; include the authors' names on the
 PDF.
 
 \section{Measurement Selection Algorithm}
-\label{sec:typestyle}
-
-To achieve the best rendering both in printed proceedings and electronic proceedings, we
-strongly encourage you to use Times-Roman font.  In addition, this will give
-the proceedings a more uniform look.  Use a font that is no smaller than nine
-point type throughout the paper, including figure captions.
-
-In nine point type font, capital letters are 2 mm high.  {\bf If you use the
-smallest point size, there should be no more than 3.2 lines/cm (8 lines/inch)
-vertically.}  This is a minimum spacing; 2.75 lines/cm (7 lines/inch) will make
-the paper much more readable.  Larger type sizes require correspondingly larger
-vertical spacing.  Please do not double-space your paper.  TrueType or
-Postscript Type 1 fonts are preferred.
-
-The first paragraph in each section should not be indented, but all the
-following paragraphs within the section should be indented as these paragraphs
-demonstrate.
 
 \section{Reconstruction Results}
-\label{sec:majhead}
-
-Major headings, for example, "1. Introduction", should appear in all capital
-letters, bold face if possible, centered in the column, with one blank line
-before, and one blank line after. Use a period (".") after the heading number,
-not a colon.
 
 \subsection{Subheadings}
-\label{ssec:subhead}
-
-Subheadings should appear in lower case (initial word capitalized) in
-boldface.  They should start at the left margin on a separate line.
 
 \subsubsection{Sub-subheadings}
-\label{sssec:subsubhead}
-
-Sub-subheadings, as in this paragraph, are discouraged. However, if you
-must use them, they should appear in lower case (initial word
-capitalized) and start at the left margin on a separate line, with paragraph
-text beginning on the following line.  They should be in italics.
 
 \section{Bounds}
-\label{sec:print}
-
-Print your properly formatted text on high-quality, 8.5 x 11-inch white printer
-paper. A4 paper is also acceptable, but please leave the extra 0.5 inch (12 mm)
-empty at the BOTTOM of the page and follow the top and left margins as
-specified.  If the last page of your paper is only partially filled, arrange
-the columns so that they are evenly balanced if possible, rather than having
-one long column.
-
-In LaTeX, to start a new column (but not a new page) and help balance the
-last-page column lengths, you can use the command ``$\backslash$pagebreak'' as
-demonstrated on this page (see the LaTeX source below).
 
 \section{PAGE NUMBERING}
-\label{sec:page}
-
-Please do {\bf not} paginate your paper.  Page numbers, session numbers, and
-conference identification will be inserted when the paper is included in the
-proceedings.
 
 \section{ILLUSTRATIONS, GRAPHS, AND PHOTOGRAPHS}
-\label{sec:illust}
-
-Illustrations must appear within the designated margins.  They may span the two
-columns.  If possible, position illustrations at the top of columns, rather
-than in the middle or at the bottom.  Caption and number every illustration.
-All halftone illustrations must be clear black and white prints.  Colors may be
-used, but they should be selected so as to be readable when printed on a
-black-only printer.
-
-Since there are many ways, often incompatible, of including images (e.g., with
-experimental results) in a LaTeX document, below is an example of how to do
-this .
-
-\section{FOOTNOTES}
-\label{sec:foot}
-
-Use footnotes sparingly (or not at all!) and place them at the bottom of the
-column on the page on which they are referenced. Use Times 9-point type,
-single-spaced. To help your readers, avoid using footnotes altogether and
-include necessary peripheral observations in the text (within parentheses, if
-you prefer, as in this sentence).
 
 % Below is an example of how to insert images. Delete the ``\vspace'' line,
 % uncomment the preceding line ``\centerline...'' and replace ``imageX.ps''
 % with a suitable PostScript file name.
 % -------------------------------------------------------------------------
-\begin{figure}[htb]
 
-\begin{minipage}[b]{1.0\linewidth}
-  \centering
-  \centerline{\includegraphics[width=8.5cm]{image1}}
-%  \vspace{2.0cm}
-  \centerline{(a) Result 1}\medskip
-\end{minipage}
-%
-\begin{minipage}[b]{.48\linewidth}
-  \centering
-  \centerline{\includegraphics[width=4.0cm]{image3}}
-%  \vspace{1.5cm}
-  \centerline{(b) Results 3}\medskip
-\end{minipage}
-\hfill
-\begin{minipage}[b]{0.48\linewidth}
-  \centering
-  \centerline{\includegraphics[width=4.0cm]{image4}}
-%  \vspace{1.5cm}
-  \centerline{(c) Result 4}\medskip
-\end{minipage}
-%
-\caption{Example of placing a figure with experimental results.}
-\label{fig:res}
-%
-\end{figure}
-
-
-% To start a new column (but not a new page) and help balance the last-page
-% column length use \vfill\pagebreak.
-% -------------------------------------------------------------------------
-%\vfill
-%\pagebreak
-
-\section{RELATION TO PRIOR WORK}
-\label{sec:prior}
-
-The text of the paper should contain discussions on how the paper's
-contributions are related to prior work in the field. It is important
-to put new work in  context, to give credit to foundational work, and
-to provide details associated with the previous work that have appeared
-in the literature. This discussion may be a separate, numbered section
-or it may appear elsewhere in the body of the manuscript, but it must
-be present.
-
-You should differentiate what is new and how your work expands on
-or takes a different path from the prior studies. An example might
-read something to the effect: "The work presented here has focused
-on the formulation of the ABC algorithm, which takes advantage of
-non-uniform time-frequency domain analysis of data. The work by
-fixed frequency partitioning. While the present study is related
-to recent approaches in time-frequency analysis [3-5], it capitalizes
-on a new feature space, which was not considered in these earlier
-studies."
 
 \vfill\pagebreak
 
