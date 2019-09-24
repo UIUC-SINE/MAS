@@ -17,3 +17,5 @@ reports/**/*.log
 reports/**/*.bst
 reports/**/*.bbl
 reports/**/*.blg
+reports/**/*.el
+reports/**/*.eps
