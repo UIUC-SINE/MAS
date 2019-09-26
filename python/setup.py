@@ -1,10 +1,11 @@
 from setuptools import setup
+import version
 
 setup(
     name='uiuc-mas',
-    version='2',
+    version=version.__version__,
     packages=['mas'],
-    author="Evan Widloski",
+    author="Evan Widloski, Ulas Kamaci",
     author_email="evan@evanw.org",
     description="Milliarc-second Photon Sieve Simulations",
     long_description=open('README.md').read(),
