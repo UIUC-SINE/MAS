@@ -19,7 +19,7 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
-\title{Optimal Measurement Configuration in \\ Computational Multispectral Imaging With a Diffractive Lens}
+\title{Optimal Measurement Configuration in Computational \\ Multispectral Imaging With a Diffractive Lens}
 
 \name{Evan Widloski \qquad Ulas Kamaci \qquad Farzad Kamalabadi}
 \address{
@@ -209,7 +209,7 @@ selection approach.
 
 \section{Forward Model and Inverse Problem}
 \label{sec:format}
-In this section, we mathematically model a multispectral diffractive imaging
+In this section, we mathematically model a diffractive imaging
 system and describe the process of recovering the spectral components. Consider
 a polychromatic source that has $S$ two-dimensional spectral components
 $\bm{x}_1, \dots, \bm{x}_S$. Using a moving detector, we make $M$
@@ -217,14 +217,32 @@ two-dimensional measurements $\bm{y}_1, \dots, \bm{y}_M$ at different distances
 from the lens. Due to linearity, each measurement is a superposition of blurred
 versions of the $S$ sources. More formally,
 
-$$
+\begin{equation}
 \bm{y}_m = \sum_{s=1}^S \bm{h}_{m,s} \ast \bm{x}_s + \bm{n}_s
-$$
+\label{eq:fwd_model}
+\end{equation}
 
 where $\bm{h}_{m,s}$ is a blurring kernel known as a \emph{point spread
 function} (PSF) and $\ast$ is a 2D convolution. Each PSF depends on the
 associated source wavelength and measurement location and can be computed
-analytically.
+analytically. An example set of PSF images for $M=S=2$ case
+Note that convolution in space domain corresponds to
+multiplication in the Fourier domain, so the relation in \eqref{eq:fwd_model}
+can be represented in Fourier domain using the following matrix-vector notation:
+
+\begin{equation}
+\begin{bmatrix}Y_1 \\ \vdots \\ Y_M\end{bmatrix}
+=
+\begin{bmatrix}
+  H_{1, 1} & \hdots & H_{1, S} \\
+  \vdots & & \vdots \\
+  H_{M, 1} & \hdots & H_{M, S}
+\end{bmatrix}
+\begin{bmatrix}X_1 \\ \vdots \\ X_S\end{bmatrix}
++
+\begin{bmatrix}N_1 \\ \vdots \\ N_S\end{bmatrix}
+\label{eq:fourier_mtx}
+\end{equation}
 
 \begin{figure}[htb]
   \begin{minipage}[b]{1\linewidth}
@@ -236,28 +254,6 @@ analytically.
   \label{fig:pssi_drawing}
 \end{figure}
 
-The goal is to recover the $S$ source components $\bm{x}_s$ from the
-measurements $\bm{y}_m$. Since each measurement is a superposition of blurred
-sources,
-
-$$
-% \underbrace{
-  \begin{bmatrix}Y_1 \\ \vdots \\ Y_M\end{bmatrix}
-% }_{\text{measurements}}
-=
-% \underbrace{
-  \begin{bmatrix}
-    H_{1, 1} & \hdots & H_{1, S} \\
-    \vdots & & \vdots \\
-    H_{M, 1} & \hdots & H_{M, S}
-  \end{bmatrix}
-% }_{\text{convolution with PSFs}}
-% \underbrace{
-  \begin{bmatrix}X_1 \\ \vdots \\ X_S\end{bmatrix}
-% }_{\text{sources}}
-+
-\begin{bmatrix}N_1 \\ \vdots \\ N_S\end{bmatrix}
-$$
 
 % In this section, we mathematically model a multispectral diffractive imaging system.
 % Consider a polychromatic source that has spectral emissions at $S$ distinct
@@ -319,17 +315,21 @@ $$
 % block circulant with circulant blocks (BCCB). This allows computationally
 % efficient algorithms in the image reconstruction.
 
-
-\section{Inverse Problem}
-\label{sec:pagestyle}
-
-The paper title (on the first page) should begin 1.38 inches (35 mm) from the
-top edge of the page, centered, completely capitalized, and in Times 14-point,
-boldface type.  The authors' name(s) and affiliation(s) appear below the title
-in capital and lower case letters.  Papers with multiple authors and
-affiliations may require two or more lines for this information. Please note
-that papers should not be submitted blind; include the authors' names on the
-PDF.
+The goal in the inverse problem is to reconstruct the spectral components
+$\bm{x}_1, \dots, \bm{x}_S$ from the noisy, blurry and superimposed measurements
+$\bm{y}_1, \dots, \bm{y}_M$. This can be seen as a multi-frame deconvolution
+problem with multiple sources, which is an-ill posed problem in the sense that
+direct inversion (or the least squares solution) amplifies the noise in the
+measurements and leads to poor reconstructions. To avoid noise amplification,
+the problem needs to be regularized. The inverse problem can then be formulated
+as a regularized optimization problem as follows:
+\begin{equation}
+\hat \vx = \argmin_{\vx} \norm{\vA\vx-\vy}_2^2 + \lambda \mathcal R(\vx)
+\label{eq:inverse}
+\end{equation}
+where the first term ensures that the reconstructions comply with the
+measurements and the second term is the regularization term with parameter
+$\lambda>0$. In this paper, we are interested in
 
 \section{Measurement Selection Algorithm}
 
