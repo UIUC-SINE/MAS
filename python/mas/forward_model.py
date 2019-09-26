@@ -9,6 +9,7 @@ from scipy.signal import fftconvolve
 from scipy.signal import convolve2d
 from scipy.ndimage.filters import gaussian_filter
 from PIL import Image
+import logging
 
 log = logging.getLogger(name=__name__)
 
