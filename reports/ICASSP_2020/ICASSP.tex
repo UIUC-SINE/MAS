@@ -214,7 +214,9 @@ system and describe the process of recovering the spectral components. Consider
 a polychromatic source that has $S$ two-dimensional spectral components
 $\bm{x}_1, \dots, \bm{x}_S$. Using a moving detector, we make $M$
 two-dimensional measurements $\bm{y}_1, \dots, \bm{y}_M$ at different distances
-from the lens. Due to linearity, each measurement is a superposition of blurred
+from the lens. We allow for repeated measurements at the same plane for a more
+flexible model that can take into account non equal exposure times. % FIXME
+Due to linearity, each measurement is a superposition of blurred
 versions of the $S$ sources. More formally,
 
 \begin{equation}
@@ -331,7 +333,38 @@ where the first term ensures that the reconstructions comply with the
 measurements and the second term is the regularization term with parameter
 $\lambda>0$. In this paper, we are interested in
 
+\begin{enumerate}
+    \item inverse problem is simultaneous deblurring and disentanglement
+    \item goal of paper is not to find optimal inversion strategy, but selection
+          algorithm. will use tikhonov
+    \item introduce MAP -> tikhonov 
+    \item model assumptions, gaussian X, gaussian Noise
+      \item with this framework, how do we choose where to make measurements to
+        get the best reconstruction quality? what distances from lens?
+        \item in the next section, we introduce an cost metric to help minimize
+          reconstruction error and propose an algorithm for minimizing this metric.
+\end{enumerate}
+
 \section{Measurement Selection Algorithm}
+
+\begin{enumerate}
+  \item introduce sse.  now have a method for comparing two measurement
+    configurations for which gives better reconstruction
+  \item motivate that searching for optimal measurement configuration is
+    infeasible.  show complexity.  suffers from dimensionality problem. for a realistic situation (e.g. 3 spectral
+    components, 10 candidate positions, 5 measurements). its a huge number.
+  \item known as subset selection problem
+  \item one common approach is greedy hill climbing, which iteratively finds
+    a solution by making temporary, incremental changes to the currently
+    selected subset before making a change. commonly this is applied to rows
+    of a matrix to find optimal configuration
+  \item sharif paper introduces clustered sequential backward selection
+    algorithm.  backward because we start with many potential candidate locations and eliminate.
+    clustered because eliminating a measurement candidate eliminates
+    multiple rows from the matrix H.
+    \item $d_1, \dots, d_C$  $n_1, \dots, n_C$  $\sum_{c=1}^C n_c = M$
+\end{enumerate}
+
 
 \section{Reconstruction Results}
 
