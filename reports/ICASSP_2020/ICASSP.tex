@@ -52,7 +52,8 @@ the choice of where to make these measurements is non-obvious and has
 implications on the quality of the reconstructions. Furthermore, an exhaustive
 search of all possible measurement configurations grows exponentially with the
 number of sources and is computationally infeasible. We propose a greedy
-backward elimination algorithm
+backward elimination algorithm for finding acquisition locations and show that
+reconstruction quality is improved over a naive acquisition strategy.
 \end{abstract}
 
 \begin{keywords}
@@ -96,8 +97,8 @@ Diffractive lenses are often preferred in the UV or x-ray regimes over
 reflective optics because manufacturing tolerances at these wavelengths must be
 much tighter than in the visible regime in order to get a similar optical
 performance.  Since diffractive optics can be manufactured using a
-photolithographic process they can be produced at a higher precision than
-the grinding process used to produce conventional reflective optics.
+photolithographic process, they can be produced at a higher precision compared
+to the grinding process used to produce conventional reflective optics.
 Similarly, refractive optics are unsuitable for UV or x-ray imaging because
 glass is opaque at these wavelengths. Figures \ref{fig:diff_lens}(b) and
 \ref{fig:diff_lens}(c) are two examples of a pattern that can be etched into
@@ -129,8 +130,9 @@ plate (c) photon sieve}
 %
 \end{figure}
 
+% FIXME
 While diffraction produces a focused image of each source at separate planes, it
-.  This means that each measurement is actually a sum of all spectral
+***.  This means that each measurement is actually a sum of all spectral
 components of the source at varying degrees of focus.  An inverse problem
 consisting of disentangling and deblurring of measurements must be solved in
 order to recover the original source components.  Traditionally, measurement
@@ -207,7 +209,7 @@ selection approach.
 % working principle of PSSI. It takes multiple exposures at different distances
 % from the lens to sample the measurement space.
 
-\section{Forward Model and Inverse Problem}
+\section{Forward Model and Statistical Formulation}
 \label{sec:format}
 In this section, we mathematically model a diffractive imaging
 system and describe the process of recovering the spectral components. Consider
@@ -227,10 +229,12 @@ versions of the $S$ sources. More formally,
 where $\bm{h}_{m,s}$ is a blurring kernel known as a \emph{point spread
 function} (PSF) and $\ast$ is a 2D convolution. Each PSF depends on the
 associated source wavelength and measurement location and can be computed
-analytically. An example set of PSF images for $M=S=2$ case
+analytically. An example set of PSF images for $M=S=2$ case is given in Figure
+\ref{fig:psfs}.
+% FIXME - explanation not technically correct
 Note that convolution in space domain corresponds to
 multiplication in the Fourier domain, so the relation in \eqref{eq:fwd_model}
-can be represented in Fourier domain using the following matrix-vector notation:
+can be represented in the Fourier domain using the following matrix-vector notation:
 
 \begin{equation}
 \begin{bmatrix}Y_1 \\ \vdots \\ Y_M\end{bmatrix}
@@ -253,8 +257,36 @@ can be represented in Fourier domain using the following matrix-vector notation:
   \end{minipage}
   \caption{Example point spread functions for measuring a source with 2 spectral
     components at the focal planes of each component.}
-  \label{fig:pssi_drawing}
+  \label{fig:psfs}
 \end{figure}
+
+However, the problem of where to take measurements $y_1, \dots, y_M$ has not
+been addressed and has an effect on the reconstruction quality.  In order to
+compare the relative quality of different measurement configurations, it is necessary to
+define some cost for the measurement matrix $H$.  A common cost metric is the
+total reconstruction error, or sum of squared errors (SSE).  However, $\bm{x}$
+is unknown so we must make assumptions about its statistical nature and use the
+expected sum of squared errors as a metric instead.  Additionally, we must
+assume some strategy for the recovery of $\bm{x}$.  Maximum a posteriori (MAP)
+estimation is one such strategy.
+
+Assume the original spectral components and noise are distributed according to a
+normal distribution such that $\bm{x} ~ \mathcal{N}(\bm{x}_0, \Sigma_x)$ and
+$\bm{n} ~ \mathcal{N}(0, \Sigma_n)$.  The MAP estimate is then
+
+% FIXME - dimensionality -> n
+% use A instead of H?
+$$
+\begin{aligned}
+  \hat{\bm{x}}_{MAP} &= \arg \max_{\bm{x} \in \mathbb{C}^n} p(\bm{x} | \bm{y})
+  = \arg \max_{\bm{x} \in \mathbb{C}^n} p(\bm{y}|\bm{x}) p(\bm{x})\\
+  &= \arg \min_{\bm{x} \in \mathbb{C}^n} \left[  - \log(p(\bm{y}|\bm{x})) - \log
+  p(|bm{x})\right] \\
+  &= \bm{x}_0 + \left( A^H\Sigma_{\bm{n}}^{-1} A +
+    \Sigma_{\bm{x}}^{-1}\right)^{-1}
+  \cdot  A^H \Sigma_{\bm{n}}^{-1} (\bm{y} - A \bm{x}_0)
+\end{aligned}
+$$
 
 
 % In this section, we mathematically model a multispectral diffractive imaging system.
@@ -317,14 +349,18 @@ can be represented in Fourier domain using the following matrix-vector notation:
 % block circulant with circulant blocks (BCCB). This allows computationally
 % efficient algorithms in the image reconstruction.
 
+
+\section{Measurement Selection Algorithm}
+
 The goal in the inverse problem is to reconstruct the spectral components
 $\bm{x}_1, \dots, \bm{x}_S$ from the noisy, blurry and superimposed measurements
-$\bm{y}_1, \dots, \bm{y}_M$. This can be seen as a multi-frame deconvolution
-problem with multiple sources, which is an-ill posed problem in the sense that
-direct inversion (or the least squares solution) amplifies the noise in the
-measurements and leads to poor reconstructions. To avoid noise amplification,
-the problem needs to be regularized. The inverse problem can then be formulated
-as a regularized optimization problem as follows:
+$\bm{y}_1, \dots, \bm{y}_M$. This is known as a \emph{multi-frame deconvolution
+problem} with multiple sources.  However, deconvolution is known to be highly
+ill-posed, which means that direct inversion of the matrix containing the PSFs
+(or its least square approximation) amplifies the noise in the measurements and
+leads to poor reconstructions. To avoid noise amplification, the problem needs
+to be regularized. The inverse problem can then be formulated as a regularized
+optimization problem as follows:
 \begin{equation}
 \hat \vx = \argmin_{\vx} \norm{\vA\vx-\vy}_2^2 + \lambda \mathcal R(\vx)
 \label{eq:inverse}
@@ -344,8 +380,6 @@ $\lambda>0$. In this paper, we are interested in
         \item in the next section, we introduce an cost metric to help minimize
           reconstruction error and propose an algorithm for minimizing this metric.
 \end{enumerate}
-
-\section{Measurement Selection Algorithm}
 
 \begin{enumerate}
   \item introduce sse.  now have a method for comparing two measurement
