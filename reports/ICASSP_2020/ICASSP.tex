@@ -262,15 +262,14 @@ can be represented in the Fourier domain using the following matrix-vector notat
 
 However, the problem of where to take measurements $y_1, \dots, y_M$ has not
 been addressed and has an effect on the reconstruction quality.  In order to
-compare the relative quality of different measurement configurations, it is necessary to
-define some cost for the measurement matrix $H$.  A common cost metric is the
-total reconstruction error, or sum of squared errors (SSE).  However, $\bm{x}$
-is unknown so we must make assumptions about its statistical nature and use the
-expected sum of squared errors as a metric instead.  Additionally, we must
-assume some strategy for the recovery of $\bm{x}$.  Maximum a posteriori (MAP)
-estimation is one such strategy.
+compare the relative quality of different measurement configurations, it is
+necessary to define some cost for the measurement matrix $H$.  A common cost
+metric is the expected reconstruction error, or expected sum of squared errors
+(SSE). However, we must have some strategy for the recovery of $\bm{x}$ to get
+reconstruction error and we must make statistical assumptions about $\bm{x}$.
+Maximum a posteriori (MAP) estimation is one such strategy.
 
-Assume the original spectral components and noise are distributed according to a
+We assume the original spectral components and noise are distributed according to a
 normal distribution such that $\bm{x} ~ \mathcal{N}(\bm{x}_0, \Sigma_x)$ and
 $\bm{n} ~ \mathcal{N}(0, \Sigma_n)$.  The MAP estimate is then
 
@@ -281,13 +280,32 @@ $$
   \hat{\bm{x}}_{MAP} &= \arg \max_{\bm{x} \in \mathbb{C}^n} p(\bm{x} | \bm{y})
   = \arg \max_{\bm{x} \in \mathbb{C}^n} p(\bm{y}|\bm{x}) p(\bm{x})\\
   &= \arg \min_{\bm{x} \in \mathbb{C}^n} \left[  - \log(p(\bm{y}|\bm{x})) - \log
-  p(|bm{x})\right] \\
+  p(\bm{x})\right] \\
   &= \bm{x}_0 + \left( A^H\Sigma_{\bm{n}}^{-1} A +
     \Sigma_{\bm{x}}^{-1}\right)^{-1}
   \cdot  A^H \Sigma_{\bm{n}}^{-1} (\bm{y} - A \bm{x}_0)
 \end{aligned}
 $$
+The reconstruction error is defined as $\bm{e} = \bm{x} - \bm{x_{\text{MAP}}}$,
+and the expected sum of squared error cost is $E[\norm{\bm{e}}_2^2]$. This
+expression can be rewritten in terms of the error covariance:
 
+\begin{align*}
+E[\norm{\bm{e}}_2^2] =  E[\bm{e^H}\bm{e}] & = E[tr(\bm{e}^H\bm{e})] = E[tr(\bm{e}\bm{e}^H)] \\
+& = tr(E[\bm{e}\bm{e}^H]) = tr(\bm{\Sigma_e})
+\end{align*}
+
+where the error covariance matrix is defined as $\bm{\Sigma_e} =
+E[\bm{e}\bm{e^H}]$ and has the closed form expression:
+\begin{equation}
+\bm{\Sigma_e} = \left( A^H\Sigma_{\bm{n}}^{-1} A +
+    \Sigma_{\bm{x}}^{-1}\right)^{-1}
+\end{equation}
+we would like to find $A$ which will minimizes the SSE cost:
+\begin{equation}
+\text{Cost}(\bm{A}) = tr\left(\left( A^H\Sigma_{\bm{n}}^{-1} A +
+    \Sigma_{\bm{x}}^{-1}\right)^{-1}\right)
+\end{equation}
 
 % In this section, we mathematically model a multispectral diffractive imaging system.
 % Consider a polychromatic source that has spectral emissions at $S$ distinct
@@ -373,7 +391,7 @@ $\lambda>0$. In this paper, we are interested in
     \item inverse problem is simultaneous deblurring and disentanglement
     \item goal of paper is not to find optimal inversion strategy, but selection
           algorithm. will use tikhonov
-    \item introduce MAP -> tikhonov 
+    \item introduce MAP -> tikhonov
     \item model assumptions, gaussian X, gaussian Noise
       \item with this framework, how do we choose where to make measurements to
         get the best reconstruction quality? what distances from lens?
