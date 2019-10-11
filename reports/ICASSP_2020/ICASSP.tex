@@ -3,17 +3,17 @@
 %          IEEEbib.bst - IEEE bibliography style file.
 % --------------------------------------------------------------------------
 \documentclass{article}
-\usepackage{spconf,amsmath,amssymb,graphicx,bm}
+\usepackage{spconf,amsmath,amssymb,graphicx,bm,algorithm,algpseudocode}
 \graphicspath{{figures/}}
 
-\newcommand{\R}{\mathbb{R}}
-\renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
-\providecommand{\mat}[1]{\ensuremath{\mathbf{#1}}}
-\providecommand{\vx}{\vec{x}}
-\providecommand{\vy}{\vec{y}}
-\providecommand{\ve}{\vec{e}}
-\providecommand{\vn}{\vec{n}}
-\providecommand{\vA}{\vec{A}}
+% \newcommand{\R}{\mathbb{R}}
+% \renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
+% \providecommand{\mat}[1]{\ensuremath{\mathbf{#1}}}
+% \providecommand{\vx}{\vec{x}}
+% \providecommand{\vy}{\vec{y}}
+% \providecommand{\ve}{\vec{e}}
+% \providecommand{\vn}{\vec{n}}
+% \providecommand{\vA}{\vec{A}}
 \providecommand{\norm}[1]{\left\lVert#1\right\rVert}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -266,7 +266,7 @@ assumption allows for a computationally efficient algorithm using FFTs.
 \end{figure}
 
 However, the problem of where to take measurements $\vy_1, \dots, \vy_M$ has not
-been addressed and has an effect on the reconstruction quality.  In order to
+been addressed and impacts the reconstruction quality.  In order to
 compare the relative quality of different measurement configurations, it is
 necessary to define some cost for the measurement matrix $\vA$.  A common cost
 metric is the expected reconstruction error, or expected sum of squared errors
@@ -314,14 +314,38 @@ then our SSE cost becomes:
 \end{equation}
 
 \section{Measurement Selection Algorithm}
-Having defined the cost metric, we are now looking for the best measurement
-configuration to minimize the cost. Suppose we take $M$ measurements, each at
-a distance $d_m$ from the lens for $m = 1, \dots, M$. 
 
-\begin{equation}
-\hat {\bm A} = \argmin_{\vA \in Q} \ \text{Cost}(\bm{A})
-\label{eq:inverse}
-\end{equation}
+With a method of comparing the *** of two measurement configurations, one might
+think to simply search all possible measurements and choose the best.  However,
+the computational cost of an exhaustive search grows too quickly and is
+infeasible for most realistic scenarios.  For example, consider a scenario in
+which there are $c$ candidate measurement locations of which we would like to
+select a subset of size $M$ to form our measurement matrix $\bm{A}$.
+Exhaustively searching through all possible configurations of $\bm{A}$ would
+require $\binom{c}{M}$ iterations, recomputing $\text{Cost}(\bm{A})$ each time.
+
+An alternative method which is more computationally feasible is known as
+\emph{greedy hill climbing}, or more specifically, \emph{sequential backward
+selection} (SBS). In SBS algorithms,
+
+\begin{algorithmic}
+  \State $\bm{d} = \{d_1, \dots, d_1, d_2, \dots d_2, \dots, d_M, \dots, d_M\}$
+  \Repeat
+    \For{lkjlkj} sometext
+    \State $d_w = \arg \min_{d} \text{Cost}(A(\bm{d} \backslash d))$
+    \EndFor
+    \State $\bm{d} = \bm{d} \backslash d_w$
+  \Until{$|\bm{d}| = M$}
+\end{algorithmic}
+
+% Having defined the cost metric, we are now looking for the best measurement
+% configuration to minimize the cost. Suppose we take $M$ measurements, each at
+% a distance $d_m$ from the lens for $m = 1, \dots, M$. 
+
+% \begin{equation}
+% \hat {\bm A} = \argmin_{\vA \in Q} \ \text{Cost}(\bm{A})
+% \label{eq:inverse}
+% \end{equation}
 
 \begin{enumerate}
     \item inverse problem is simultaneous deblurring and disentanglement
