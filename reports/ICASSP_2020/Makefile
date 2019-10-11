@@ -13,6 +13,6 @@ all:
 
 	while true;
 	do
-		inotifywait ${TEX_SOURCE}
+		inotifywait -e modify ${TEX_SOURCE}
 		pdflatex -halt-on-error ${TEX_SOURCE}
 	done
