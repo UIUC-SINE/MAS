@@ -12,7 +12,7 @@ def strand(theta, x, thickness=22, intensity=1, image_width=512):
     img = np.zeros((image_width, image_width))
     return cv2.line(img, pt1, pt2, intensity, thickness=thickness)
 
-def strands(num_strands=100, thickness=22, max_angle=20,
+def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
             image_width=160, initial_width=512):
     """Generate nanoflare image
 
@@ -28,7 +28,7 @@ def strands(num_strands=100, thickness=22, max_angle=20,
 
     img = np.zeros((initial_width,initial_width))
     for _ in range(num_strands):
-        theta = np.random.uniform(-max_angle, max_angle)
+        theta = np.random.uniform(min_angle, max_angle)
         x  = np.random.randint(
             0 if theta < 0 else initial_width * -np.tan(np.deg2rad(theta)),
             initial_width - initial_width * np.tan(np.deg2rad(theta)) if theta < 0 else initial_width
