@@ -3,7 +3,7 @@
 %          IEEEbib.bst - IEEE bibliography style file.
 % --------------------------------------------------------------------------
 \documentclass{article}
-\usepackage{spconf,amsmath,amssymb,graphicx,bm,algorithm,algpseudocode,mathtools,xcolor}
+\usepackage{spconf,amsmath,amssymb,graphicx,bm,algorithm,algpseudocode,mathtools,xcolor,siunitx}
 \graphicspath{{figures/}}
 
 % \newcommand{\R}{\mathbb{R}}
@@ -473,19 +473,19 @@ R^{SN^2 \times SN^2}$ where $\bm D =\bm I_S \otimes \bm D_0 $ consists of BCCB
 blocks, $\bm D_0 \in \mathbb R^{N^2 \times N^2}$, which for example could
 correspond to a high pass filter for globally smooth signal prior.
 
-Having set the assumptions, let's now see how we exploit the BCCB structures.
-Note that BCCB matrices can be diagonalized by the 2D DFT matrix, hence, each
-$N^2 \times N^2$ block $\bm A_{c,s}$ of $\bm {A_d}$ can be decomposed as $\bm
-A_{c,s} = \bm F^{-1} \widetilde{\bm A}_{c,s} \bm F$ where $\widetilde{\bm
-A}_{c,s}$ is diagonal. This yields
+Having set the assumptions, now we present the reformulation of the cost. BCCB
+matrices are diagonalized by the 2D DFT matrix, hence, each $N^2 \times N^2$
+block $\bm A_{m,s}$ of $\bm {A_d}$ can be decomposed as $\bm A_{m,s} = \bm
+F^{-1} \widetilde{\bm A}_{m,s} \bm F$ where $\widetilde{\bm A}_{m,s}$ is the
+diagonal matrix consisting of the 2D DFT of $\bm a_{m,s}$. This yields
 \vspace{-0.1 in}
 \begin{equation}
   \bm {A_d}=
   \underbrace{
     \begin{bmatrix}
-      \bm F^{-1} \hspace{-0.2 in}& \hspace{-0.2 in} & \hspace{-0.1 in} \vspace{-0.1 in}\text{\Large 0} \\
+      \bm F^{-1} \hspace{-0.2 in}& \hspace{-0.2 in} & \hspace{-0.20 in} \vspace{-0.1 in}\text{\Large 0} \\
         \vspace{-0.05 in}& \ddots &  \\
-      \text{\Large 0} \hspace{-0.1 in}& \hspace{-0.2 in} & \hspace{-0.2 in} \bm F^{-1}
+      \text{\Large 0} \hspace{-0.17 in}& \hspace{-0.2 in} & \hspace{-0.15 in} \bm F^{-1}
     \end{bmatrix}
   }_{\widetilde{\bm F}^{-1}}
   \underbrace{
@@ -497,9 +497,9 @@ A}_{c,s}$ is diagonal. This yields
   }_{\widetilde{\bm A}_{\bm d}}
   \underbrace{
     \begin{bmatrix}
-      \bm F \hspace{-0.1 in}& \hspace{-0.2 in} & \hspace{-0.1 in} \vspace{-0.1 in}\text{\Large 0} \\
+      \bm F \hspace{-0.1 in}& \hspace{-0.2 in} & \hspace{-0.18 in} \vspace{-0.1 in}\text{\Large 0} \\
         \vspace{-0.05 in}& \ddots &  \\
-      \text{\Large 0} \hspace{-0.1 in}& \hspace{-0.2 in} & \hspace{-0.2 in} \bm F
+      \text{\Large 0} \hspace{-0.15 in}& \hspace{-0.2 in} & \hspace{-0.12 in} \bm F
     \end{bmatrix}
   }_{\widetilde{\bm F}}
 \label{eq:fourier_mtx}
@@ -515,16 +515,16 @@ so, we have $\bm{A_d} = \widetilde{\bm F}^{-1} \widetilde{\bm A}_{\bm d}
 F}^{-1} \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} \widetilde{\bm
 F}$. Applying the same procedure to the other term, we get $\bm D^H \bm D =
 \widetilde{\bm F}^{-1} \widetilde{\bm D}^H \widetilde{\bm D} \widetilde{\bm F}$.
-The SSE cost then becomes:
+The SSE cost for a measurement configuration $\bm d$ then becomes:
 \begin{align}
 \text{Cost}(\bm{d}) & = tr\left(\left(
 {\bm A}_{\bm d}^H {\bm A}_{\bm d} + \lambda {\bm D}^H
 {\bm D} \right)^{-1} \right)
 \label{eq:naive_cost}\\
-& = tr\left(\left(\widetilde{\bm F}^{-1} \widetilde{\bm
-A}_{\bm d}^H \widetilde{\bm A}_{\bm d} \widetilde{\bm F} + \lambda \widetilde{\bm
-F}^{-1} \widetilde{\bm D}^H \widetilde{\bm D} \widetilde{\bm
-F}\right)^{-1}\right) \nonumber \\
+% & = tr\left(\left(\widetilde{\bm F}^{-1} \widetilde{\bm
+% A}_{\bm d}^H \widetilde{\bm A}_{\bm d} \widetilde{\bm F} + \lambda \widetilde{\bm
+% F}^{-1} \widetilde{\bm D}^H \widetilde{\bm D} \widetilde{\bm
+% F}\right)^{-1}\right) \nonumber \\
 & = tr\left(\left(\widetilde{\bm F}^{-1} \left(
 \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm D}^H
 \widetilde{\bm D} \right) \widetilde{\bm F}\right)^{-1}\right) \nonumber \\
@@ -572,7 +572,7 @@ is fixed and does not vary with SBS iteration.
 $$O_i = O\big( (SN^2)^3 \big) = O(S^3N^6)$$
 
 % $$
-% \bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}} = 
+% \bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}} =
 % \left.
 %   \vphantom{\begin{bmatrix}x \\ x\end{bmatrix}}
 %   \smash{
@@ -615,6 +615,13 @@ where we use the fact that $\sum_{|\bm{d}| =M}^C |\bm{d}|^2 = O(C^3)$ and $\sum_
 \section{Numerical Experiments}
 \begin{itemize}
 \item Describe the application with parameters (wavelengths, required resolution, sieve parameters, focal lengths, noise level, total exposure time limit, simulated images of sources). Justify the choices.
+
+We present simulation results for an application which requires ultra high
+spectral resolution for imaging two spectral lines. We consider two EUV lines at
+$\lambda_1 = \SI{33.400}{\nano\metre}$ and $\lambda_2 =
+\SI{33.402}{\nano\metre}$. We use 30 candidate plane locations for initializing
+CSBS. 
+
 
 \item Describe the algorithm parameters (candidate plane locations, desired number of measurement planes, regularization parameter lambda, prior covariance matrix). Justify the choices.
 
