@@ -542,6 +542,11 @@ significantly due to the diagonalized blocks.
 
 \section{Complexity Analysis}
 
+In this section, we derive the computational complexity of the standard, naive
+SBS implementation and our faster version as a function of the number of pixels
+in an image $N^2$, the number of spectral components $S$ in the source, and the
+number of candidate measurement locations $C$.
+
 \subsection{Naive Implementation}
 
 The computational complexity of evaluating cost for a particular measurement
@@ -574,17 +579,23 @@ $$O_i = O\big( (SN^2)^3 \big) = O(S^3N^6)$$
 The complexity of evaluating cost is $O_m(|\bm{d}|) + O_i$, and since the minimization step of SBS requires $|\bm{d}|$ evaluations of cost, the
 overall complexity of the algorithm is
 
+% \begin{align*}
+%   O_{sbs} &= \sum_{|\bm{d}| = M}^C |\bm{d}| \Big( O_m(|\bm{d}|) + O_i \Big) \\
+%   &= \sum_{|\bm{d}| = M}^C O(S^2N^6|\bm{d}|^2) + \sum_{|\bm{d}| = M}^C O(S^3N^6|\bm{d}|) \\
+%   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
+% \end{align*}
 \begin{align*}
   O_{sbs} &= \sum_{|\bm{d}| = M}^C |\bm{d}| \Big( O_m(|\bm{d}|) + O_i \Big) \\
-  &= \sum_{|\bm{d}| = M}^C O(S^2N^6|\bm{d}|^2) + \sum_{|\bm{d}| = M}^C O(S^3N^6|\bm{d}|) \\
+  &= O(S^2N^6) \sum_{|\bm{d}| = M}^C O(|\bm{d}|^2) + O(S^3N^6) \sum_{|\bm{d}| = M}^C O(|\bm{d}|) \\
   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
 \end{align*}
 
-where we assume $C \gg M$ and use the fact that
+If we assume $C \gg M, S$, then $O_{sbs}$ is dominated by the mulltiplication
+complexity, so
 
-$\sum_{|\bm{d}| =M}^C O(|\bm{d}|^2) = O(C^3)$ and
-
-$\sum_{|\bm{d}| = M}^C O(|\bm{d}|)= O(C^2)$.
+$$
+O_{sbs} = O(S^2N^6C^3)
+$$
 
 \subsection{Fast Implementation}
 
@@ -620,6 +631,13 @@ $$
   O_{sbs} &= O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i = O(S^2N^2C) + \sum_{|\bm{d}| = M}^C O(S^3N^2|\bm{d}|) \\
   &= \underbrace{O(S^2N^2C)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^2C^2)}_{\text{inversion complexity}}
 \end{align*}
+
+If we again assume $C \gg M, S$, then $O_{sbs}$ is now dominated by inversion
+complexity.
+
+$$
+O_{sbs} = O(S^3N^2C^2)
+$$
 
 \section{Numerical Experiments}
 \begin{itemize}
