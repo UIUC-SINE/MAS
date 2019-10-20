@@ -41,18 +41,29 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 % solving an inverse problem. In this paper, we propose a greedy algorithm for
 % finding a measurement configuration which results in better reconstructions than
 % a conventional configuration selection strategy.
+% In this paper, we investigate the problem of data acquisition in a multispectral
+% diffractive imaging system.  Diffractive systems have the property that the
+% spectral components of a polychromatic source are focused at different distances
+% from the lens.  This means that in order to image a source at more than one
+% wavelength, multiple measurements must be made with a moving detector. However,
+% the choice of where to make these measurements is non-obvious and has
+% implications on the quality of the reconstructions. Furthermore, an exhaustive
+% search of all possible measurement configurations grows exponentially with the
+% number of sources and is computationally infeasible. We propose a greedy
+% backward elimination algorithm for finding acquisition locations and show that
+% reconstruction quality is improved over a naive acquisition strategy.
 
-In this paper, we investigate the problem of data acquisition in a multispectral
-diffractive imaging system.  Diffractive systems have the property that the
-spectral components of a polychromatic source are focused at different distances
-from the lens.  This means that in order to image a source at more than one
-wavelength, multiple measurements must be made with a moving detector. However,
-the choice of where to make these measurements is non-obvious and has
-implications on the quality of the reconstructions. Furthermore, an exhaustive
-search of all possible measurement configurations grows exponentially with the
-number of sources and is computationally infeasible. We propose a greedy
-backward elimination algorithm for finding acquisition locations and show that
-reconstruction quality is improved over a naive acquisition strategy.
+Diffractive lenses have recently been applied to the domain of multispectral
+imaging in the x-ray and UV regimes, where they can achieve very high resolution
+as compared to reflective and refractive optics. By taking measurements at
+different focal lengths, it is possible to reconstruct individual spectral
+components of a polychromatic source. However, the problem of where to take
+measurements is non-obvious, so we apply the sequential backward selection
+algorithm to suboptimally search for a configuration which minimizes expected
+reconstruction error. By approximating the forward system as a circular
+convolution and assuming a frequency prior distribution on the source and noise
+covariance matrices, we greatly reduce the complexity of evaluating this cost.
+
 \end{abstract}
 
 \begin{keywords}
