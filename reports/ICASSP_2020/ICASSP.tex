@@ -270,15 +270,15 @@ linear system
 \label{eq:fourier_mtx}
 \end{equation}
 
-\begin{figure}[htb]
-  \begin{minipage}[b]{1\linewidth}
-    \centering
-    \centerline{\includegraphics[width=5cm]{psfs}}
-  \end{minipage}
-  \caption{Example point spread functions for measuring a source with 2 spectral
-    components at the focal planes of each component.}
-  \label{fig:psfs}
-\end{figure}
+% \begin{figure}[htb]
+%   \begin{minipage}[b]{1\linewidth}
+%     \centering
+%     \centerline{\includegraphics[width=5cm]{psfs}}
+%   \end{minipage}
+%   \caption{Example point spread functions for measuring a source with 2 spectral
+%     components at the focal planes of each component.}
+%   \label{fig:psfs}
+% \end{figure}
 
 where $\bm{y}_m$, $\bm{x}_s$ and $\bm{n}_m$ have been flattened from their
 original 2D shape, and each $\bm{A}_{m,s}$ is a block-toeplitz
@@ -652,15 +652,14 @@ $$
 We present simulation results for an application which requires high spectral
 resolution for imaging two close spectral lines located at $\lambda_1 =
 \SI{33.400}{\nano\metre}$ and $\lambda_2 = \SI{33.402}{\nano\metre}$. Simulated
-images for the lines are given in Figure \ref{fig:sources}. The final number of
-desired measurement planes is 12, and we initialize the algorithm with 32
-candidate planes locations that are uniformly placed such that they contain the
-focal planes. Each candidate location starts with 12 copies (so $C=384$), this
-way we allow for repeated planes within the final 12 planes which models different
-exposure times.
+images for the lines are given in Figure \ref{fig:results}a and
+\ref{fig:results}b.  The final number of desired measurement planes is 12, and
+we initialize the algorithm with 32 candidate planes locations that are
+uniformly placed such that they contain the focal planes. Each candidate
+location starts with 12 copies (so $C=384$), this way we allow for repeated
+planes within the final 12 planes which models different exposure times.
 
-\vspace{-0.15 in}
-\begin{figure}[htb]
+\begin{figure}[t]
 \begin{minipage}[b]{0.31\linewidth}
   \centering
   \centerline{\includegraphics[width=3.3cm]{source1}}
@@ -700,24 +699,41 @@ exposure times.
   \centerline{(f)}
 \end{minipage}
 \caption{(a) simulated images for $\lambda_1$ (b) simulated images for $\lambda_2$
-(c) simulated noisy measurement at the focal length of $\lambda_1$ (d) reconstructed image for $\lambda_1$ with CSBS planes (e) reconstructed image for $\lambda_1$ with focal planes (f) Candidate plane locations and final }
-\label{fig:sources}
+(c) simulated noisy measurement at the focal length of $\lambda_1$ (d) reconstructed image for $\lambda_1$ with CSBS planes (e) reconstructed image for $\lambda_1$ with focal planes (f) Candidate plane locations with final number of copies}
+\label{fig:results}
 \end{figure}
+
+Figure \ref{fig:results}d shows the reconstructed image of the wavelength
+$\lambda_1$ with the 12 CSBS planes given in Figure \ref{fig:results}f and
+Figure \ref{fig:results}e shows the same with using 6 measurements in each focal
+plane. As can be seen from Figure \ref{fig:results} and Table \ref{tab:ssims},
+CSBS planes lead to better reconstruction than the focal planes. The reason why
+CSBS avoids focal planes is that the relative contribution from the off focus
+line are quite high at focal planes which degrades the reconstruction quality
+as the deconvolution cannot disentangle the spectral lines well.
+
+\vspace{-0.15 in}
+\begin{table}[h]
+\caption{SSIM/PSNR comparison for CSBS vs focal planes}
+\vspace{0.08 in}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+      & Avg. SSIM  & Avg. PSNR  \\ \hline
+Focal & 0.666 & 22.93 dB \\ \hline
+CSBS  & 0.764 & 26.56 dB \\ \hline
+\end{tabular}
+\label{tab:ssims}
+\end{table}
 \vspace{-0.15 in}
 
+\section{Conclusion}
+We have presented a method for determining the optimal measurement configuration
+in multispectral imaging with a diffractive lens. We developed an efficient
+implementation that achieves significant speed up. We demonstrated the potential
+improvement achieved by the method over a straightforward selection of
+measurement configuration.
 
-\begin{itemize}
-\item Describe the algorithm parameters (candidate plane locations, desired number of measurement planes, regularization parameter lambda, prior covariance matrix). Justify the choices.
-
-\item Show the found CSBS planes together with the reconstruction results using these planes. Compare the CSBS reconstructions with the focal plane reconstructions. Interpret the results.
-
-\item Discuss about under which conditions CSBS can outperform focal planes.
-\end{itemize}
-
-% Below is an example of how to insert images. Delete the ``\vspace'' line,
-% uncomment the preceding line ``\centerline...'' and replace ``imageX.ps''
-% with a suitable PostScript file name.
-% -------------------------------------------------------------------------
 
 
 \vfill\pagebreak
