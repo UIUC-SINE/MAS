@@ -21,7 +21,7 @@ print('DOF_separation = {}'.format(
     diameter * (source_wavelengths[1] - source_wavelengths[0]) /
     (2 * smallest_hole_diameter * source_wavelengths[0])
     ))
-sources = np.load('/home/kamo/Projects/mas/reports/ICASSP_2020/sources.npy')
+sources = np.load('sources.npy')
 order = 1
 csbs_lam = 5e-4
 
@@ -75,9 +75,41 @@ plotter4d(recon_csbs, title='recon_csbs \n ssim:{}  psnr:{}'.format(np.array(ssi
 plotter4d(sources, title='sources')
 
 # %% plotting
-plt.figure(figsize=(4.8,4.8))
-plt.imshow(measured_noisy_focus[0])
+
+z = np.zeros((160, 160, 3))
+z[:, :, 0] = sources[0]
+z[:, :, 1] = sources[1]
+plt.figure(num='sources', figsize=(4.8,4.8))
+plt.imshow(z)
 plt.axis('off')
-# plt.figure(figsize=(4.8,4.8))
-# plt.imshow(recon_focus[0])
-# plt.axis('off')
+
+plt.figure(num='measured_noisy_focus[0]', figsize=(4.8,4.8))
+plt.imshow(measured_noisy_focus[0], cmap='gray')
+plt.axis('off')
+plt.figure(num='measured_noisy_focus[1]', figsize=(4.8,4.8))
+plt.imshow(measured_noisy_focus[1], cmap='gray')
+plt.axis('off')
+
+z = np.zeros((160, 160, 3))
+z[:, :, 0] = recon_focus[0]
+plt.figure(num='recon_focus[0]', figsize=(4.8,4.8))
+plt.imshow(z)
+plt.axis('off')
+
+z = np.zeros((160, 160, 3))
+z[:, :, 1] = recon_focus[1]
+plt.figure(num='recon_focus[1]', figsize=(4.8,4.8))
+plt.imshow(z)
+plt.axis('off')
+
+z = np.zeros((160, 160, 3))
+z[:, :, 0] = recon_csbs[0]
+plt.figure(num='recon_csbs[0]', figsize=(4.8,4.8))
+plt.imshow(z)
+plt.axis('off')
+
+z = np.zeros((160, 160, 3))
+z[:, :, 1] = recon_csbs[1]
+plt.figure(num='recon_csbs[1]', figsize=(4.8,4.8))
+plt.imshow(z)
+plt.axis('off')
