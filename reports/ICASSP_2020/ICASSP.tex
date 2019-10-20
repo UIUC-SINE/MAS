@@ -554,46 +554,69 @@ $$
   \text{Cost}(\bm{d}) = \text{tr} \Bigl(
   \overbrace{\vphantom{\rule[1.5em]{0pt}{0pt}}
 (\underbrace{\vphantom{\rule[-0.5em]{0pt}{0pt}} \bm{A}_{\bm{d}}^H \bm{A}_{\bm{d}}}_{O_m}
--\lambda \bm{D}^H\bm{D})^{-1}
++\lambda \bm{D}^H\bm{D})^{-1}
 }^{O_i}
 \Bigr)
 $$
 
 The first contributor to cost complexity is the multiplication of
-$\bm{A}^H_{\bm{d}}\bm{A}_{\bm{d}}$.
-Since the number of rows of $\bm{A}_{\bm{d}}$ varies with iteration, the
-multiplication cost complexity varies with $|\bm{d}|$.
-We denote this as $O_m(|\bm{d}|)$.  $\bm{A}_{\bm{d}}$ has shape $(|\bm{d}|N^2
-\times SN^2)$, so complexity is
+$\bm{A}^H_{\bm{d}}\bm{A}_{\bm{d}}$.  We can use a simple trick to avoid
+multiplying the large $\bm{A}_{\bm{d}}$ in each iteration.
 
-$$O_m(|\bm{d}|) = O\big( (SN^2)^2 \cdot |\bm{d}| N^2\big) = O(S^2N^6 |\bm{d}|)$$
+$$
+\bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}} = \sum_{d \in \bm{d}} \bm{A}^H_{d} \bm{A}_{d}
+$$
 
-As the dimensions of $\bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}}$ and $\bm{D}^H \bm{D}$
-do not depend on $\bm{d}$, the complexity of inversion in each cost computation
-is fixed and does not vary with SBS iteration.  We call this $O_i$.
+With this property, we can simply precompute all $\bm{A}^H_{d}\bm{A}_{d}$ during
+algorithm initialization and use the results to form
+$\bm{A}^H_{\bm{d}}\bm{A}_{\bm{d}}$ as needed.
+Since each $\bm{A}_d$ has shape $(1 \times SN^2)$, the overall complexity for precomputing $\bm{A}^H_d \bm{A}_d$ for all $C$ candidate locations is
+
+$$
+O_m = C \cdot O((SN^2)^2) = O(S^2N^4C)
+$$
+
+The second contributor to cost complexity is inversion of $\bm{A}^H_{\bm{d}}
+\bm{A}_{\bm{d}} + \lambda\bm{D}^H \bm{D}$.
+As $\bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}}$ and $\bm{D}^H \bm{D}$ have dimension $(SN^2
+\times SN^2)$, the complexity of inversion $O_i$ is given by
 
 $$O_i = O\big( (SN^2)^3 \big) = O(S^3N^6)$$
 
-The complexity of evaluating cost is $O_m(|\bm{d}|) + O_i$, and since the minimization step of SBS requires $|\bm{d}|$ evaluations of cost, the
-overall complexity of the algorithm is
+The total complexity of the SBS algorithm can be written
+
+\begin{align*}
+  O_{sbs} &= O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i =
+  \underbrace{
+  O(S^2N^4C)
+  }_{\substack{\text{multiplication}\\ \text{complexity}}} +
+  +
+  \underbrace{
+  O(S^3N^6C^2)
+  }_{\substack{\text{inversion}\\ \text{complexity}}} \\
+  &= O(S^3N^6C^2)
+\end{align*}
+
+% \begin{align*}
+%   O_{sbs} = O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i =
+%             \underbrace{
+%             O(S^2N^4C)
+%             }_{\substack{\text{multiplication}\\ \text{complexity}}} +
+%             \underbrace{
+%             O(S^3N^6C^2)
+%             }_{\substack{\text{inversion}\\ \text{complexity}}}
+% \end{align*}
 
 % \begin{align*}
 %   O_{sbs} &= \sum_{|\bm{d}| = M}^C |\bm{d}| \Big( O_m(|\bm{d}|) + O_i \Big) \\
 %   &= \sum_{|\bm{d}| = M}^C O(S^2N^6|\bm{d}|^2) + \sum_{|\bm{d}| = M}^C O(S^3N^6|\bm{d}|) \\
 %   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
 % \end{align*}
-\begin{align*}
-  O_{sbs} &= \sum_{|\bm{d}| = M}^C |\bm{d}| \Big( O_m(|\bm{d}|) + O_i \Big) \\
-  &= O(S^2N^6) \sum_{|\bm{d}| = M}^C O(|\bm{d}|^2) + O(S^3N^6) \sum_{|\bm{d}| = M}^C O(|\bm{d}|) \\
-  &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
-\end{align*}
-
-If we assume $C \gg M, S$, then $O_{sbs}$ is dominated by the mulltiplication
-complexity, so
-
-$$
-O_{sbs} = O(S^2N^6C^3)
-$$
+% \begin{align*}
+%   O_{sbs} &= \sum_{|\bm{d}| = M}^C |\bm{d}| \Big( O_m(|\bm{d}|) + O_i \Big) \\
+%   &= O(S^2N^6) \sum_{|\bm{d}| = M}^C O(|\bm{d}|^2) + O(S^3N^6) \sum_{|\bm{d}| = M}^C O(|\bm{d}|) \\
+%   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
+% \end{align*}
 
 \subsection{Fast Implementation}
 
