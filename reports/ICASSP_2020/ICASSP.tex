@@ -462,31 +462,25 @@ $$
 % $\lambda>0$. In this paper, we are interested in
 
 \section{Fast Implementation}
-While the SSE cost applies to any general linear system, we can augment the complexity
-reduction achieved by SBS by making assumptions about the structure of
-$\bm{A}_{\bm{d}}$, $\bm{\Sigma}_{\bm{n}}$ and $\bm{\Sigma}_{\bm{x}}$.
-Specifically, if we assume these matrices are block-circulant with circulant
-blocks (BCCB), then they can be diagonalized by the 2D DFT matrix where
-operations involving multiplications and inversions are much faster.
+While the SSE cost applies to any general linear system, we can augment the
+complexity reduction achieved by SBS by making assumptions about the structure
+of $\bm{A}_{\bm{d}}$, $\bm{\Sigma}_{\bm{n}}$ and $\bm{\Sigma}_{\bm{x}}$.
+Specifically, if we assume the blocks of these matrices are block-circulant with
+circulant blocks (BCCB), then they can be diagonalized by the 2D DFT matrix
+where operations involving multiplications and inversions are much faster.
 
-For $\bm{A}_{\bm{d}}$ this means that blahblah circular convolution
+For $\bm{A}_{\bm{d}}$ this means that each block $\bm A_{m,s}$ is BCCB and
+corresponds to circular convolution with the kernel $\bm a_{m,s}$. For $\bm
+\Sigma_n$, we assume that the noise is uncorrelated among the pixels and
+measurement planes with variance $(1/\lambda)$, so $\bm \Sigma_n=(1/\lambda) \bm
+I$ where $\bm I$ represents the identity matrix. For $\bm \Sigma_x$, each of its
+blocks being BCCB means that the covariance among image pixels are represented
+by 2D convolution kernels.
 
-Computational complexity of the algorithm can be significantly reduced by
-exploiting the BCCB structure of the blocks of $\bm {A_d}$ together with
-assuming the same structure in $\bm {\Sigma_n}$ and $\bm {\Sigma_x}$. We assume
-that each candidate plane has the same noise level with noise variance
-$\sigma^2$ uncorrelated among all pixels, so $\bm {\Sigma_n} = \sigma^2 \bm
-I_{CN^2}$ where $\bm I_{CN^2}$ is an identity matrix of dimension $CN^2$. We
-also assume that $\bm {\Sigma_{x}}^{-1}= \alpha \bm D ^T \bm D \in \mathbb
-R^{SN^2 \times SN^2}$ where $\bm D =\bm I_S \otimes \bm D_0 $ consists of BCCB
-blocks, $\bm D_0 \in \mathbb R^{N^2 \times N^2}$, which for example could
-correspond to a high pass filter for globally smooth signal prior.
-
-Having set the assumptions, now we present the reformulation of the cost. BCCB
-matrices are diagonalized by the 2D DFT matrix, hence, each $N^2 \times N^2$
-block $\bm A_{m,s}$ of $\bm {A_d}$ can be decomposed as $\bm A_{m,s} = \bm
-F^{-1} \widetilde{\bm A}_{m,s} \bm F$ where $\widetilde{\bm A}_{m,s}$ is the
-diagonal matrix consisting of the 2D DFT of $\bm a_{m,s}$. This yields
+Assuming $N \times N$ images, each $N^2 \times N^2$ block $\bm A_{m,s}$ of $\bm
+{A_d}$ can be decomposed as $\bm A_{m,s} = \bm F^{-1} \widetilde{\bm A}_{m,s}
+\bm F$ where $\widetilde{\bm A}_{m,s}$ is the diagonal matrix consisting of the
+2D DFT of $\bm a_{m,s}$. This yields
 \vspace{-0.1 in}
 \begin{equation}
   \bm {A_d}=
@@ -515,34 +509,29 @@ diagonal matrix consisting of the 2D DFT of $\bm a_{m,s}$. This yields
 \end{equation}
 \vspace{-0.1 in}
 
-% $\bm {A_d} = (\bm I_C \otimes \bm F^{-1}) \bm {\Gamma_d} (\bm I_S \otimes \bm
-% F)$, where $\bm {\Gamma_d} \in \mathbb R^{CN^2 \times SN^2}$ has the diagonal
-% blocks $\bm \Gamma_{c,s}$.
-
 so, we have $\bm{A_d} = \widetilde{\bm F}^{-1} \widetilde{\bm A}_{\bm d}
 \widetilde{\bm F}$, from which we get $\bm{A_d}^H \bm{A_d} = \widetilde{\bm
 F}^{-1} \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} \widetilde{\bm
-F}$. Applying the same procedure to the other term, we get $\bm D^H \bm D =
-\widetilde{\bm F}^{-1} \widetilde{\bm D}^H \widetilde{\bm D} \widetilde{\bm F}$.
-The SSE cost for a measurement configuration $\bm d$ then becomes:
+F}$. Applying the same procedure, we get $\bm \Sigma_x^{-1} =
+\widetilde{\bm F}^{-1} \widetilde{\bm \Sigma}_x^{-1} \widetilde{\bm F}$.
+The SSE cost for a measurement configuration $\bm d$ then becomes (scaling both terms
+with $\lambda$):
 \begin{align}
-\text{Cost}(\bm{d}) & = tr\left(\left(
-{\bm A}_{\bm d}^H {\bm A}_{\bm d} + \lambda {\bm D}^H
-{\bm D} \right)^{-1} \right)
+\text{Cost}(\bm{d}) & = tr\left(\left( {\bm A}_{\bm d}^H {\bm A}_{\bm d} +
+\lambda \bm \Sigma_x^{-1} \right)^{-1} \right)
 \label{eq:naive_cost}\\
 % & = tr\left(\left(\widetilde{\bm F}^{-1} \widetilde{\bm
 % A}_{\bm d}^H \widetilde{\bm A}_{\bm d} \widetilde{\bm F} + \lambda \widetilde{\bm
 % F}^{-1} \widetilde{\bm D}^H \widetilde{\bm D} \widetilde{\bm
 % F}\right)^{-1}\right) \nonumber \\
-& = tr\left(\left(\widetilde{\bm F}^{-1} \left(
-\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm D}^H
-\widetilde{\bm D} \right) \widetilde{\bm F}\right)^{-1}\right) \nonumber \\
-& = tr\left(\widetilde{\bm F}^{-1} \left(
-\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm D}^H
-\widetilde{\bm D} \right)^{-1} \widetilde{\bm F}\right) \nonumber \\
-& = tr\left(\left(
-\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm D}^H
-\widetilde{\bm D} \right)^{-1} \right)
+& = tr\left(\left(\widetilde{\bm F}^{-1} \left( \widetilde{\bm A}_{\bm d}^H
+\widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)
+\widetilde{\bm F}\right)^{-1}\right) \nonumber \\
+& = tr\left(\widetilde{\bm F}^{-1} \left( \widetilde{\bm A}_{\bm d}^H
+\widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1}
+\widetilde{\bm F}\right) \nonumber \\
+& = tr\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} +
+\lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1} \right)
 \label{eq:fast_cost}
 \end{align}
 where the computational complexity of \eqref{eq:fast_cost} is much less than
@@ -649,16 +638,64 @@ O_{sbs} = O(S^3N^2C^2)
 $$
 
 \section{Numerical Experiments}
+We present simulation results for an application which requires high spectral
+resolution for imaging two close spectral lines located at $\lambda_1 =
+\SI{33.400}{\nano\metre}$ and $\lambda_2 = \SI{33.402}{\nano\metre}$. Simulated
+images for the lines are given in Figure \ref{fig:sources}. The final number of
+desired measurement planes is 12, and we initialize the algorithm with 32
+candidate planes locations that are uniformly placed such that they contain the
+focal planes. Each candidate location starts with 12 copies (so $C=384$), this
+way we allow for repeated planes within the final 12 planes which models different
+exposure times.
+
+\vspace{-0.15 in}
+\begin{figure}[htb]
+\begin{minipage}[b]{0.31\linewidth}
+  \centering
+  \centerline{\includegraphics[width=3.3cm]{source1}}
+  \vspace{-0.15 in}
+  \centerline{(a)}
+\end{minipage}
+\begin{minipage}[b]{0.31\linewidth}
+  \centering
+  \centerline{\includegraphics[width=3.3cm]{source2}}
+  \vspace{-0.15 in}
+  \centerline{(b)}
+\end{minipage}
+\begin{minipage}[b]{0.31\linewidth}
+  \centering
+  \centerline{\includegraphics[width=3.3cm]{meas_focus}}
+  \vspace{-0.15 in}
+  \centerline{(c)}
+\end{minipage}
+
+\vspace{-0.15 in}
+\begin{minipage}[b]{0.31\linewidth}
+  \centering
+  \centerline{\includegraphics[width=3.3cm]{recon_csbs}}
+  \vspace{-0.15 in}
+  \centerline{(d)}
+\end{minipage}
+\begin{minipage}[b]{0.31\linewidth}
+  \centering
+  \centerline{\includegraphics[width=3.3cm]{recon_focus}}
+  \vspace{-0.15 in}
+  \centerline{(e)}
+\end{minipage}
+\begin{minipage}[b]{0.31\linewidth}
+  \centering
+  \centerline{\includegraphics[width=3.3cm]{planes}}
+  \vspace{-0.15 in}
+  \centerline{(f)}
+\end{minipage}
+\caption{(a) simulated images for $\lambda_1$ (b) simulated images for $\lambda_2$
+(c) simulated noisy measurement at the focal length of $\lambda_1$ (d) reconstructed image for $\lambda_1$ with CSBS planes (e) reconstructed image for $\lambda_1$ with focal planes (f) Candidate plane locations and final }
+\label{fig:sources}
+\end{figure}
+\vspace{-0.15 in}
+
+
 \begin{itemize}
-\item Describe the application with parameters (wavelengths, required resolution, sieve parameters, focal lengths, noise level, total exposure time limit, simulated images of sources). Justify the choices.
-
-We present simulation results for an application which requires ultra high
-spectral resolution for imaging two spectral lines. We consider two EUV lines at
-$\lambda_1 = \SI{33.400}{\nano\metre}$ and $\lambda_2 =
-\SI{33.402}{\nano\metre}$. We use 30 candidate plane locations for initializing
-CSBS. 
-
-
 \item Describe the algorithm parameters (candidate plane locations, desired number of measurement planes, regularization parameter lambda, prior covariance matrix). Justify the choices.
 
 \item Show the found CSBS planes together with the reconstruction results using these planes. Compare the CSBS reconstructions with the focal plane reconstructions. Interpret the results.
