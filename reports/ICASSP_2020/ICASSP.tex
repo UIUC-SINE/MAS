@@ -133,17 +133,31 @@ plate (c) photon sieve}
 
 % FIXME
 While diffraction produces a focused image of each source at separate planes, it
-***.  This means that each measurement is actually a sum of all spectral
-components of the source at varying degrees of focus.  An inverse problem
-consisting of disentangling and deblurring of measurements must be solved in
-order to recover the original source components.  Traditionally, measurement
+also produces defocused images of each source at every other plane. This means
+that each measurement is actually a sum of all spectral components of the source
+at varying degrees of focus. An inverse problem consisting of disentangling and
+deblurring of measurements must be solved in order to recover the original
+source components.
+
+The choice of measurement planes has direct implications on the reconstruction
+quality. Therefore, given the freedom to take $M$ measurements out of $C$
+candidate plane locations, we would like to find the best configuration that
+maximizes the reconstruction quality. Traditionally, measurement
 locations are selected at the plane of focus for each spectral component.
 However, as we show later in this paper, it is possible to improve on the
 reconstruction quality in some situations by making measurements away from these
 focal positions. We propose a greedy backward selection algorithm for
-automatically discovering such a measurement configuration. Additionally, we
-provide some bounds under which the greedy algorithm outperforms the traditional
-selection approach.
+automatically discovering such a measurement configuration. Exploiting the
+structures of the imaging model, we have implemented the algorithm efficiently,
+which otherwise would be infeasible to implement.
+
+In the next section we mathematically model the diffractive imaging system and
+formulate the inverse problem of recovering spectral components. Then we go on
+to show the measurement selection algorithm. Later, we present a reformulation
+of the algoritm for fast implementation. Then, we analyse the complexity of this
+and compare with the naive implementation. In the numerical results, we show
+that the proposed algorithm leads better reconstructions than a naive
+configuration.
 
 % A different approach is to use a diffractive lens to perform spectral imaging.
 % Diffractive lenses focus light using the diffraction principle. They have
