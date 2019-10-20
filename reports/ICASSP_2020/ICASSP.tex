@@ -184,7 +184,7 @@ configuration.
 \begin{figure}[htb]
   \begin{minipage}[b]{1\linewidth}
     \centering
-    \centerline{\includegraphics[width=9.5cm]{drawing}}
+    \centerline{\includegraphics[width=8.5cm]{drawing}}
   \end{minipage}
   \caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
   $\lambda_2$. Measurements $y_1$ and $y_2$ are taken at two positions where one wavelength
@@ -651,14 +651,14 @@ $$
 O_m = C \cdot O(S^2N^2) = O(S^2N^2C)
 $$
 
-A similar property and be exploited for accelerated inversion of BCCB blocks. \cite{kamaci2017}
+A similar property can be exploited for accelerated inversion of BCCB blocks. \cite{kamaci2017}
 
 $$
 O_i = O(S^3N^2)
 $$
 
 Recomputing the total cost of the SBS algorithm, we find that we obtain a
-speedup of $N^4$, which is can be significant for large images.
+speedup of $N^4$, which is significant for large images.
 
 \begin{align*}
   O_{sbs} &= O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i =
@@ -756,13 +756,16 @@ CSBS  & 0.764 & 26.56 dB \\ \hline
 \vspace{-0.15 in}
 
 \section{Conclusion}
-We have presented a method for determining the optimal measurement configuration
-in multispectral imaging with a diffractive lens. We developed an efficient
-implementation that achieves significant speed up. We demonstrated the potential
-improvement achieved by the method over a straightforward selection of
-measurement configuration.
 
-
+We apply a variant of the sequential backward selection algorithm to the problem
+of acquisition in a diffractive spectral imaging system.  The high
+dimensionality of large images makes a direct application of SBS and SSE cost
+computationally intractable, so we have developed a more feasible implementation of
+this algorithm and perform an analysis of its complexity to show that it is
+significantly faster than the previous implementation for large images.  Finally, we
+demonstrate SBS on a simulated spectral imaging system and show that the
+optimized measurement configuration achieves better reconstructions than a naive
+choice of measurements at the spectral component focal planes.
 
 \vfill\pagebreak
 
