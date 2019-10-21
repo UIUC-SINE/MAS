@@ -56,9 +56,9 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 Diffractive lenses have recently been applied to the domain of multispectral
 imaging in the x-ray and UV regimes, where they can achieve very high resolution
 as compared to reflective and refractive optics. By taking measurements at
-different focal lengths, it is possible to reconstruct individual spectral
+different focal lengths it is possible to reconstruct individual spectral
 components of a polychromatic source. However, the problem of where to take
-measurements is non-obvious, so we apply the sequential backward selection
+measurements is non-obvious.  In this work, we apply the sequential backward selection
 algorithm to suboptimally search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
 convolution and assuming a frequency prior distribution on the source and noise
@@ -720,8 +720,12 @@ planes within the final 12 planes which models different exposure times.
   \centerline{\includegraphics[width=2.5cm]{recon_csbs2}}
   \centerline{(f)}
 \end{minipage}
-\caption{(a) simulated images for $\lambda_1$ (b) simulated images for $\lambda_2$
-(c) simulated noisy measurement at the focal length of $\lambda_1$ (d) reconstructed image for $\lambda_1$ with CSBS planes (e) reconstructed image for $\lambda_1$ with focal planes (f) Candidate plane locations with final number of copies}
+\caption{(a) polychromatic source image with spectral components $\lambda_1$ and
+  $\lambda_2$ (b) reconstruction of $\lambda_1$ from focal configuration (c)
+  reconstruction of $\lambda_2$ from focal configuration (d) candidate plane
+  locations with final number of copies (e) reconstruction of
+  $\lambda_1$ from CSBS configuration (f) reconstruction of $\lambda_2$ from
+  CSBS configuration}
 \label{fig:results}
 \end{figure}
 
