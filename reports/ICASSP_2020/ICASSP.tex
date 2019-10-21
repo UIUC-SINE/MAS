@@ -76,9 +76,10 @@ backward selection, subset selection
 Spectral imaging is the formation of images at different wavelengths in the
 electromagnetic spectrum.  With images usually taken in the visible, x-ray,
 ultraviolet (UV), or infrared bands (IR), it has applications in medicine,
-geographic surveying, astronomy, and solar physics [REFS].
-A common method to perform spectral imaging is to use a set of optical filters
-to selectively pass light of specific wavelengths of interest.
+geographic surveying, astronomy, and solar physics \cite{shaw2003spectral},
+\cite{garini2006spectral}. A common method to perform spectral imaging is to use
+a set of optical filters to selectively pass light of specific wavelengths of
+interest.
 
 % Spectral imaging is forming images of a scene as a function of wavelength, is a
 % fundamental diagnostic technique in various fields such as astronomy,
@@ -153,11 +154,11 @@ which otherwise would be infeasible to implement.
 
 In the next section we mathematically model the diffractive imaging system and
 formulate the inverse problem of recovering spectral components. Then we go on
-to show the measurement selection algorithm. Later, we present a reformulation
-of the algoritm for fast implementation. Then, we analyse the complexity of this
-and compare with the naive implementation. In the numerical results, we show
-that the proposed algorithm leads better reconstructions than a naive
-configuration.
+to show the measurement selection algorithm in Section 3. Fast implementation of
+this algorithm is presented in Section 4. Next, the complexity of the fast
+implementation is analysed and compared with a naive implementation. The last
+section is dedicated to the numerical results that demonstrate the usefulness of
+the algorithm.
 
 % A different approach is to use a diffractive lens to perform spectral imaging.
 % Diffractive lenses focus light using the diffraction principle. They have
@@ -760,12 +761,12 @@ CSBS  & 0.764 & 26.56 dB \\ \hline
 We apply a variant of the sequential backward selection algorithm to the problem
 of acquisition in a diffractive spectral imaging system.  The high
 dimensionality of large images makes a direct application of SBS and SSE cost
-computationally intractable, so we have developed a more feasible implementation of
-this algorithm and perform an analysis of its complexity to show that it is
-significantly faster than the previous implementation for large images.  Finally, we
-demonstrate SBS on a simulated spectral imaging system and show that the
-optimized measurement configuration achieves better reconstructions than a naive
-choice of measurements at the spectral component focal planes.
+computationally intractable, so we have developed a more feasible implementation
+of this algorithm and perform an analysis of its complexity to show that it is
+significantly faster than the previous implementation for large images.
+Finally, we demonstrate SBS on a simulated spectral imaging system and show that
+the optimized measurement configuration achieves better reconstructions than a
+naive choice of measurements at the spectral component focal planes.
 
 \vfill\pagebreak
 
