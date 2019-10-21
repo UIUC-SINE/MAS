@@ -184,7 +184,7 @@ configuration.
 \begin{figure}[htb]
   \begin{minipage}[b]{1\linewidth}
     \centering
-    \centerline{\includegraphics[width=8.5cm]{drawing}}
+    \centerline{\includegraphics[width=8.5cm]{diffraction_system}}
   \end{minipage}
   \caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
   $\lambda_2$. Measurements $y_1$ and $y_2$ are taken at two positions where one wavelength
@@ -657,7 +657,7 @@ $$
 O_i = O(S^3N^2)
 $$
 
-Recomputing the total cost of the SBS algorithm, we find that we obtain a
+Computing the total cost of the SBS algorithm, we find that we obtain a
 speedup of $N^4$, which is significant for large images.
 
 \begin{align*}
@@ -688,42 +688,35 @@ location starts with 12 copies (so $C=384$), this way we allow for repeated
 planes within the final 12 planes which models different exposure times.
 
 \begin{figure}[t]
-\begin{minipage}[b]{0.31\linewidth}
+\begin{minipage}[b]{0.32\linewidth}
   \centering
-  \centerline{\includegraphics[width=3.3cm]{source1}}
-  \vspace{-0.15 in}
+  \centerline{\includegraphics[width=2.5cm]{sources}}
   \centerline{(a)}
 \end{minipage}
-\begin{minipage}[b]{0.31\linewidth}
+\begin{minipage}[b]{0.32\linewidth}
   \centering
-  \centerline{\includegraphics[width=3.3cm]{source2}}
-  \vspace{-0.15 in}
+  \centerline{\includegraphics[width=2.5cm]{recon_focus1}}
   \centerline{(b)}
 \end{minipage}
-\begin{minipage}[b]{0.31\linewidth}
+\begin{minipage}[b]{0.32\linewidth}
   \centering
-  \centerline{\includegraphics[width=3.3cm]{meas_focus}}
-  \vspace{-0.15 in}
+  \centerline{\includegraphics[width=2.5cm]{recon_focus2}}
   \centerline{(c)}
 \end{minipage}
 
-\vspace{-0.15 in}
-\begin{minipage}[b]{0.31\linewidth}
+\begin{minipage}[b]{0.32\linewidth}
   \centering
-  \centerline{\includegraphics[width=3.3cm]{recon_csbs}}
-  \vspace{-0.15 in}
+  \centerline{\includegraphics[width=3.6cm]{planes}}
   \centerline{(d)}
 \end{minipage}
-\begin{minipage}[b]{0.31\linewidth}
+\begin{minipage}[b]{0.32\linewidth}
   \centering
-  \centerline{\includegraphics[width=3.3cm]{recon_focus}}
-  \vspace{-0.15 in}
+  \centerline{\includegraphics[width=2.5cm]{recon_csbs1}}
   \centerline{(e)}
 \end{minipage}
-\begin{minipage}[b]{0.31\linewidth}
+\begin{minipage}[b]{0.32\linewidth}
   \centering
-  \centerline{\includegraphics[width=3.3cm]{planes}}
-  \vspace{-0.15 in}
+  \centerline{\includegraphics[width=2.5cm]{recon_csbs2}}
   \centerline{(f)}
 \end{minipage}
 \caption{(a) simulated images for $\lambda_1$ (b) simulated images for $\lambda_2$
@@ -759,7 +752,7 @@ CSBS  & 0.764 & 26.56 dB \\ \hline
 
 We apply a variant of the sequential backward selection algorithm to the problem
 of acquisition in a diffractive spectral imaging system.  The high
-dimensionality of large images makes a direct application of SBS and SSE cost
+dimensionality of large images makes a direct application of SBS with SSE cost
 computationally intractable, so we have developed a more feasible implementation of
 this algorithm and perform an analysis of its complexity to show that it is
 significantly faster than the previous implementation for large images.  Finally, we

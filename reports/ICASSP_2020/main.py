@@ -79,37 +79,30 @@ plotter4d(sources, title='sources')
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = sources[0]
 z[:, :, 1] = sources[1]
-plt.figure(num='sources', figsize=(4.8,4.8))
-plt.imshow(z)
-plt.axis('off')
+plt.imsave('figures/sources.png', z)
 
-plt.figure(num='measured_noisy_focus[0]', figsize=(4.8,4.8))
-plt.imshow(measured_noisy_focus[0], cmap='gray')
-plt.axis('off')
-plt.figure(num='measured_noisy_focus[1]', figsize=(4.8,4.8))
-plt.imshow(measured_noisy_focus[1], cmap='gray')
-plt.axis('off')
+z = np.zeros((160, 160, 3))
+z[:, :, 0] = measured_noisy_focus[5]
+z[:, :, 1] = measured_noisy_focus[5]
+z[:, :, 2] = measured_noisy_focus[5]
+plt.imsave('figures/measured1.png', z)
+z = np.zeros((160, 160, 3))
+z[:, :, 0] = measured_noisy_csbs[6]
+z[:, :, 1] = measured_noisy_csbs[6]
+z[:, :, 2] = measured_noisy_csbs[6]
+plt.imsave('figures/measured2.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = recon_focus[0]
-plt.figure(num='recon_focus[0]', figsize=(4.8,4.8))
-plt.imshow(z)
-plt.axis('off')
-
+plt.imsave('figures/recon_focus1.png', z)
 z = np.zeros((160, 160, 3))
 z[:, :, 1] = recon_focus[1]
-plt.figure(num='recon_focus[1]', figsize=(4.8,4.8))
-plt.imshow(z)
-plt.axis('off')
+plt.imsave('figures/recon_focus2.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = recon_csbs[0]
-plt.figure(num='recon_csbs[0]', figsize=(4.8,4.8))
-plt.imshow(z)
-plt.axis('off')
+plt.imsave('figures/recon_csbs1.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 1] = recon_csbs[1]
-plt.figure(num='recon_csbs[1]', figsize=(4.8,4.8))
-plt.imshow(z)
-plt.axis('off')
+plt.imsave('figures/recon_csbs2.png', z)
