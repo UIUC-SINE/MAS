@@ -58,7 +58,7 @@ imaging in the x-ray and UV regimes, where they can achieve very high resolution
 as compared to reflective and refractive optics. By taking measurements at
 different focal lengths it is possible to reconstruct individual spectral
 components of a polychromatic source. However, the problem of where to take
-measurements is non-obvious.  In this work, we apply the sequential backward selection
+measurements is non-obvious. In this work, we apply the sequential backward selection
 algorithm to suboptimally search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
 convolution and assuming a frequency prior distribution on the source and noise
@@ -139,30 +139,35 @@ distance from lens and the wavelenght. Then a strategy to perform spectral
 imaging is to take a measurement at each focal plane and solve an inverse
 problem consisting of disentangling and deblurring of measurements in order to
 recover the original spectral components \cite{oktem2014icip}. Considering the
-fact that each measurement will contain noise, making deblurring challenging,
-and some spectral components may be very close to each other, making
-disentangling challenging, this inverse problem may get quite ill posed.
+fact that each measurement will contain noise, deblurring problem will be ill
+posed. Furtermore, the inverse problem becomes more ill posed if the wavelengths
+of interest are very close to each other, because it gets harder to disentangle.
 
 In an ill posed problem like this, the choice of measurement planes becomes very
-crucial and has direct implications on the reconstruction quality. Therefore,
-given the freedom to take $M$ measurements out of $C$ candidate plane locations,
-it is desired to find the best configuration that maximizes the reconstruction
-quality. Traditionally, measurement locations are selected at the plane of focus
-for each spectral component. However, as we show later in this paper, it is
-possible to improve on the reconstruction quality in some situations by making
-measurements away from these focal positions. We propose a greedy backward
-selection algorithm for automatically discovering such a measurement
-configuration. Exploiting the structures of the imaging model, we have
-implemented the algorithm efficiently, which otherwise would be infeasible to
-implement.
+crucial and has direct impact on the reconstruction quality. Although taking
+many measurements, or choosing longer exposure time will make the problem more
+well posed, practical applications usually impose limits on the total
+measurement time due to the dynamics of the scene. Even if there is no time
+limitation, given the freedom to take $M$ measurements out of $C$ candidate
+plane locations, it is desired to find the best configuration that maximizes the
+reconstruction quality.
 
-In the next section we mathematically model the diffractive imaging system and
-formulate the inverse problem of recovering spectral components. Then we go on
-to show the measurement selection algorithm in Section 3. Fast implementation of
-this algorithm is presented in Section 4. Next, the complexity of the fast
-implementation is analysed and compared with a naive implementation. The last
-section is dedicated to the numerical results that demonstrate the usefulness of
-the algorithm.
+Traditionally, measurement locations are selected at the plane of focus for each
+spectral component. However, as we show later in this paper, it is possible to
+improve on the reconstruction quality in some situations by choosing a different
+configuration. In this paper, we propose a greedy backward selection algorithm
+for automatically discovering such a measurement configuration given a set of
+candidate plane locations. Exploiting the structures of the imaging model, we
+have implemented the algorithm efficiently, which otherwise would be infeasible
+to implement.
+
+The organization of the paper is as follows. In the next section we
+mathematically model the diffractive imaging system and formulate the inverse
+problem of recovering spectral components. Then we go on to show the measurement
+selection algorithm in Section 3. Fast implementation of this algorithm is
+presented in Section 4. Next, the complexity of the fast implementation is
+analysed and compared with a naive implementation. The last section is dedicated
+to the numerical results that demonstrate the usefulness of the algorithm.
 
 % A different approach is to use a diffractive lens to perform spectral imaging.
 % Diffractive lenses focus light using the diffraction principle. They have
