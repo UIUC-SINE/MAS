@@ -54,12 +54,9 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 % reconstruction quality is improved over a naive acquisition strategy.
 
 Diffractive lenses have recently been applied to the domain of multispectral
-imaging in the X-ray and UV regimes, where they can achieve very high resolution
-as compared to reflective and refractive optics. By taking measurements at
-different focal lengths it is possible to reconstruct individual spectral
-components of a polychromatic source. However, the problem of where to take
-measurements is non-trivial. In this work, we apply the sequential backward selection
-algorithm to suboptimally search for a configuration which minimizes expected
+imaging in the X-ray and UV regimes where they can achieve very high resolution
+as compared to reflective and refractive optics. Previously, spectral components were reconstructed by taking measurements at the focal planes. However, the reconstruction quality can be improved by optimizing the measurement configuration. In this work, we apply the sequential backward selection
+algorithm to search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
 convolution and making assumptions on the source and noise, we greatly reduce
 the complexity of the algorithm. Numerical results show that the
@@ -584,7 +581,7 @@ reduces significantly due to the diagonalized blocks.
 
 \section{Complexity Analysis}
 
-In this section, we derive the computational complexity of the general 
+In this section, we derive the computational complexity of the general
 SBS implementation and our fast version as a function of the number of pixels
 in an image $N^2$, the number of spectral components $S$ in the source, and the
 number of candidate measurement locations $C$.
