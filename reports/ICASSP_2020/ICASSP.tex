@@ -596,6 +596,7 @@ number of candidate measurement locations $C$.
 The computational complexity of evaluating cost for a particular measurement
 configuration $\bm{d}$ comes from two places in the cost formulation.
 
+\vspace{-0.2 in}
 $$
   \text{Cost}(\bm{d}) = \text{tr} \Bigl(
   \overbrace{\vphantom{\rule[1.5em]{0pt}{0pt}}
@@ -631,6 +632,7 @@ $$O_i = O\big( (SN^2)^3 \big) = O(S^3N^6)$$
 
 The total complexity of the SBS algorithm can be written
 
+\vspace{-0.2 in}
 \begin{align*}
   O_{sbs} &= O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i =
   \underbrace{
@@ -719,8 +721,8 @@ of $C = 384$ candidate measurements. We allowed SBS to run until only $M = 12$
 measurements remain and show the final measurement configuration selected in
 Figure \ref{fig:results}(d).  This plot shows that SBS has selected a set of
 measurement locations outside the focal planes for the two spectral components,
-marked with red and green bars. It took 1.68 seconds to run SBS on a computer
-with an Intel Core i7 processor and 16GB RAM.
+marked with red and green bars. The simulation took a few seconds on a standard
+desktop computer.
 
 Figures \ref{fig:results}(e) and \ref{fig:results}(f) show the spectral
 component reconstructions after disentangling and deblurring using Tikhonov
