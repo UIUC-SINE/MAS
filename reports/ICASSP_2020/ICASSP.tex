@@ -91,20 +91,18 @@ interest.
 % either additional wavelength filters or dispersive elements (e.g diffraction
 % grating).
 
-An alternative approach is to use a diffractive lens to perform spectral imaging
-\cite{oktem2014icip}. Diffractive lenses have the property that each wavelength
-comes to focus at different distances from the lens (see Figure \ref{fig:diff_lens}(a)).
 
-Diffractive lenses are often preferred in the UV or x-ray regimes over
-reflective optics because manufacturing tolerances at these wavelengths must be
-much tighter than in the visible regime in order to get a similar optical
-performance. Since diffractive optics can be manufactured using a
-photolithographic process, they can be produced at a higher precision compared
-to the grinding process used to produce conventional reflective optics.
-Similarly, refractive optics are unsuitable for UV or x-ray imaging because
-glass is opaque at these wavelengths. Figures \ref{fig:diff_lens}(b) and
-\ref{fig:diff_lens}(c) are two examples of a pattern that can be etched into
-silicon wafer to produce a diffractive lens.
+An alternative approach is to use a diffractive lens to perform spectral imaging
+\cite{oktem2014icip}. Diffractive lenses are often preferred in the UV or x-ray
+regimes over reflective optics because manufacturing tolerances at these
+wavelengths must be much tighter than in the visible regime in order to get a
+similar resolution performance \cite{davila2011high}. Since diffractive optics can
+be manufactured using a photolithographic process, they can be produced at a
+higher precision compared to the grinding process used to produce conventional
+reflective optics. Similarly, refractive optics are unsuitable for UV or x-ray
+imaging because glass is opaque at these wavelengths. Figures
+\ref{fig:diff_lens}(b) and \ref{fig:diff_lens}(c) are two examples of a pattern
+that can be etched into silicon wafer to produce a diffractive lens.
 
 \begin{figure}[htb]
 
@@ -133,24 +131,30 @@ plate (c) photon sieve}
 \end{figure}
 
 % FIXME
-While diffraction produces a focused image of each source at separate planes, it
-also produces defocused images of each source at every other plane. This means
-that each measurement is actually a sum of all spectral components of the source
-at varying degrees of focus. An inverse problem consisting of disentangling and
-deblurring of measurements must be solved in order to recover the original
-source components.
+Diffractive lenses have the property that each wavelength comes to focus at
+different distances from the lens (see Figure \ref{fig:diff_lens}a)
+\cite{attwood2017x}. In fact, any plane consists of a sum of all spectral
+components of the source at varying degrees of focus, which depends on the
+distance from lens and the wavelenght. Then a strategy to perform spectral
+imaging is to take a measurement at each focal plane and solve an inverse
+problem consisting of disentangling and deblurring of measurements in order to
+recover the original spectral components \cite{oktem2014icip}. Considering the
+fact that each measurement will contain noise, making deblurring challenging,
+and some spectral components may be very close to each other, making
+disentangling challenging, this inverse problem may get quite ill posed.
 
-The choice of measurement planes has direct implications on the reconstruction
-quality. Therefore, given the freedom to take $M$ measurements out of $C$
-candidate plane locations, we would like to find the best configuration that
-maximizes the reconstruction quality. Traditionally, measurement
-locations are selected at the plane of focus for each spectral component.
-However, as we show later in this paper, it is possible to improve on the
-reconstruction quality in some situations by making measurements away from these
-focal positions. We propose a greedy backward selection algorithm for
-automatically discovering such a measurement configuration. Exploiting the
-structures of the imaging model, we have implemented the algorithm efficiently,
-which otherwise would be infeasible to implement.
+In an ill posed problem like this, the choice of measurement planes becomes very
+crucial and has direct implications on the reconstruction quality. Therefore,
+given the freedom to take $M$ measurements out of $C$ candidate plane locations,
+it is desired to find the best configuration that maximizes the reconstruction
+quality. Traditionally, measurement locations are selected at the plane of focus
+for each spectral component. However, as we show later in this paper, it is
+possible to improve on the reconstruction quality in some situations by making
+measurements away from these focal positions. We propose a greedy backward
+selection algorithm for automatically discovering such a measurement
+configuration. Exploiting the structures of the imaging model, we have
+implemented the algorithm efficiently, which otherwise would be infeasible to
+implement.
 
 In the next section we mathematically model the diffractive imaging system and
 formulate the inverse problem of recovering spectral components. Then we go on
