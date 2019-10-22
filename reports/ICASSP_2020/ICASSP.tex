@@ -558,8 +558,8 @@ with $\lambda$):
 \label{eq:fast_cost}
 \end{align}
 where the computational complexity of \eqref{eq:fast_cost} is much less than
-\eqref{eq:naive_cost} as both the multiplication and the inversion cost reduces
-significantly due to the diagonalized blocks.
+\eqref{eq:naive_cost} as both the multiplication and the inversion complexity
+reduces significantly due to the diagonalized blocks.
 
 \section{Complexity Analysis}
 
@@ -666,7 +666,7 @@ $$
 O_i = O(S^3N^2)
 $$
 
-Computing the total cost of the SBS algorithm, we find that we obtain a
+Computing the total complexity of the SBS algorithm, we find that we obtain a
 speedup of $N^4$, which is significant for large images.
 
 \begin{align*}
@@ -687,7 +687,7 @@ speedup of $N^4$, which is significant for large images.
 
 \section{Numerical Experiments}
 In this section, we present numerical results for reconstructing a simulated
-polychromatic source with 2 spectral components at $\lambda_1 =
+$N^2{=}160^2$ polychromatic source with $S=2$ spectral components at $\lambda_1 =
 \SI{33.400}{\nano\metre}$ and $\lambda_2 = \SI{33.402}{\nano\metre}$, shown as
 separate colors in Figure \ref{fig:results}(a). In this experiment, we
 initialized SBS with 12 repeated measurements at 32 candidate planes for a total
@@ -695,7 +695,8 @@ of $C = 384$ candidate measurements. We allowed SBS to run until only $M = 12$
 measurements remain and show the final measurement configuration selected in
 Figure \ref{fig:results}(d).  This plot shows that SBS has selected a set of
 measurement locations outside the focal planes for the two spectral components,
-marked with red and green bars.
+marked with red and green bars. It took 1.68 seconds to run SBS on a computer
+with an Intel Core i7 processor and 16GB RAM.
 
 Figures \ref{fig:results}(e) and \ref{fig:results}(f) show the spectral
 component reconstructions after disentangling and deblurring using Tikhonov
