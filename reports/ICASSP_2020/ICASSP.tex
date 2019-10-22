@@ -141,13 +141,12 @@ deblurring of measurements must be solved in order to recover the original
 source components.
 
 The choice of measurement planes has direct implications on the reconstruction
-quality. Therefore, given the freedom to take $M$ measurements out of $C$
-candidate plane locations, we would like to find the best configuration that
+quality, so we would like to find the best configuration of measurement locations that
 maximizes the reconstruction quality. Traditionally, measurement
 locations are selected at the plane of focus for each spectral component.
-However, as we show later in this paper, it is possible to improve on the
-reconstruction quality in some situations by making measurements away from these
-focal positions. We propose a greedy backward selection algorithm for
+However, it is possible to improve on the reconstruction quality in some
+situations by choosing a measurement configuration which includes location away from these focal positions, as we show
+later in the paper. We propose a greedy backward selection algorithm for
 automatically discovering such a measurement configuration. Exploiting the
 structures of the imaging model, we have implemented the algorithm efficiently,
 which otherwise would be infeasible to implement.
