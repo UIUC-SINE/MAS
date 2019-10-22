@@ -510,22 +510,22 @@ Assuming $N \times N$ images, each $N^2 \times N^2$ block $\bm A_{m,s}$ of $\bm
   \underbrace{
     \begin{bmatrix}
       \bm F^{-1} \hspace{-0.2 in}& \hspace{-0.2 in} & \hspace{-0.20 in} \vspace{-0.1 in}\text{\Large 0} \\
-        \vspace{-0.05 in}& \ddots &  \\
+        \vspace{-0.05 in}&\hspace{-0.20 in} \ddots &  \\
       \text{\Large 0} \hspace{-0.17 in}& \hspace{-0.2 in} & \hspace{-0.15 in} \bm F^{-1}
     \end{bmatrix}
   }_{\widetilde{\bm F}^{-1}}
   \underbrace{
     \begin{bmatrix}
-      \widetilde{\bm A}_{1,1} \hspace{-0.1 in}& \hdots & \hspace{-0.1 in} \widetilde{\bm A}_{1,S} \vspace{-0.02 in}\\
-      \vspace{-0.02 in}\vdots & & \vdots \\
-      \widetilde{\bm A}_{M,1} \hspace{-0.1 in}& \hdots & \hspace{-0.1 in} \widetilde{\bm A}_{M,S} \\
+      \widetilde{\bm A}_{1,1} \hspace{-0.1 in}&\hspace{-0.1 in} \hdots & \hspace{-0.1 in} \widetilde{\bm A}_{1,S} \vspace{-0.02 in}\\
+      \vspace{-0.02 in}\vdots &\hspace{-0.1 in} \ddots& \vdots \\
+      \widetilde{\bm A}_{M,1} \hspace{-0.1 in}&\hspace{-0.1 in} \hdots & \hspace{-0.1 in} \widetilde{\bm A}_{M,S} \\
     \end{bmatrix}
   }_{\widetilde{\bm A}_{\bm d}}
   \underbrace{
     \begin{bmatrix}
-      \bm F \hspace{-0.1 in}& \hspace{-0.2 in} & \hspace{-0.18 in} \vspace{-0.1 in}\text{\Large 0} \\
-        \vspace{-0.05 in}& \ddots &  \\
-      \text{\Large 0} \hspace{-0.15 in}& \hspace{-0.2 in} & \hspace{-0.12 in} \bm F
+      \bm F \hspace{-0.1 in}& & \hspace{-0.18 in} \vspace{-0.1 in}\text{\Large 0} \\
+        \vspace{-0.05 in}& \hspace{-0.12 in}\ddots &  \\
+  \hspace{0.05 in} \text{\Large 0} & & \hspace{-0.12 in} \bm F
     \end{bmatrix}
   }_{\widetilde{\bm F}}
 \label{eq:fourier_mtx}
@@ -568,7 +568,7 @@ SBS implementation and our faster version as a function of the number of pixels
 in an image $N^2$, the number of spectral components $S$ in the source, and the
 number of candidate measurement locations $C$.
 
-\subsection{Naive Implementation}
+\subsection{Complexity of Naive Implementation}
 
 The computational complexity of evaluating cost for a particular measurement
 configuration $\bm{d}$ comes from two places in the cost formulation.
@@ -641,7 +641,7 @@ The total complexity of the SBS algorithm can be written
 %   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
 % \end{align*}
 
-\subsection{Fast Implementation}
+\subsection{Complexity of Fast Implementation}
 
 $$
 \text{Cost}(\bm{d}) = tr\left(\left(
