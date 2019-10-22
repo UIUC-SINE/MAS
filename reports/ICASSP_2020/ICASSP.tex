@@ -32,7 +32,7 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 \begin{abstract}
 % Spectral imaging, forming images of a scene at many wavelengths, is a
 % fundamental analysis technique with many scientific applications. Diffractive
-% lenses can achieve very high resolution in x-ray and UV regimes as compared to
+% lenses can achieve very high resolution in X-ray and UV regimes as compared to
 % reflective and refractive optics. Their wavelength dependent focal length
 % enables them to be used in spectral imaging of polychromatic sources, where the
 % focused image of each spectral component is formed at different distances from
@@ -54,7 +54,7 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 % reconstruction quality is improved over a naive acquisition strategy.
 
 Diffractive lenses have recently been applied to the domain of multispectral
-imaging in the x-ray and UV regimes, where they can achieve very high resolution
+imaging in the X-ray and UV regimes, where they can achieve very high resolution
 as compared to reflective and refractive optics. By taking measurements at
 different focal lengths it is possible to reconstruct individual spectral
 components of a polychromatic source. However, the problem of where to take
@@ -62,7 +62,7 @@ measurements is non-trivial. In this work, we apply the sequential backward sele
 algorithm to suboptimally search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
 convolution and making assumptions on the source and noise, we greatly reduce
-the complexity of the algorithm. Numerical results show that
+the complexity of the algorithm. Numerical results show that the
 configuration found by the algorithm significantly improves the reconstruction
 performance compared to a standard configuration.
 
@@ -76,14 +76,10 @@ backward selection, subset selection
 \section{Introduction}
 \label{sec:intro}
 Spectral imaging is the formation of images at different wavelengths in the
-electromagnetic spectrum. It has applications in medicine,
-geographic surveying, astronomy, and solar physics , with images usually taken in the visible, x-ray,
-ultraviolet (UV), or infrared bands (IR) \cite{shaw2003spectral},
-\cite{garini2006spectral}. Spectral imaging can be further broken down into the
-categories of \emph{hyperspectral imaging} and \emph{multispectral imaging}.
-Hyperspectral imaging is the capture of a scene over a contiguous spectrum,
-while multispectral imaging is the capture of a set narrow, usually non-adjacent
-bands of interest. In both cases, a polychromatic source must be first separated
+electromagnetic spectrum. With images usually taken in the visible, X-ray,
+ultraviolet (UV), or infrared bands (IR), it has applications in medicine,
+geographic surveying, astronomy, and solar physics \cite{shaw2003spectral},
+\cite{garini2006spectral}. In spectral imaging, a polychromatic source must be first separated
 into its spectral components before being captured. There are a number of ways
 to achieve this, but a common method is to use a set of configurable optical
 filters. For example, the spectral imager on the Solar Dynamics Observatory uses
@@ -101,22 +97,23 @@ wavelengths of interest \cite{sdo}.
 % grating).
 
 
-An alternative approach is to use a diffractive lens to perform spectral imaging
-\cite{oktem2014icip}. Diffractive lenses have the property that the angle at
-which light exits the lens is determined by the light's wavelength. This process
-forms a focused image of each spectral component of source at different
-distances from the lens \cite{attwood2017x}, as shown in Figure \ref{fig:diff_lens}(a).
-
-Diffractive lenses are often preferred in the UV or x-ray
-regimes over reflective optics because manufacturing tolerances at these
-wavelengths must be much tighter than in the visible regime in order to get a
-similar optical performance, especially resolution \cite{davila2011high}. Since
-diffractive optics can be manufactured using a photolithographic process, they
-can be produced at a higher precision compared to the grinding process used to
-produce conventional reflective optics. Similarly, refractive optics are
-unsuitable for UV or x-ray imaging because glass is opaque at these wavelengths.
+A new approach is to use a diffractive lens to perform spectral imaging
+\cite{oktem2014icip}.
+Diffractive lenses are often preferred in the UV or X-ray regimes because
+manufacturing tolerances at these wavelengths can be more relaxed than
+reflective optics and still obtain a similar resolution \cite{davila2011high}.
+Since diffractive optics can be manufactured using a photolithographic process,
+they can be produced at a higher precision compared to the grinding process used
+to produce conventional reflective optics. Moreover, refractive optics are
+unsuitable for UV or X-ray imaging because glass is opaque at these wavelengths.
 Figures \ref{fig:diff_lens}(b) and \ref{fig:diff_lens}(c) are two examples of a
 pattern that can be etched into silicon wafer to produce a diffractive lens.
+
+
+Diffractive lenses have the property that the angle at
+which light exits the lens is determined by the light's wavelength. This process
+forms a focused image of each spectral component of the
+
 
 \begin{figure}[htb]
 
@@ -145,12 +142,10 @@ plate (c) photon sieve}
 \end{figure}
 
 % FIXME
-While diffraction produces a focused image of each source at separate
-planes, it also produces defocused images of each source at every other plane.
-This means that each measurement is actually a sum of all spectral components of
-the source at varying degrees of focus. An inverse problem consisting of
-disentangling and deblurring of measurements must be solved in order to
-recover the original source components.  This has been
+Through the process of diffraction, each measurement is actually a sum of all
+spectral components of the source at varying degrees of focus. An inverse
+problem consisting of disentangling and deblurring of measurements must be
+solved in order to recover the original source components. This has been
 previously addressed by taking measurements at each focal plane, formulating the
 diffractive system in a linear model, and solving the associated inverse problem
 \cite{oktem2014icip}.
@@ -174,12 +169,12 @@ diffractive system in a linear model, and solving the associated inverse problem
 % plane locations, it is desired to find the best configuration that maximizes the
 % reconstruction quality.
 
-However, as we show later in this paper, it is possible to improve on the
-reconstruction quality in some situations by choosing a different configuration.
-We apply a greedy backward selection algorithm described by
-Sharif et al. \cite{sharif} to automatically discover such a measurement
+However, this measurement configuration leads to suboptimal reconstructions,
+especially when spectral components are close in wavelength. We improve the
+reconstruction quality by applying a greedy backward selection algorithm described
+by Sharif et al. \cite{sharif} in this new domain to automatically discover such a measurement
 configuration from a set of candidate plane locations. Furthermore, we exploit
-structures in the imaging model to make the algorith computationally feasible
+structures in the imaging model to make the algorithm computationally feasible
 for large images.
 % Exploiting the
 % structures of the imaging model, we have implemented the algorithm efficiently,
@@ -189,7 +184,7 @@ In the next section, we mathematically model the diffractive imaging system and
 formulate the inverse problem of recovering spectral components. We go on to
 show the measurement selection algorithm in Section 3. Fast implementation of
 this algorithm is presented in Section 4. Next, the complexity of the fast
-implementation is analysed and compared with a naive implementation. The last
+implementation is analysed and compared with the complexity of the general algorithm. The last
 section is dedicated to a numerical example demonstrating the improved
 reconstruction quality when the algorithm is used to select a measurement
 configuration.
@@ -200,7 +195,7 @@ configuration.
 % used as spectral imagers (see Figure \ref{fig:diff_lens}). Examples of
 % diffractive lenses are Fresnel zone plates and their modifications (e.g. photon
 % sieve) (see Figure \ref{fig:diff_lens}). Diffractive lenses are preferred in
-% applications in UV and x-ray regimes where they can provide high resolution
+% applications in UV and X-ray regimes where they can provide high resolution
 % whereas reflective optics are very costly to manufacture to achieve high
 % resolution and refractive lenses cannot be used due to light absorption in these
 % regimes.
@@ -252,7 +247,7 @@ configuration.
 % because it  uses a diffractive lens, and it is a computational spectral imaging
 % modality \cite{oktem2014icip}. Photon sieves, just like Fresnel zone plates, are
 % diffractive lenses that use diffraction phenomenon to focus light. Diffractive
-% lenses are preferred in applications in UV and x-ray regimes since they can
+% lenses are preferred in applications in UV and X-ray regimes since they can
 % provide high resolution whereas reflective optics are very costly to manufacture
 % to achieve high resolution and refractive lenses cannot be used due to light
 % absorption. They have wavelength dependent focal length which is what behind the
@@ -356,8 +351,8 @@ and the expected sum of squared error cost is $E[\norm{\bm{e}}_2^2]$. This
 expression can be rewritten in terms of the error covariance:
 
 \begin{align*}
-E[\norm{\bm{e}}_2^2] =  E[\bm{e}^H\bm{e}] & = E[tr(\bm{e}^H\bm{e})] = E[tr(\bm{e}\bm{e}^H)] \\
-& = tr(E[\bm{e}\bm{e}^H]) = tr(\bm{\Sigma}_{\bm{e}})
+\mathbb{E}[\norm{\bm{e}}_2^2] =  \mathbb{E}[\bm{e}^H\bm{e}] & = \mathbb{E}[\text{tr}(\bm{e}^H\bm{e})] = \mathbb{E}[\text{tr}(\bm{e}\bm{e}^H)] \\
+& = \text{tr}(\mathbb{E}[\bm{e}\bm{e}^H]) = \text{tr}(\bm{\Sigma}_{\bm{e}})
 \end{align*}
 
 where the error covariance matrix is defined as $\bm{\Sigma}_{\bm{e}} =
@@ -370,7 +365,7 @@ E[\bm{e}\bm{e}^H]$ and has the closed form expression:
 Combining the above equations, we can now write a cost metric which lets us evalute
 the expected reconstruction error for a particular measurement configuration $\bm{d}$:
 \begin{equation}
-\text{Cost}(\bm{d}) = E[\norm{\bm{e}}_2^2] = tr\left(\left( \bm{A}_{\bm{d}}^H\bm{\Sigma}_{\bm{n}}^{-1} \bm{A}_{\bm{d}} +
+\text{Cost}(\bm{d}) = \mathbb{E}[\norm{\bm{e}}_2^2] = \text{tr}\left(\left( \bm{A}_{\bm{d}}^H\bm{\Sigma}_{\bm{n}}^{-1} \bm{A}_{\bm{d}} +
     \bm{\Sigma}_{\bm{x}}^{-1}\right)^{-1}\right)
 \end{equation}
 
@@ -466,8 +461,8 @@ measurement that incurs the smallest increase in cost in each iteration.
     \caption{SBS Algorithm}
     \State $\bm{d} = \{d_1, \dots, d_C\}$
     \Repeat
-      \State $d' = \arg \min_{d \in \bm{d}} \text{Cost}(\bm{d} \backslash d))$
-      \State $\bm{d} = \bm{d} \backslash d'$
+      \State $d' = \arg \min_{d \in \bm{d}} \text{Cost}(\bm{d} \backslash \{d\}))$
+      \State $\bm{d} = \bm{d} \backslash \{d'\}$
     \Until{$|\bm{d}| = M$}
   \end{algorithmic}
 \end{algorithm}
@@ -566,20 +561,20 @@ F}$. Applying the same procedure, we get $\bm \Sigma_x^{-1} =
 The SSE cost for a measurement configuration $\bm d$ then becomes (scaling both terms
 with $\lambda$):
 \begin{align}
-\text{Cost}(\bm{d}) & = tr\left(\left( {\bm A}_{\bm d}^H {\bm A}_{\bm d} +
+\text{Cost}(\bm{d}) & = \text{tr}\left(\left( {\bm A}_{\bm d}^H {\bm A}_{\bm d} +
 \lambda \bm \Sigma_x^{-1} \right)^{-1} \right)
 \label{eq:naive_cost}\\
 % & = tr\left(\left(\widetilde{\bm F}^{-1} \widetilde{\bm
 % A}_{\bm d}^H \widetilde{\bm A}_{\bm d} \widetilde{\bm F} + \lambda \widetilde{\bm
 % F}^{-1} \widetilde{\bm D}^H \widetilde{\bm D} \widetilde{\bm
 % F}\right)^{-1}\right) \nonumber \\
-& = tr\left(\left(\widetilde{\bm F}^{-1} \left( \widetilde{\bm A}_{\bm d}^H
+& = \text{tr}\left(\left(\widetilde{\bm F}^{-1} \left( \widetilde{\bm A}_{\bm d}^H
 \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)
 \widetilde{\bm F}\right)^{-1}\right) \nonumber \\
-& = tr\left(\widetilde{\bm F}^{-1} \left( \widetilde{\bm A}_{\bm d}^H
+& = \text{tr}\left(\widetilde{\bm F}^{-1} \left( \widetilde{\bm A}_{\bm d}^H
 \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1}
 \widetilde{\bm F}\right) \nonumber \\
-& = tr\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} +
+& = \text{tr}\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} +
 \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1} \right)
 \label{eq:fast_cost}
 \end{align}
@@ -589,12 +584,12 @@ reduces significantly due to the diagonalized blocks.
 
 \section{Complexity Analysis}
 
-In this section, we derive the computational complexity of the standard, naive
-SBS implementation and our faster version as a function of the number of pixels
+In this section, we derive the computational complexity of the general 
+SBS implementation and our fast version as a function of the number of pixels
 in an image $N^2$, the number of spectral components $S$ in the source, and the
 number of candidate measurement locations $C$.
 
-\subsection{Complexity of Naive Implementation}
+\subsection{General Implementation Complexity}
 
 The computational complexity of evaluating cost for a particular measurement
 configuration $\bm{d}$ comes from two places in the cost formulation.
@@ -610,8 +605,8 @@ $$
 $$
 
 The first contributor to cost complexity is the multiplication of
-$\bm{A}^H_{\bm{d}}\bm{A}_{\bm{d}}$.  We can use a simple trick to avoid
-multiplying the large $\bm{A}_{\bm{d}}$ in each iteration.
+$\bm{A}^H_{\bm{d}}\bm{A}_{\bm{d}}$.  We can rewrite the multiplication as a sum
+of smaller multiplications to avoid multiplying the large $\bm{A}_{\bm{d}}$ in each iteration.
 
 $$
 \bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}} = \sum_{d \in \bm{d}} \bm{A}^H_{d} \bm{A}_{d}
@@ -669,10 +664,10 @@ The total complexity of the SBS algorithm can be written
 %   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
 % \end{align*}
 
-\subsection{Complexity of Fast Implementation}
+\subsection{Fast Implementation Complexity}
 
 $$
-\text{Cost}(\bm{d}) = tr\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm
+\text{Cost}(\bm{d}) = \text{tr}\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm
 A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1} \right)
 $$
 
@@ -786,7 +781,7 @@ especially evident in Figure \ref{fig:results}(c).
 % line are quite high at focal planes which degrades the reconstruction quality
 % as the deconvolution cannot disentangle the spectral lines well.
 
-Finally, in Table \ref{tab:ssims}, we evaluate error in the reconstructed
+Finally, in Table \ref{tab:ssims}, we evaluate the error in the reconstructed
 spectral images using structural similary (SSIM) and peak signal-to-noise ratio
 (PSNR), where the SBS reconstruction yielded better results measured by both metrics.
 
