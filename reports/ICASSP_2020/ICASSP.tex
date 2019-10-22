@@ -76,14 +76,10 @@ backward selection, subset selection
 \section{Introduction}
 \label{sec:intro}
 Spectral imaging is the formation of images at different wavelengths in the
-electromagnetic spectrum. It has applications in medicine,
-geographic surveying, astronomy, and solar physics , with images usually taken in the visible, x-ray,
-ultraviolet (UV), or infrared bands (IR) \cite{shaw2003spectral},
-\cite{garini2006spectral}. Spectral imaging can be further broken down into the
-categories of \emph{hyperspectral imaging} and \emph{multispectral imaging}.
-Hyperspectral imaging is the capture of a scene over a contiguous spectrum,
-while multispectral imaging is the capture of a set narrow, usually non-adjacent
-bands of interest. In both cases, a polychromatic source must be first separated
+electromagnetic spectrum. With images usually taken in the visible, x-ray,
+ultraviolet (UV), or infrared bands (IR), it has applications in medicine,
+geographic surveying, astronomy, and solar physics \cite{shaw2003spectral},
+\cite{garini2006spectral}. In spectral imaging, a polychromatic source must be first separated
 into its spectral components before being captured. There are a number of ways
 to achieve this, but a common method is to use a set of configurable optical
 filters. For example, the spectral imager on the Solar Dynamics Observatory uses
@@ -101,22 +97,24 @@ wavelengths of interest \cite{sdo}.
 % grating).
 
 
-An alternative approach is to use a diffractive lens to perform spectral imaging
-\cite{oktem2014icip}. Diffractive lenses have the property that the angle at
-which light exits the lens is determined by the light's wavelength. This process
-forms a focused image of each spectral component of source at different
-distances from the lens \cite{attwood2017x}, as shown in Figure \ref{fig:diff_lens}(a).
-
+A new approach is to use a diffractive lens to perform spectral imaging
+\cite{oktem2014icip}.
 Diffractive lenses are often preferred in the UV or x-ray
 regimes over reflective optics because manufacturing tolerances at these
 wavelengths must be much tighter than in the visible regime in order to get a
-similar optical performance, especially resolution \cite{davila2011high}. Since
+similar resolution \cite{davila2011high}. Since
 diffractive optics can be manufactured using a photolithographic process, they
 can be produced at a higher precision compared to the grinding process used to
-produce conventional reflective optics. Similarly, refractive optics are
+produce conventional reflective optics. Moreover, refractive optics are
 unsuitable for UV or x-ray imaging because glass is opaque at these wavelengths.
 Figures \ref{fig:diff_lens}(b) and \ref{fig:diff_lens}(c) are two examples of a
 pattern that can be etched into silicon wafer to produce a diffractive lens.
+
+
+Diffractive lenses have the property that the angle at
+which light exits the lens is determined by the light's wavelength. This process
+forms a focused image of each spectral component of the
+
 
 \begin{figure}[htb]
 
@@ -145,12 +143,10 @@ plate (c) photon sieve}
 \end{figure}
 
 % FIXME
-While diffraction produces a focused image of each source at separate
-planes, it also produces defocused images of each source at every other plane.
-This means that each measurement is actually a sum of all spectral components of
-the source at varying degrees of focus. An inverse problem consisting of
-disentangling and deblurring of measurements must be solved in order to
-recover the original source components.  This has been
+Through the process of diffraction, each measurement is actually a sum of all
+spectral components of the source at varying degrees of focus. An inverse
+problem consisting of disentangling and deblurring of measurements must be
+solved in order to recover the original source components. This has been
 previously addressed by taking measurements at each focal plane, formulating the
 diffractive system in a linear model, and solving the associated inverse problem
 \cite{oktem2014icip}.
@@ -174,12 +170,12 @@ diffractive system in a linear model, and solving the associated inverse problem
 % plane locations, it is desired to find the best configuration that maximizes the
 % reconstruction quality.
 
-However, as we show later in this paper, it is possible to improve on the
-reconstruction quality in some situations by choosing a different configuration.
-We apply a greedy backward selection algorithm described by
-Sharif et al. \cite{sharif} to automatically discover such a measurement
+However, this measurement configuration leads to suboptimal reconstructions,
+especially when spectral components are close in wavelength. We improve the
+reconstruction quality by applying a greedy backward selection algorithm described
+by Sharif et al. \cite{sharif} in this new domain to automatically discover such a measurement
 configuration from a set of candidate plane locations. Furthermore, we exploit
-structures in the imaging model to make the algorith computationally feasible
+structures in the imaging model to make the algorithm computationally feasible
 for large images.
 % Exploiting the
 % structures of the imaging model, we have implemented the algorithm efficiently,
@@ -189,7 +185,7 @@ In the next section, we mathematically model the diffractive imaging system and
 formulate the inverse problem of recovering spectral components. We go on to
 show the measurement selection algorithm in Section 3. Fast implementation of
 this algorithm is presented in Section 4. Next, the complexity of the fast
-implementation is analysed and compared with a naive implementation. The last
+implementation is analysed and compared with the complexity of the original algorithm. The last
 section is dedicated to a numerical example demonstrating the improved
 reconstruction quality when the algorithm is used to select a measurement
 configuration.
@@ -589,12 +585,12 @@ reduces significantly due to the diagonalized blocks.
 
 \section{Complexity Analysis}
 
-In this section, we derive the computational complexity of the standard, naive
+In this section, we derive the computational complexity of the original
 SBS implementation and our faster version as a function of the number of pixels
 in an image $N^2$, the number of spectral components $S$ in the source, and the
 number of candidate measurement locations $C$.
 
-\subsection{Complexity of Naive Implementation}
+\subsection{Original Implementation Complexity}
 
 The computational complexity of evaluating cost for a particular measurement
 configuration $\bm{d}$ comes from two places in the cost formulation.
@@ -669,7 +665,7 @@ The total complexity of the SBS algorithm can be written
 %   &= \underbrace{O(S^2N^6C^3)}_{\text{multiplication complexity}} + \underbrace{O(S^3N^6C^2)}_{\text{inversion complexity}}
 % \end{align*}
 
-\subsection{Complexity of Fast Implementation}
+\subsection{Fast Implementation Complexity}
 
 $$
 \text{Cost}(\bm{d}) = tr\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm
