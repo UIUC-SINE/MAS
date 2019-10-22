@@ -61,8 +61,7 @@ components of a polychromatic source. However, the problem of where to take
 measurements is non-obvious. In this work, we apply the sequential backward selection
 algorithm to suboptimally search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
-convolution and assuming a frequency prior distribution on the source and noise
-covariance matrices, we greatly reduce the complexity of evaluating this cost.
+convolution and making assumptions on the source and noise, we greatly reduce the complexity of evaluating this cost.
 
 \end{abstract}
 
@@ -132,7 +131,7 @@ plate (c) photon sieve}
 
 % FIXME
 Diffractive lenses have the property that each wavelength comes to focus at
-different distances from the lens (see Figure \ref{fig:diff_lens}a)
+different distances from the lens (see Figure \ref{fig:diff_lens}(a)
 \cite{attwood2017x}. In fact, any plane consists of a sum of all spectral
 components of the source at varying degrees of focus, which depends on the
 distance from lens and the wavelenght. Then a strategy to perform spectral
