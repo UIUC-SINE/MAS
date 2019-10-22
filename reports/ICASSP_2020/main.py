@@ -79,30 +79,37 @@ plotter4d(sources, title='sources')
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = sources[0]
 z[:, :, 1] = sources[1]
-plt.imsave('figures/sources.png', z)
+# plt.imsave('figures/sources.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = measured_noisy_focus[5]
 z[:, :, 1] = measured_noisy_focus[5]
 z[:, :, 2] = measured_noisy_focus[5]
-plt.imsave('figures/measured1.png', z)
+# plt.imsave('figures/measured1.png', z)
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = measured_noisy_csbs[6]
 z[:, :, 1] = measured_noisy_csbs[6]
 z[:, :, 2] = measured_noisy_csbs[6]
-plt.imsave('figures/measured2.png', z)
+# plt.imsave('figures/measured2.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = recon_focus[0]
-plt.imsave('figures/recon_focus1.png', z)
+# plt.imsave('figures/recon_focus1.png', z)
 z = np.zeros((160, 160, 3))
 z[:, :, 1] = recon_focus[1]
-plt.imsave('figures/recon_focus2.png', z)
+# plt.imsave('figures/recon_focus2.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 0] = recon_csbs[0]
-plt.imsave('figures/recon_csbs1.png', z)
+# plt.imsave('figures/recon_csbs1.png', z)
 
 z = np.zeros((160, 160, 3))
 z[:, :, 1] = recon_csbs[1]
-plt.imsave('figures/recon_csbs2.png', z)
+# plt.imsave('figures/recon_csbs2.png', z)
+
+plt.figure(figsize=(4, 3))
+plt.stem(psfs_csbs.copies, 'ko-', basefmt=' ')
+plt.axvline(15, color='#cc0000', linewidth=3.5)
+plt.axvline(16, color='#73d216', linewidth=3.5)
+plt.axis('off')
+plt.savefig('figures/csbs_copies.png')

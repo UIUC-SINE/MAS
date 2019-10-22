@@ -11,7 +11,7 @@ def experiment(func, iterations, **kwargs):
 
     result = []
     for t in range(iterations):
-        print('Trial {}/{}\r'.format(t, iterations), end='')
+        print('Trial {}/{}\r'.format(t + 1, iterations), end='')
         result.append(func(**kwargs))
 
     return pd.DataFrame(result)
