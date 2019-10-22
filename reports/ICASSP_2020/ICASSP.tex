@@ -520,11 +520,11 @@ where operations involving multiplications and inversions are much faster.
 
 For $\bm{A}_{\bm{d}}$ this means that each block $\bm A_{m,s}$ is BCCB and
 corresponds to circular convolution with the kernel $\bm a_{m,s}$. For $\bm
-\Sigma_n$, we assume that the noise is uncorrelated among the pixels and
-measurement planes with variance $(1/\lambda)$, so $\bm \Sigma_n=(1/\lambda) \bm
-I$ where $\bm I$ represents the identity matrix. For $\bm \Sigma_x$, each of its
-blocks being BCCB means that the covariance among image pixels are represented
-by 2D convolution kernels.
+\Sigma_n$, we assume independent noise among image pixels and measurement planes
+with variance $(1/\lambda)$, so $\bm \Sigma_n=(1/\lambda) \bm I$ where $\bm I$
+represents the identity matrix. For $\bm \Sigma_x$, each of its blocks being
+BCCB means that the covariance among image pixels are represented by 2D
+convolution kernels.
 
 Assuming $N \times N$ images, each $N^2 \times N^2$ block $\bm A_{m,s}$ of $\bm
 {A_d}$ can be decomposed as $\bm A_{m,s} = \bm F^{-1} \widetilde{\bm A}_{m,s}
