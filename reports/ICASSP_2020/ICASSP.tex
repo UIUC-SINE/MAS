@@ -58,10 +58,13 @@ imaging in the x-ray and UV regimes, where they can achieve very high resolution
 as compared to reflective and refractive optics. By taking measurements at
 different focal lengths it is possible to reconstruct individual spectral
 components of a polychromatic source. However, the problem of where to take
-measurements is non-obvious. In this work, we apply the sequential backward selection
+measurements is non-trivial. In this work, we apply the sequential backward selection
 algorithm to suboptimally search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
-convolution and making assumptions on the source and noise, we greatly reduce the complexity of evaluating this cost.
+convolution and making assumptions on the source and noise, we greatly reduce
+the complexity of the algorithm. Numerical results show that
+configuration found by the algorithm significantly improves the reconstruction
+performance compared to a standard configuration.
 
 \end{abstract}
 
@@ -73,9 +76,9 @@ backward selection, subset selection
 \section{Introduction}
 \label{sec:intro}
 Spectral imaging is the formation of images at different wavelengths in the
-electromagnetic spectrum. With images usually taken in the visible, x-ray,
-ultraviolet (UV), or infrared bands (IR), it has applications in medicine,
-geographic surveying, astronomy, and solar physics \cite{shaw2003spectral},
+electromagnetic spectrum. It has applications in medicine,
+geographic surveying, astronomy, and solar physics , with images usually taken in the visible, x-ray,
+ultraviolet (UV), or infrared bands (IR) \cite{shaw2003spectral},
 \cite{garini2006spectral}. Spectral imaging can be further broken down into the
 categories of \emph{hyperspectral imaging} and \emph{multispectral imaging}.
 Hyperspectral imaging is the capture of a scene over a contiguous spectrum,
@@ -601,7 +604,7 @@ $$
   \text{Cost}(\bm{d}) = \text{tr} \Bigl(
   \overbrace{\vphantom{\rule[1.5em]{0pt}{0pt}}
 (\underbrace{\vphantom{\rule[-0.5em]{0pt}{0pt}} \bm{A}_{\bm{d}}^H \bm{A}_{\bm{d}}}_{O_m}
-+\lambda \bm{D}^H\bm{D})^{-1}
++\lambda \bm \Sigma_x^{-1})^{-1}
 }^{O_i}
 \Bigr)
 $$
@@ -624,8 +627,8 @@ O_m = C \cdot O((SN^2)^2) = O(S^2N^4C)
 $$
 
 The second contributor to cost complexity is inversion of $\bm{A}^H_{\bm{d}}
-\bm{A}_{\bm{d}} + \lambda\bm{D}^H \bm{D}$.
-As $\bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}}$ and $\bm{D}^H \bm{D}$ have dimension $(SN^2
+\bm{A}_{\bm{d}} + \lambda\bm \Sigma_x^{-1}$.
+As $\bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}}$ and $\bm \Sigma_x^{-1}$ have dimension $(SN^2
 \times SN^2)$, the complexity of inversion $O_i$ is given by
 
 $$O_i = O\big( (SN^2)^3 \big) = O(S^3N^6)$$
@@ -669,13 +672,12 @@ The total complexity of the SBS algorithm can be written
 \subsection{Complexity of Fast Implementation}
 
 $$
-\text{Cost}(\bm{d}) = tr\left(\left(
-\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm D}^H
-\widetilde{\bm D} \right)^{-1} \right)
+\text{Cost}(\bm{d}) = tr\left(\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm
+A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1} \right)
 $$
 
 In our fast SBS implementation, we use an alternative cost metric where the
-diagonal blocks of $\widetilde{\bm{A}}_{\bm{d}}$ and $\widetilde{\bm{D}}$ greatly
+diagonal blocks of $\widetilde{\bm{A}}_{\bm{d}}$ and $\widetilde{\bm \Sigma}_x^{-1}$ greatly
   reduce the computational complexity of multiplication and inversion.
 
 Since each $\bm{A}_d$ has shape $(1 \times S)$ with diagonal blocks of size $N^2$, the overall complexity for
