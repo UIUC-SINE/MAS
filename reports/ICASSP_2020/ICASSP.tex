@@ -73,12 +73,19 @@ backward selection, subset selection
 \section{Introduction}
 \label{sec:intro}
 Spectral imaging is the formation of images at different wavelengths in the
-electromagnetic spectrum.  With images usually taken in the visible, x-ray,
+electromagnetic spectrum. With images usually taken in the visible, x-ray,
 ultraviolet (UV), or infrared bands (IR), it has applications in medicine,
 geographic surveying, astronomy, and solar physics \cite{shaw2003spectral},
-\cite{garini2006spectral}. A common method to perform spectral imaging is to use
-a set of optical filters to selectively pass light of specific wavelengths of
-interest.
+\cite{garini2006spectral}. Spectral imaging can be further broken down into the
+categories of \emph{hyperspectral imaging} and \emph{multispectral imaging}.
+Hyperspectral imaging is the capture of a scene over a contiguous spectrum,
+while multispectral imaging is the capture of a set narrow, usually non-adjacent
+bands of interest. In both cases, a polychromatic source must be first separated
+into its spectral components before being captured. There are a number of ways
+to achieve this, but a common method is to use a set of configurable optical
+filters. For example, the spectral imager on the Solar Dynamics Observatory uses
+a rotating drum of optical filters to selectively pass light of specific
+wavelengths of interest \cite{sdo}.
 
 % Spectral imaging is forming images of a scene as a function of wavelength, is a
 % fundamental diagnostic technique in various fields such as astronomy,
@@ -92,16 +99,21 @@ interest.
 
 
 An alternative approach is to use a diffractive lens to perform spectral imaging
-\cite{oktem2014icip}. Diffractive lenses are often preferred in the UV or x-ray
+\cite{oktem2014icip}. Diffractive lenses have the property that the angle at
+which light exits the lens is determined by the light's wavelength. This process
+forms a focused image of each spectral component of source at different
+distances from the lens \cite{attwood2017x}, as shown in Figure \ref{fig:diff_lens}(a).
+
+Diffractive lenses are often preferred in the UV or x-ray
 regimes over reflective optics because manufacturing tolerances at these
 wavelengths must be much tighter than in the visible regime in order to get a
-similar resolution performance \cite{davila2011high}. Since diffractive optics can
-be manufactured using a photolithographic process, they can be produced at a
-higher precision compared to the grinding process used to produce conventional
-reflective optics. Similarly, refractive optics are unsuitable for UV or x-ray
-imaging because glass is opaque at these wavelengths. Figures
-\ref{fig:diff_lens}(b) and \ref{fig:diff_lens}(c) are two examples of a pattern
-that can be etched into silicon wafer to produce a diffractive lens.
+similar optical performance, especially resolution \cite{davila2011high}. Since
+diffractive optics can be manufactured using a photolithographic process, they
+can be produced at a higher precision compared to the grinding process used to
+produce conventional reflective optics. Similarly, refractive optics are
+unsuitable for UV or x-ray imaging because glass is opaque at these wavelengths.
+Figures \ref{fig:diff_lens}(b) and \ref{fig:diff_lens}(c) are two examples of a
+pattern that can be etched into silicon wafer to produce a diffractive lens.
 
 \begin{figure}[htb]
 
@@ -130,43 +142,54 @@ plate (c) photon sieve}
 \end{figure}
 
 % FIXME
-Diffractive lenses have the property that each wavelength comes to focus at
-different distances from the lens (see Figure \ref{fig:diff_lens}(a)
-\cite{attwood2017x}. In fact, any plane consists of a sum of all spectral
-components of the source at varying degrees of focus, which depends on the
-distance from lens and the wavelenght. Then a strategy to perform spectral
-imaging is to take a measurement at each focal plane and solve an inverse
-problem consisting of disentangling and deblurring of measurements in order to
-recover the original spectral components \cite{oktem2014icip}. Considering the
-fact that each measurement will contain noise, deblurring problem will be ill
-posed. Furthermore, the inverse problem becomes more ill posed if the wavelengths
-of interest are very close to each other, because it gets harder to disentangle.
+While diffraction produces a focused image of each source at separate
+planes, it also produces defocused images of each source at every other plane.
+This means that each measurement is actually a sum of all spectral components of
+the source at varying degrees of focus. An inverse problem consisting of
+disentangling and deblurring of measurements must be solved in order to
+recover the original source components.  This has been
+previously addressed by taking measurements at each focal plane, formulating the
+diffractive system in a linear model, and solving the associated inverse problem
+\cite{oktem2014icip}.
 
-In an ill posed problem like this, the choice of measurement planes becomes very
-crucial and has direct impact on the reconstruction quality. Although taking
-many measurements, or choosing longer exposure time will make the problem more
-well posed, practical applications usually impose limits on the total
-measurement time due to the dynamics of the scene. Even if there is no time
-limitation, given the freedom to take $M$ measurements out of $C$ candidate
-plane locations, it is desired to find the best configuration that maximizes the
-reconstruction quality.
+% In fact, any plane consists of a sum of all spectral
+% components of the source at varying degrees of focus, which depends on the
+% distance from lens and the wavelenght. Then a strategy to perform spectral
+% imaging is to take a measurement at each focal plane and solve an inverse
+% problem consisting of disentangling and deblurring of measurements in order to
+% recover the original spectral components \cite{oktem2014icip}. Considering the
+% fact that each measurement will contain noise, deblurring problem will be ill
+% posed. Furthermore, the inverse problem becomes more ill posed if the wavelengths
+% of interest are very close to each other, because it gets harder to disentangle.
 
-Traditionally, measurement locations are selected at the plane of focus for each
-spectral component. However, as we show later in this paper, it is possible to
-improve on the reconstruction quality in some situations by choosing a different
-configuration. In this paper, we propose a greedy backward selection algorithm
-for automatically discovering such a measurement configuration given a set of
-candidate plane locations. Exploiting the structures of the imaging model, we
-have implemented the algorithm efficiently, which otherwise would be infeasible
-to implement.
+% In an ill posed problem like this, the choice of measurement planes becomes very
+% crucial and has direct impact on the reconstruction quality. Although taking
+% many measurements, or choosing longer exposure time will make the problem more
+% well posed, practical applications usually impose limits on the total
+% measurement time due to the dynamics of the scene. Even if there is no time
+% limitation, given the freedom to take $M$ measurements out of $C$ candidate
+% plane locations, it is desired to find the best configuration that maximizes the
+% reconstruction quality.
 
-In the next section we mathematically model the diffractive imaging system and
+However, as we show later in this paper, it is possible to improve on the
+reconstruction quality in some situations by choosing a different configuration.
+We apply a greedy backward selection algorithm described by
+Sharif et al. \cite{sharif} to automatically discover such a measurement
+configuration from a set of candidate plane locations. Furthermore, we exploit
+structures in the imaging model to make the algorith computationally feasible
+for large images.
+% Exploiting the
+% structures of the imaging model, we have implemented the algorithm efficiently,
+% which otherwise would be infeasible to implement.
+
+In the next section, we mathematically model the diffractive imaging system and
 formulate the inverse problem of recovering spectral components. We go on to
 show the measurement selection algorithm in Section 3. Fast implementation of
 this algorithm is presented in Section 4. Next, the complexity of the fast
 implementation is analysed and compared with a naive implementation. The last
-section is dedicated to the numerical results that demonstrate the usefulness of
-the algorithm.
+section is dedicated to a numerical example demonstrating the improved
+reconstruction quality when the algorithm is used to select a measurement
+configuration.
 
 % A different approach is to use a diffractive lens to perform spectral imaging.
 % Diffractive lenses focus light using the diffraction principle. They have
@@ -416,7 +439,7 @@ on reconstruction error, we can begin considering which configurations are best
 suited for minimizing error.  For example, if we are provided with a set of $C$
 candidate measurement locations, we may wish to find a subset of size $M$ which
 minimizes reconstruction error. This is known as a \emph{subset selection} problem.
-One might think to simply  search over all possible measurement configurations
+One might think to simply search over all possible measurement configurations
 of size $M$, but this exhaustive search requires $\binom{C}{M}$ evalutions of
 cost, growing on the order of $O(C^M)$.
 % With a method of comparing the *** of two measurement configurations, one might
@@ -669,6 +692,7 @@ $$
 Computing the total cost of the SBS algorithm, we find that we obtain a
 speedup of $N^4$, which is significant for large images.
 
+\vspace{-0.2 in}
 \begin{align*}
   O_{sbs} &= O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i =
   \underbrace{
