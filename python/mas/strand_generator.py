@@ -45,18 +45,20 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
 
 
 def noise_model(x, frame_rate):
-    from numpy.random import poisson, normal
+    from numpy.random import normal
+    from scipy.stats import poisson
 
     # scale scene to max photon count
     x /= np.max(x)
     x *= 20
-    return poisson((x + 10 + 8) / frame_rate) + normal(0, 10)
+    x = poisson.rvs((x + 8 + 2) / frame_rate)
+    return normal(loc=x, scale=10)
 
 
 def strand_video(
         # experiment parameters
         exp_time=10, # s
-        drift_angle=np.deg2rad(-45), # radians
+        drift_angle=np.deg2rad(10), # radians
         drift_velocity=0.1e-3, # meters / s
         noise_model=noise_model,
         wavelengths=np.array([30.4e-9]),
