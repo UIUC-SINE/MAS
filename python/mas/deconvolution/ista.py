@@ -80,8 +80,9 @@ def ista(*, measurements, psfs, lam=10**-5.854, time_step=10**-1.621, iterations
         im = forward(x, psfs)
 
         if liveplot and n % 10 == 0:
-            plt.subplot(1, 3, 3)
-            plt.imshow(im[0])
+            import matplotlib.pyplot as plt
+            plt.subplot(1, 1, 1)
+            plt.imshow(final(x[0]))
             # plt.subplot(2, 3, 6)
             # plt.imshow(im[1, 0])
             plt.show()
