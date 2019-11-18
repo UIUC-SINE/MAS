@@ -1,3 +1,6 @@
+#!/bin/env python3
+# Evan Widloski, Ulas Kamaci - 2019-10-18
+
 # %% init
 
 import numpy as np
