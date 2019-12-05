@@ -67,4 +67,4 @@ def video(
         for row,col in zip(path_rows, path_cols):
             temp += scene[row:row+temp.shape[0], col:col+temp.shape[1]]
         frames[frame] = rescale(temp, 1/resolution_ratio, anti_aliasing=False)
-    return frames
+    return frames, topleft_coords

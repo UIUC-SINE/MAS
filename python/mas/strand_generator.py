@@ -2,6 +2,8 @@ import numpy as np
 import cv2, skimage
 from scipy.sparse import coo_matrix
 from scipy.ndimage.filters import gaussian_filter
+from numpy.random import normal
+from scipy.stats import poisson
 
 def strand(theta, x, thickness=22, intensity=1, image_width=512):
     """Generate single strand image"""
@@ -45,29 +47,26 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
 
 
 def noise_model(x, frame_rate):
-    from numpy.random import normal
-    from scipy.stats import poisson
 
     # scale scene to max photon count
-    x /= np.max(x)
-    x *= 20
     x = poisson.rvs((x + 8 + 2) / frame_rate)
     return normal(loc=x, scale=10)
-
 
 def strand_video(
         # experiment parameters
         exp_time=10, # s
         drift_angle=np.deg2rad(10), # radians
-        drift_velocity=0.1e-3, # meters / s
+        drift_velocity=0.2e-3, # meters / s
+        max_count=20,
         noise_model=noise_model,
         wavelengths=np.array([30.4e-9]),
         # CCD parameters
-        frame_rate=4, # Hz
-        ccd_size=(160, 160),
+        frame_rate=8, # Hz
+        ccd_size=(750, 750),
+        start=(400,0),
         pixel_size=14e-6, # meters
         # simulation subpixel parameters
-        resolution_ratio=5, # CCD pixel_size / simulation pixel_size
+        resolution_ratio=2, # CCD pixel_size / simulation pixel_size
         fov_ratio=2, # simulated FOV / CCD FOV
         # strand parameters
         num_strands=100, # num strands per CCD FOV
@@ -91,9 +90,12 @@ def strand_video(
     if (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 5, 160):
         from mas.data import strand_highres
         scene = strand_highres
+    elif (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 2, 750):
+        from mas.data import strand_highres2
+        scene = strand_highres2
     else:
         scene = strands(
-            num_strands=num_strands * fov_ratio,
+            num_strands=int(num_strands*fov_ratio*ccd_size[0]/160),
             thickness=22 * resolution_ratio,
             image_width=ccd_size[0] * resolution_ratio * fov_ratio,
             initial_width=3 * ccd_size[0] * resolution_ratio * fov_ratio
@@ -101,7 +103,7 @@ def strand_video(
 
     scene = get_measurements(sources=scene[np.newaxis, :, :], psfs=psfs)[0]
 
-    frames = video(
+    frames_clean, topleft_coords = video(
         scene=scene,
         frame_rate=frame_rate,
         exp_time=exp_time,
@@ -110,12 +112,13 @@ def strand_video(
         ccd_size=ccd_size,
         resolution_ratio=resolution_ratio,
         pixel_size=pixel_size,
-        start=(100, 100),
+        start=start
     )
 
+    frames_clean /= np.max(frames_clean)
+    frames_clean *= max_count
     # add noise to the frames
     if noise_model is not None:
-        frames = noise_model(frames, frame_rate)
+        frames = noise_model(frames_clean, frame_rate)
 
-
-    return frames
+    return frames, frames_clean, scene, topleft_coords

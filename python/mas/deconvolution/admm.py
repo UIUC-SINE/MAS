@@ -45,6 +45,8 @@ def admm(
     """
     num_sources = psfs.psfs.shape[1]
     rows, cols = measurements.shape[1:]
+    if type(lam) is np.float or type(lam) is np.float64 or type(lam) is np.int:
+        lam = np.ones(num_sources) * lam
 
     ################## initialize the primal/dual variables ##################
     primal1 = recon_init
@@ -200,6 +202,7 @@ def TV(
     pre_primal1 = diff_T(primal2 - dual)
     primal1 = primal1_update_gaussian(SIG_inv=SIG_inv, ATy=psfdfts_h_meas,
         nu=nu, pre_primal1=pre_primal1)
+    primal1[primal1 < 0] = 0
     ######################### PRIMAL2 UPDATE #########################
     pre_primal2 = diff(primal1)
     for i in range(num_sources):
