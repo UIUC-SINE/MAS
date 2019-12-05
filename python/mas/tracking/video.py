@@ -52,7 +52,7 @@ def video(
     # calculate each frame by integrating high resolution image along the drift
     # direction
     for frame in range(num_frames):
-        print('Frame {}/{}\r'.format(frame, num_frames), end='')
+        print('Frame {}/{}\r'.format(frame + 1, num_frames), end='')
         temp = np.zeros((ccd_size[0]*resolution_ratio, ccd_size[1]*resolution_ratio))
         # calculate topleft coordinates for the shortest line connecting the
         # topleft coordinates of the consecutive frames
