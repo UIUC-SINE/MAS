@@ -1,4 +1,7 @@
 import pandas as pd
+from numpy import roll
+from numpy.fft import fft2, ifft2
+from scipy.ndimage import fourier_shift
 
 def experiment(func, iterations, **kwargs):
     """
@@ -15,3 +18,18 @@ def experiment(func, iterations, **kwargs):
         result.append(func(**kwargs))
 
     return pd.DataFrame(result)
+
+
+def shift(image, amount, real=True):
+    """
+    Fourier shift in spatial domain
+
+    Args:
+        image: input image
+        amount: tuple to shift by
+        real (bool): cast image to real (default True)
+    """
+
+    result = ifft2(fourier_shift(fft2(image), amount, axis=0))
+
+    return result.real if real else result
