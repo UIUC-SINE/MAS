@@ -364,13 +364,13 @@ def size_equalizer(x, ref_size, mode='center'):
     return padded
 
 
-def crop(im, *, center, width):
+def crop(im, center=None, *, width):
     """
     Return a cropped rectangle from an input image
 
     Args:
         im (ndarray): input image
-        center (tuple): coordinate pair of center of cropped rectangle
+        center (tuple): coordinate pair of center of cropped rectangle. defaults to image center
         width (int, tuple): length of each axis of cropped rectangle.  returns square if integer
 
     Returns:
@@ -379,6 +379,9 @@ def crop(im, *, center, width):
 
     if type(width) is int:
         width = (width, width)
+
+    if center is None:
+        center = (im.shape[0] // 2, im.shape[1] // 2)
 
     assert (
         (0 <= center[0] - width[0]) and
