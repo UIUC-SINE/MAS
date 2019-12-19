@@ -3,6 +3,7 @@ from scipy.ndimage import map_coordinates
 from scipy.ndimage.interpolation import shift
 from scipy.optimize import curve_fit, minimize
 from abel.tools.polar import polar2cart, cart2polar, index_coords
+from itertools import combinations
 
 def reproject_image_into_polar(data, origin=None, Jacobian=False,
                                dr=1, dt=None, log=False):
@@ -128,6 +129,7 @@ def fast_prony2d(y):
 
     return (omega_m_reconstructed, omega_n_reconstructed)
 
+
 def phase_correlate(x, y):
     """Perform normalized phase-correlation"""
 
@@ -135,3 +137,55 @@ def phase_correlate(x, y):
         np.fft.fftn(x) * np.fft.fftn(y).conj() /
         np.abs(np.fft.fftn(x) * np.fft.fftn(y))
     )
+
+
+def multi_register(images):
+
+    phase_correlations = np.zeros(
+        (len(images) - 1, images.shape[1], images.shape[2]),
+        dtype='complex128'
+    )
+    for i, j in combinations(range(len(images)), 2):
+        print('Correlation {}/{}\r'.format(i, len(images)), end='')
+        phase_correlations[j - i - 1] += phase_correlate(images[i], images[j])
+    phase_correlations = np.array(phase_correlations)
+
+    return phase_correlations
+
+
+def phase_correlate_cupy(x, y):
+    """Perform normalized phase-correlation"""
+
+    import cupy
+
+    return cupy.fft.ifftn(
+        cupy.fft.fftn(x) * cupy.fft.fftn(y).conj() /
+        cupy.abs(cupy.fft.fftn(x) * cupy.fft.fftn(y))
+    )
+
+
+def multi_register_cupy(images):
+    import cupy
+
+    phase_correlations = cupy.zeros(
+        (len(images) - 1, images.shape[1], images.shape[2]),
+        dtype='complex128'
+    )
+    for i, j in combinations(range(len(images)), 2):
+        print('Correlation {}/{}\r'.format(i, len(images)), end='')
+        phase_correlations[j - i - 1] += phase_correlate_cupy(images[i], images[j])
+
+    argmaxes = []
+    for phase_correlation in phase_correlations:
+        argmaxes.append(
+            np.unravel_index(
+                np.argmax(
+                    cupy.asnumpy(phase_correlation)
+                ),
+                phase_correlations[0].shape
+            )
+        )
+    argmaxes = np.array(argmaxes)
+    phase_correlations = cupy.asnumpy(phase_correlations)
+
+    return argmaxes, phase_correlations
