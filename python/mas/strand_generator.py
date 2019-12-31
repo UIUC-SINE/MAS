@@ -120,5 +120,7 @@ def strand_video(
     # add noise to the frames
     if noise_model is not None:
         frames = noise_model(frames_clean, frame_rate)
+    else:
+        frames = frames_clean
 
     return frames, frames_clean, scene, topleft_coords
