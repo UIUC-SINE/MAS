@@ -55,13 +55,13 @@ def noise_model(x, frame_rate):
 def strand_video(
         # experiment parameters
         exp_time=10, # s
-        drift_angle=np.deg2rad(10), # radians
+        drift_angle=np.deg2rad(-45), # radians
         drift_velocity=0.2e-3, # meters / s
         max_count=20,
         noise_model=noise_model,
         wavelengths=np.array([30.4e-9]),
         # CCD parameters
-        frame_rate=8, # Hz
+        frame_rate=4, # Hz
         ccd_size=(750, 750),
         start=(400,0),
         pixel_size=14e-6, # meters

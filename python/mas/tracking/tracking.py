@@ -218,3 +218,26 @@ def multi_register_cupy(images, method='correlation'):
     correlations = cupy.asnumpy(correlations)
 
     return argmaxes, correlations
+
+def roll(x, shift):
+    shift = np.round(shift).astype(int)
+    return np.roll(
+        np.roll(
+            x,
+            shift[1],
+            axis=0
+        ),
+        shift[0],
+        axis=1
+    )
+
+def shift_and_sum(phase_correlations, shift):
+    summation = np.zeros(phase_correlations[0].shape, dtype='complex128')
+
+    for time_diff, phase_correlation in enumerate(phase_correlations):
+        time_diff += 1 # enumerate starts at 0
+        integer_shift = np.round(np.array(shift) * (time_diff)).astype(int)
+        shifted = roll(phase_correlation, integer_shift)
+        summation += shifted
+
+    return summation.real
