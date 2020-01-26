@@ -4,8 +4,8 @@ from mas.decorators import _vectorize
 import numpy as np
 
 @_vectorize(signature='(a,b),(c,d)->()', included=[0, 1])
-def compare_ssim(x, y):
-    return skimage_ssim(x, y, data_range=np.max(y) - np.min(y))
+def compare_ssim(*, truth, estimate):
+    return skimage_ssim(estimate, truth, data_range=np.max(truth) - np.min(truth))
 
-def compare_psnr(x, y):
-    return skimage_psnr(x, y, data_range=np.max(y) - np.min(y))
+def compare_psnr(*, truth, estimate):
+    return skimage_psnr(estimate, truth, data_range=np.max(truth) - np.min(truth))
