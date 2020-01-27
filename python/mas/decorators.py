@@ -76,3 +76,47 @@ def store_kwargs(func):
         func(self, *args, **kargs)
 
     return wrapper
+
+def np_gpu(np_args=[], np_kwargs=[]):
+    """
+    Apply to functions to use cupy in place of numpy if available.
+    function must have a `np` kwarg and should return a single numpy array
+
+    Args:
+        np_args (list): list of positional arguments to convert from np.ndarray
+            to cupy.ndarray
+        np_kwargs (list): list of keyword arguments to convert from np.ndarray
+            to cupy.ndarray
+
+    """
+
+    def decorator(func):
+
+        try:
+            import cupy
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                args = list(args)
+                for np_arg in np_args:
+                    args[np_arg] = cupy.array(args[np_arg])
+                for np_kwarg in np_kwargs:
+                    kwargs[np_kwarg] = cupy.array(kwargs[np_kwarg])
+
+                result = func(*args, np=cupy, **kwargs)
+                if type(result) is cupy.ndarray:
+                    return cupy.asnumpy(result)
+                else:
+                    return result
+
+        except ModuleNotFoundError:
+            import numpy as np
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                result = func(*args, np=np, **kwargs)
+                return result
+
+        return wrapper
+
+    return decorator
