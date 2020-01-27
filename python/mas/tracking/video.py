@@ -1,19 +1,11 @@
 import numpy as np
 from skimage.draw import line
 from skimage.transform import rescale
+from tqdm import tqdm
 
-def video(
-        *,
-        scene,
-        resolution_ratio=5,
-        frame_rate=4,
-        exp_time=10,
-        drift_angle=np.deg2rad(-45),
-        drift_velocity=0.1e-3,
-        pixel_size=14e-6,
-        ccd_size=(160, 160),
-        start=(400, 0),
-        ):
+def video(*, scene, resolution_ratio, frame_rate, exp_time, drift_angle,
+        drift_velocity, pixel_size, ccd_size, start,):
+
     """
     Get strand video frames
 
@@ -28,31 +20,32 @@ def video(
 
     num_frames = exp_time * frame_rate
 
+    def x_coord(k):
+        return int(
+            start[0] - k * drift_velocity * np.sin(np.deg2rad(drift_angle)) *
+            resolution_ratio / (frame_rate * pixel_size)
+        )
+    def y_coord(k):
+        return int(
+            start[1] + k * drift_velocity * np.cos(np.deg2rad(drift_angle)) *
+            resolution_ratio / (frame_rate * pixel_size)
+        )
+    assert (
+        0 <= x_coord(0) < scene.shape[0] and 0 <= y_coord(0) < scene.shape[1] and
+        0 <= x_coord(num_frames) < scene.shape[0] and 0 <= y_coord(num_frames) < scene.shape[1]
+    ), f"Frames drift outside of scene bounds ({x_coord(0)}, {y_coord(0)}) -> ({x_coord(num_frames)}, {y_coord(num_frames)})"
+
     # calculate the topleft points for all frames
     topleft_coords = []
     for k in range(num_frames + 1):
-        topleft_coords.append(
-            (
-                int(
-                    start[0] -
-                    k * drift_velocity * np.sin(drift_angle) * resolution_ratio /
-                    (frame_rate * pixel_size)
-                ),
-                int(
-                    start[1] +
-                    k * drift_velocity * np.cos(drift_angle) * resolution_ratio /
-                    (frame_rate * pixel_size)
-                )
-            )
-        )
+        topleft_coords.append((x_coord(k), y_coord(k)))
 
     # initialize frame images
     frames = np.zeros((num_frames, ccd_size[0], ccd_size[1]))
 
     # calculate each frame by integrating high resolution image along the drift
     # direction
-    for frame in range(num_frames):
-        print('Frame {}/{}\r'.format(frame + 1, num_frames), end='')
+    for frame in tqdm(range(num_frames), desc='Frames', leave=None, position=1):
         temp = np.zeros((ccd_size[0]*resolution_ratio, ccd_size[1]*resolution_ratio))
         # calculate topleft coordinates for the shortest line connecting the
         # topleft coordinates of the consecutive frames
