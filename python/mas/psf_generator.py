@@ -10,6 +10,7 @@ import sys
 from mas.forward_model import size_compressor
 from mas.forward_model import size_equalizer
 from mas.decorators import _vectorize
+from tqdm import tqdm
 
 def circ_incoherent_psf(
         *,
@@ -299,17 +300,22 @@ class PSFs():
         psfs = np.empty((0, len(source_wavelengths), image_width, image_width))
 
         # generate incoherent measurements for each wavelength and plane location
+        bar = tqdm(
+            total=len(measurement_wavelengths) * len(source_wavelengths),
+            desc='PSFs', leave=None, position=1
+        )
         for m, measurement_wavelength in enumerate(measurement_wavelengths):
             psf_group = np.empty((0, image_width, image_width))
             for n, source_wavelength in enumerate(source_wavelengths):
-                sys.stdout.write('\033[K')
-                print(
-                    'PSF {}/{}\r'.format(
-                        m * len(source_wavelengths) + n + 1,
-                        len(measurement_wavelengths) * len(source_wavelengths)
-                    ),
-                    end=''
-                )
+                bar.update(1)
+                # sys.stdout.write('\033[K')
+                # print(
+                #     'PSF {}/{}\r'.format(
+                #         m * len(source_wavelengths) + n + 1,
+                #         len(measurement_wavelengths) * len(source_wavelengths)
+                #     ),
+                #     end=''
+                # )
                 psf = psf_generator(
                     sieve=sieve,
                     source_wavelength=float(source_wavelength),
@@ -321,8 +327,7 @@ class PSFs():
 
                 psf_group = np.append(psf_group, [psf], axis=0)
             psfs = np.append(psfs, [psf_group], axis=0)
-
-        print()
+        bar.close()
 
         if cropped_width is not None:
             psfs = size_equalizer(psfs, [cropped_width, cropped_width])
