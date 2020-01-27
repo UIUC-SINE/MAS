@@ -3,7 +3,9 @@ import cv2, skimage
 from scipy.sparse import coo_matrix
 from scipy.ndimage.filters import gaussian_filter
 from numpy.random import normal
-from scipy.stats import poisson
+from mas.decorators import store_kwargs
+from tqdm import tqdm
+from cachalot import Cache
 
 def strand(theta, x, thickness=22, intensity=1, image_width=512):
     """Generate single strand image"""
@@ -29,8 +31,7 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
         ndarray: (image_width, image_width) image containing strands"""
 
     img = np.zeros((initial_width,initial_width))
-    for s in range(num_strands):
-        print('Strand {}/{}\r'.format(s, num_strands), end='')
+    for s in tqdm(range(num_strands), desc='Strands', leave=False):
         theta = np.random.uniform(min_angle, max_angle)
         x  = np.random.randint(
             0 if theta < 0 else initial_width * -np.tan(np.deg2rad(theta)),
@@ -48,79 +49,110 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
 
 def noise_model(x, frame_rate):
 
-    # scale scene to max photon count
-    x = poisson.rvs((x + 8 + 2) / frame_rate)
+    x = np.random.poisson((x + 8 + 2) / frame_rate)
     return normal(loc=x, scale=10)
 
-def strand_video(
-        # experiment parameters
-        exp_time=10, # s
-        drift_angle=np.deg2rad(-45), # radians
-        drift_velocity=0.2e-3, # meters / s
-        max_count=20,
-        noise_model=noise_model,
-        wavelengths=np.array([30.4e-9]),
-        # CCD parameters
-        frame_rate=4, # Hz
-        ccd_size=(750, 750),
-        start=(400,0),
-        pixel_size=14e-6, # meters
-        # simulation subpixel parameters
-        resolution_ratio=2, # CCD pixel_size / simulation pixel_size
-        fov_ratio=2, # simulated FOV / CCD FOV
-        # strand parameters
-        num_strands=100, # num strands per CCD FOV
-        # sieve parameters
-        diameter=75e-3, # meters
-        smallest_hole_diameter=17e-6, # meters
-):
-    from mas.psf_generator import PSFs, PhotonSieve
-    from mas.forward_model import get_measurements
-    from mas.tracking import video
 
-    ps = PhotonSieve(diameter=17e-6, smallest_hole_diameter=17e-6)
-    psfs = PSFs(
-        ps,
-        sampling_interval=pixel_size / resolution_ratio,
-        source_wavelengths=wavelengths,
-        measurement_wavelengths=wavelengths
-    )
+class StrandVideo(object):
 
-    # load common high resolution scene from file
-    if (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 5, 160):
-        from mas.data import strand_highres
-        scene = strand_highres
-    elif (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 2, 750):
-        from mas.data import strand_highres2
-        scene = strand_highres2
-    else:
-        scene = strands(
-            num_strands=int(num_strands*fov_ratio*ccd_size[0]/160),
-            thickness=22 * resolution_ratio,
-            image_width=ccd_size[0] * resolution_ratio * fov_ratio,
-            initial_width=3 * ccd_size[0] * resolution_ratio * fov_ratio
+    """A class for holding strand video state
+
+    Args:
+        exp_time (int): total experiment time (s)
+        drift_angle (float): angle of drift (degrees)
+        drift_velocity (float): velocity of drift (m / s)
+        max_count (int): maximum photon rate
+        noise_model (function): function which takes 'frames' and 'frame_rate'
+            and returns noisy frames
+
+        ccd_size (tuple): resolution of physical CCD
+        pixel_size (float): width of CCD pixel (m)
+
+        resolution_ratio (int): subpixel scale factor
+            (ccd pixel size / simulation pixel size)
+        fov_ratio (int): (simulation FOV / CCD FOV)
+
+        num_strands (int): number of nanoflares
+
+        diameter (float): sieve diameter (m)
+        smallest_hole_diameter (float): smallest sieve hole diam (m)
+    """
+
+    @store_kwargs
+    def __init__(
+            self,
+            # experiment parameters
+            exp_time=10, # s
+            drift_angle=-45, # degrees
+            drift_velocity=0.2e-3, # meters / s
+            max_count=20,
+            noise_model=noise_model,
+            wavelengths=np.array([30.4e-9]),
+            # CCD parameters
+            frame_rate=4, # Hz
+            ccd_size=(750, 750),
+            start=(0, 0),
+            pixel_size=14e-6, # meters
+            # simulation subpixel parameters
+            resolution_ratio=2, # CCD pixel_size / simulation pixel_size
+            fov_ratio=2, # simulated FOV / CCD FOV
+            # strand parameters
+            num_strands=100, # num strands per CCD FOV
+            # sieve parameters
+            diameter=75e-3, # meters
+            smallest_hole_diameter=17e-6, # meters
+    ):
+        from mas.psf_generator import PSFs, PhotonSieve
+        from mas.forward_model import get_measurements
+        from mas.tracking import video
+
+        self.ps = PhotonSieve(diameter=diameter, smallest_hole_diameter=smallest_hole_diameter)
+        self.psfs = PSFs(
+            self.ps,
+            sampling_interval=pixel_size / resolution_ratio,
+            source_wavelengths=wavelengths,
+            measurement_wavelengths=wavelengths
         )
 
-    scene = get_measurements(sources=scene[np.newaxis, :, :], psfs=psfs)[0]
+        # load common high resolution scene from file
+        if (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 5, 160):
+            from mas.data import strand_highres
+            self.scene = strand_highres
+        elif (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 2, 750):
+            from mas.data import strand_highres2
+            self.scene = strand_highres2
+        else:
+            self.scene = strands(
+                num_strands=int(num_strands*fov_ratio*ccd_size[0]/160),
+                thickness=22 * resolution_ratio,
+                image_width=ccd_size[0] * resolution_ratio * fov_ratio,
+                initial_width=3 * ccd_size[0] * resolution_ratio * fov_ratio
+            )
 
-    frames_clean, topleft_coords = video(
-        scene=scene,
-        frame_rate=frame_rate,
-        exp_time=exp_time,
-        drift_angle=drift_angle,
-        drift_velocity=drift_velocity,
-        ccd_size=ccd_size,
-        resolution_ratio=resolution_ratio,
-        pixel_size=pixel_size,
-        start=start
-    )
+        self.scene = get_measurements(sources=self.scene[np.newaxis, :, :], psfs=self.psfs)[0]
 
-    frames_clean /= np.max(frames_clean)
-    frames_clean *= max_count
-    # add noise to the frames
-    if noise_model is not None:
-        frames = noise_model(frames_clean, frame_rate)
-    else:
-        frames = frames_clean
+        self.frames_clean, self.topleft_coords = video(
+            scene=self.scene,
+            frame_rate=frame_rate,
+            exp_time=exp_time,
+            drift_angle=drift_angle,
+            drift_velocity=drift_velocity,
+            ccd_size=ccd_size,
+            resolution_ratio=resolution_ratio,
+            pixel_size=pixel_size,
+            start=start
+        )
 
-    return frames, frames_clean, scene, topleft_coords
+        self.frames_clean /= np.max(self.frames_clean)
+        self.frames_clean *= max_count
+
+        # add noise to the frames
+        if noise_model is not None:
+            self.frames = noise_model(self.frames_clean, frame_rate)
+        else:
+            self.frames = self.frames_clean
+
+        self.true_drift = drift_velocity / frame_rate * np.array([
+            np.cos(np.deg2rad(drift_angle)),
+            -np.sin(np.deg2rad(drift_angle)) # use image coordinate system
+        ]) / pixel_size
