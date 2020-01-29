@@ -1,4 +1,7 @@
 import numpy as np
+from functools import wraps
+import inspect
+
 
 def _vectorize(signature='(m,n)->(i,j)', included=[0]):
     """Decorator to make a 2D functions work with higher dimensional arrays
@@ -53,3 +56,67 @@ def _vectorize(signature='(m,n)->(i,j)', included=[0]):
     return decorator
 
 vectorize = _vectorize()
+
+def store_kwargs(func):
+    """
+    Apply to any class __init__ to automatically store all kwargs inside the class
+    https://stackoverflow.com/questions/1389180/automatically-initialize-instance-variables
+    """
+    names, varargs, keywords, defaults = inspect.getargspec(func)
+
+    @wraps(func)
+    def wrapper(self, *args, **kargs):
+        for name, arg in list(zip(names[1:], args)) + list(kargs.items()):
+            setattr(self, name, arg)
+
+        for name, default in zip(reversed(names), reversed(defaults)):
+            if not hasattr(self, name):
+                setattr(self, name, default)
+
+        func(self, *args, **kargs)
+
+    return wrapper
+
+def np_gpu(np_args=[], np_kwargs=[]):
+    """
+    Apply to functions to use cupy in place of numpy if available.
+    function must have a `np` kwarg and should return a single numpy array
+
+    Args:
+        np_args (list): list of positional arguments to convert from np.ndarray
+            to cupy.ndarray
+        np_kwargs (list): list of keyword arguments to convert from np.ndarray
+            to cupy.ndarray
+
+    """
+
+    def decorator(func):
+
+        try:
+            import cupy
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                args = list(args)
+                for np_arg in np_args:
+                    args[np_arg] = cupy.array(args[np_arg])
+                for np_kwarg in np_kwargs:
+                    kwargs[np_kwarg] = cupy.array(kwargs[np_kwarg])
+
+                result = func(*args, np=cupy, **kwargs)
+                if type(result) is cupy.ndarray:
+                    return cupy.asnumpy(result)
+                else:
+                    return result
+
+        except ModuleNotFoundError:
+            import numpy as np
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                result = func(*args, np=np, **kwargs)
+                return result
+
+        return wrapper
+
+    return decorator

@@ -18,7 +18,9 @@ setup(
         "numpy",
         "scipy",
         "imageio",
-        "opencv-python"
+        "opencv-python",
+        "tqdm",
+        "pandas"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
