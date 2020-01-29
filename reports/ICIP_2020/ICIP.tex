@@ -274,7 +274,7 @@ $S$ sources. More formally,
 where $\bm{a}_{m,s} \in \mathbb R^{P\times P}$ is a blurring kernel known as a
 \emph{point spread function} (PSF), $\ast$ is a 2D convolution, and $\bm{n}_m
 \in \mathbb R^{N_2 \times N_2}$ is additive measurement noise. Each PSF depends
-on the associated source wavelength and measurement location, together with the
+on the associated source wavelength and measurement location together with the
 diffractive lens aperture and can be computed efficiently
 \cite{ayazgok2020efficient}.
 % An example set of PSF images for $M=S=2$ case is given in Figure \ref{fig:psfs}.
@@ -331,7 +331,7 @@ reconstruction error and we must make statistical assumptions about $\bm{x}$.
 Maximum a posteriori (MAP) estimation is one such strategy.
 
 We assume the original spectral components and noise are distributed according to a
-normal distribution such that $\bm{x} \sim \mathcal{N}(\bm{\mu}_{\bm{x}}, \bm{\Sigma}_{\bm{x}})$ and
+normal distribution such that $\bm{x} \sim \mathcal{N}(\bm{x}_{0}, \bm{\Sigma}_{\bm{x}})$ and
 $\bm{n} \sim \mathcal{N}(0, \bm{\Sigma}_{\bm{n}})$.  The MAP estimate is then
 
 % FIXME - dimensionality -> n
@@ -344,7 +344,7 @@ $$
   p(\bm{x})\right] \\
   &= \bm{x}_0 + \left( \bm{A}_{\bm{d}}^H\bm{\Sigma}_{\bm{n}}^{-1} \bm{A}_{\bm{d}} +
     \bm{\Sigma}_{\bm{x}}^{-1}\right)^{-1}
-  \cdot  \bm{A}_{\bm{d}}^H \bm{\Sigma}_{\bm{n}}^{-1} (\bm{y} - \bm{A}_{\bm{d}} \bm{\mu}_{\bm{x}})
+  \cdot  \bm{A}_{\bm{d}}^H \bm{\Sigma}_{\bm{n}}^{-1} (\bm{y} - \bm{A}_{\bm{d}} \bm{x}_0)
 \end{aligned}
 $$
 The reconstruction error is defined as $\bm{e} = \bm{x} - \bm{x_{\text{MAP}}}$,
@@ -454,7 +454,7 @@ An alternative method which is more computationally feasible is known as
 \emph{greedy hill climbing}, or more specifically, \emph{sequential backward
 selection} (SBS) \cite{sharif}. In SBS, one measurement location is eliminated from $\bm{d}$ in each
 iteration until only $M$ locations remain. As reconstruction error generally
-increases as the number of measurements dereases, SBS selects for elimination the
+increases as the number of measurements decreases, SBS selects for elimination the
 measurement that incurs the smallest increase in cost in each iteration.
 
 \begin{algorithm}
@@ -525,7 +525,7 @@ convolution kernels.
 Assuming $N \times N$ images, each $N^2 \times N^2$ block $\bm A_{m,s}$ of $\bm
 {A_d}$ can be decomposed as $\bm A_{m,s} = \bm F^{-1} \widetilde{\bm A}_{m,s}
 \bm F$ where $\widetilde{\bm A}_{m,s}$ is the diagonal matrix consisting of the
-2D DFT of $\bm a_{m,s}$. This yields
+2D DFT of $\bm a_{m,s}$, and $\bm F$ is the 2D DFT matrix. This yields
 \vspace{-0.1 in}
 \begin{equation}
   \bm {A_d}=
@@ -579,9 +579,38 @@ with $\lambda$):
 \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1} \right)
 \label{eq:fast_cost}
 \end{align}
-where the computational complexity of \eqref{eq:fast_cost} is much less than
-\eqref{eq:naive_cost} as both the multiplication and the inversion complexity
-reduces significantly due to the diagonalized blocks.
+where the computational complexity of evaluating \eqref{eq:fast_cost} is much
+less than \eqref{eq:naive_cost} due to the diagonalized blocks of
+$\widetilde{\bm A}_{\bm d}$ and $\widetilde{\bm \Sigma}_x^{-1}$. Since $\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d}$ does not have to be
+recomputed at every SBS iteration, but rather can be s
+
+
+% Now, we derive the computational complexity of the fast SBS implementation and
+% compare it with the general implementation. The computational complexity of
+% evaluating the cost at \eqref{eq:fast_cost} for a particular measurement
+% configuration $\bm{d}$ comes from two places: The multiplication $\widetilde{\bm
+% A}_{\bm d}^H \widetilde{\bm A}_{\bm d}$, and the inversion $\left(
+% \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} + \lambda \widetilde{\bm
+% \Sigma}_x^{-1} \right)^{-1}$, whose complexities we denote as $O_m$ and $O_i$,
+% respectively.
+%
+% The product $\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d}$ can be
+% rewritten as sum of products $\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm
+% d} = \sum_{d \in \bm{d}} \widetilde{\bm A}_{d}^H \widetilde{\bm A}_{d}$ where
+% $\widetilde{\bm A}_{d} \in \mathbb R^{N^2 \times SN^2}$ is the measurement matrix
+% with diagonalized blocks at the distance $d$ such that $\widetilde{\bm A}_{\bm d} = \begin{bmatrix}
+% \widetilde{\bm A}_{d_1}^H & \dots & \widetilde{\bm A}_{d_C}^H
+% \end{bmatrix}^H$.
+% With this property, we can simply precompute all $\widetilde{\bm A}_{d}^H
+% \widetilde{\bm A}_{d}$ during algorithm initialization and use the results to
+% form $\widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d}$ as needed.
+%
+% Since each $\widetilde{\bm A}_{d}$ has shape $(1 \times S)$ with diagonal blocks
+% of size $N^2$, the overall complexity for precomputing $\widetilde{\bm A}_{d}^H \widetilde{\bm A}_{d}$ for all $C$ candidate locations is
+%
+% $$
+% O_m = C \cdot O(S^2N^2) = O(S^2N^2C)
+% $$
 
 \section{Complexity Analysis}
 
@@ -613,13 +642,13 @@ $$
 \bm{A}^H_{\bm{d}} \bm{A}_{\bm{d}} = \sum_{d \in \bm{d}} \bm{A}^H_{d} \bm{A}_{d}
 $$
 
-With this property, we can simply precompute all $\bm{A}^H_{d}\bm{A}_{d}$ during
+where $\bm{A}_d$ with shape $(N^2 \times SN^2)$, is a row of $\bm{A}_{\bm d}$. With this property, we can simply precompute all $\bm{A}^H_{d}\bm{A}_{d}$ during
 algorithm initialization and use the results to form
 $\bm{A}^H_{\bm{d}}\bm{A}_{\bm{d}}$ as needed.
-Since each $\bm{A}_d$ has shape $(1 \times SN^2)$, the overall complexity for precomputing $\bm{A}^H_d \bm{A}_d$ for all $C$ candidate locations is
+The overall complexity for precomputing $\bm{A}^H_d \bm{A}_d$ for all $C$ candidate locations is
 
 $$
-O_m = C \cdot O((SN^2)^2) = O(S^2N^4C)
+O_m = C \cdot O((SN^2)^2 N^2) = O(S^2N^6C)
 $$
 
 The second contributor to cost complexity is inversion of $\bm{A}^H_{\bm{d}}
@@ -635,7 +664,7 @@ The total complexity of the SBS algorithm can be written
 \begin{align*}
   O_{sbs} &= O_m + \sum_{|\bm{d}| = M}^C |\bm{d}| O_i =
   \underbrace{
-  O(S^2N^4C)
+  O(S^2N^6C)
   }_{\substack{\text{multiplication}\\ \text{complexity}}}
   +
   \underbrace{
