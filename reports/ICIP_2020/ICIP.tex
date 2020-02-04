@@ -596,7 +596,7 @@ that is iterated over, which can be precomputed.
 With that, the complexity of overall SBS algorithm is dominated by the inversion
 of $\bm \Psi \triangleq \left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} +
 \lambda \widetilde{\bm \Sigma}_x^{-1} \right) \in \mathbb C ^{SN^2 \times SN^2}$
-that is performed in each iteration. The complexity of a standard inversion
+that is performed in each iteration. Complexity of a standard inversion
 algorithm would give $O_i \triangleq O((SN^2)^3) = O(S^3N^6)$. However, the
 diagonal structure in $\bm \Psi$ allows for a much faster inversion algorithm
 of complexity $O_i = O(S^3N^2)$ \cite{kamaci2017}, providing a speed-up of $N^4$, which is huge for large image sizes. The total complexity of the SBS algorithm can
@@ -732,27 +732,74 @@ $$
 % \end{align*}
 
 \section{Numerical Experiments}
-In this section, we present numerical results for reconstructing a simulated
-$N^2{=}160^2$ polychromatic source with $S=2$ spectral components at $\lambda_1 =
-\SI{33.400}{\nano\metre}$ and $\lambda_2 = \SI{33.402}{\nano\metre}$, shown as
-separate colors in Figure \ref{fig:results}(a). In this experiment, we
-initialized SBS with 12 repeated measurements at 32 candidate planes for a total
-of $C = 384$ candidate measurements. We allowed SBS to run until only $M = 12$
-measurements remain and show the final measurement configuration selected in
-Figure \ref{fig:results}(d).  This plot shows that SBS has selected a set of
-measurement locations outside the focal planes for the two spectral components,
-marked with red and green bars. The simulation took a few seconds on a standard
-desktop computer.
+In this section, we present numerical experiments that demonstrate that the
+measurement configuration selected by SBS yields improved reconstructions over
+focal plane reconstructions. We first provide an intuition for why SBS chooses
+an alternative configuration that improves on the focal plane configuration, and
+then test the algorithm under a variety of scenarios including varying SNRs,
+number of spectral components, and spectral component separation in wavelength.
+We use photon sieve as the diffractive element in our simulations, which offers
+improved PSFs than Fresnel zone plates \cite{kipp2001sharper}.
 
-Figures \ref{fig:results}(e) and \ref{fig:results}(f) show the spectral
-component reconstructions after disentangling and deblurring using Tikhonov
-regularization. For comparison, we have included reconstructions yielded by
-making an equal number of measurements at the focal planes of $\lambda_1$ and
-$\lambda_2$ without applying SBS, shown in Figures \ref{fig:results}(b) and
-\ref{fig:results}(c).  As compared to the reconstructions obtained from the SBS
-measurements, the focal plane reconstructions are relatively noisier and exhibit
-bleeding-over, where features appear in the wrong reconstruction.  This is
-especially evident in Figure \ref{fig:results}(c).
+For the first experiment, we simulate a scenario with two spectral components
+that are close to each other in wavelenght, shown as separate colors in Figure
+\ref{fig:results}(a). We first run SBS to find a measurement configuration, and
+then compare its image reconstruction performance with focal plane
+configuration. We run SBS on a set of uniformly spaced candidate plane
+locations that are centered around the focal planes. We set the prior covariance
+matrix $\bm \Sigma_x$ such that it promotes global smoothness in each image, and
+use noise level of \SI{15}{\decibel} SNR for each measurement. The final
+measurement configuration selected by SBS is given in Figure \ref{fig:results}(d),
+where the two focal planes are marked with red and green bars.
+
+We use the MAP estimation framework given in Section 2 as the image
+reconstruction algorithm for both the focal plane and SBS configurations for
+consistency, where we take $\bm x_0=0$. We search for the best $\lambda$ for
+the focal plane reconstructions, and used the same $\lambda$ for both running
+SBS, and reconstructing the components with SBS and focal plane configurations.
+Figures \ref{fig:results}(b) and \ref{fig:results}(c) show the spectral
+component reconstructions for focal plane configuration, and Figures
+\ref{fig:results}(e) and \ref{fig:results}(f) does the same for SBS
+configuration. Table \ref{tab:ssims} provides the structural similary (SSIM) and
+peak signal-to-noise ratio (PSNR) values of the reconstructions.
+
+
+% \begin{itemize}
+% \item Wavelengths: $\lambda_1 = $ \SI{33.400}{\centi\meter}, $\lambda_2 = $ \SI{33.402}{\centi\meter}
+% \item Candidate plane locations - $\bm d$: Equally spaced 30 locations plus
+% focal planes, 10 copy of each
+% \item Final number of planes - $M$: 12
+% \item Sieve parameters: Diameter: \SI{10}{\centi\meter}, number of zones: 3570
+% \item Measurement noise: \SI{15}{\decibel} SNR
+% \end{itemize}
+
+% In this experiment, we initialized SBS with 12 repeated
+% measurements at 32 candidate planes for a total of $C = 384$ candidate
+% measurements. We allowed SBS to run until only $M = 12$ measurements remain and
+% show the final measurement configuration selected in Figure
+% \ref{fig:results}(d). This plot shows that SBS has selected a set of
+% measurement locations outside the focal planes for the two spectral components,
+% marked with red and green bars. The simulation took a few seconds on a standard
+% desktop computer.
+
+Our intuition on why SBS chooses out of focus planes over the focal planes is
+that as the source wavelengths get very close to each other, which is the case
+here, each focal plane get higher contamination from the other source; as a
+result, it gets harder for the deconvolution algorithm to disentangle the
+sources. This is especially evident in Figure \ref{fig:results}(c), where the
+features appear in the wrong reconstruction. Therefore, the algorithm prefers
+out of focus planes where relative contamination from off focus sources are
+smaller, and it is easier to disentangle the sources.
+
+% Figures \ref{fig:results}(e) and \ref{fig:results}(f) show the spectral
+% component reconstructions after disentangling and deblurring using Tikhonov
+% regularization. For comparison, we have included reconstructions yielded by
+% making an equal number of measurements at the focal planes of $\lambda_1$ and
+% $\lambda_2$ without applying SBS, shown in Figures \ref{fig:results}(b) and
+% \ref{fig:results}(c).  As compared to the reconstructions obtained from the SBS
+% measurements, the focal plane reconstructions are relatively noisier and exhibit
+% bleeding-over, where features appear in the wrong reconstruction.  This is
+% especially evident in Figure \ref{fig:results}(c).
 
 \begin{figure}[t]
 \begin{minipage}[b]{0.32\linewidth}
@@ -804,16 +851,10 @@ especially evident in Figure \ref{fig:results}(c).
 % line are quite high at focal planes which degrades the reconstruction quality
 % as the deconvolution cannot disentangle the spectral lines well.
 
-Our intuition on why SBS chooses out of focus planes over the focal planes is
-that as the source wavelengths get very close to each other, each focal plane
-get higher contamination from the other source; as a result, it gets harder for
-the deconvolution algorithm to disentangle the sources. Therefore, the algorithm
-prefers out of focus planes where relative contamination from off focus sources
-are smaller, and it is easier to disentangle the sources.
 
-Finally, in Table \ref{tab:ssims}, we evaluate the error in the reconstructed
-spectral images using structural similary (SSIM) and peak signal-to-noise ratio
-(PSNR), where the SBS reconstruction yielded better results measured by both metrics.
+% Finally, in Table \ref{tab:ssims}, we evaluate the error in the reconstructed
+% spectral images using structural similary (SSIM) and peak signal-to-noise ratio
+% (PSNR), where the SBS reconstruction yielded better results measured by both metrics.
 
 \begin{table}[h]
 \caption{SSIM/PSNR comparison for SBS vs focal planes}
@@ -838,14 +879,15 @@ SBS  & 0.764 & 26.56 dB \\ \hline
   \label{fig:ratio}
 \end{figure}
 
-We repeat this experiment for $S = 2, 3, 4$ uniformly spaced spectral components
-under a variety of noise levels and spectral component separations.  In Figure
-\ref{fig:ratio}, we plot the mean SSIM of the reconstructions obtained from
-measurements at focal planes (blue) and measurements at planes selected by SBS
-(orange).  The SBS reconstructions generally outperform the focal plane
-reconstructions except when the spectral component separation is large enough
-(around XXX nm).  With sufficient separation, we have found that SBS converges
-to a final measurement configuration near the focal planes.
+For the second experiment, we repeat what we did for $S = 2, 3, 4$ uniformly
+spaced spectral components under a variety of noise levels and spectral
+component separations.  In Figure \ref{fig:ratio}, we plot the mean SSIM of the
+reconstructions obtained from measurements at focal planes (blue) and
+measurements at planes selected by SBS (orange).  The SBS reconstructions
+generally outperform the focal plane reconstructions except when the spectral
+component separation is large enough (around XXX nm).  With sufficient
+separation, we have found that SBS converges to a final measurement
+configuration near the focal planes.
 
 \section{Conclusion}
 
