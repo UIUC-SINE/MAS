@@ -745,33 +745,24 @@ $$
 \section{Numerical Experiments}
 In this section, we present numerical experiments that demonstrate that the
 measurement configuration selected by SBS yields improved reconstructions over
-reconstructions obtained from measurements taken at focal planes. We first
-provide an intuition for why SBS chooses an alternative configuration that
-improves on the focal plane configuration, and then test the algorithm under a
-variety of scenarios including varying SNRs, number of spectral components, and
-spectral component separation in wavelength. We use a photon sieve as the
+reconstructions obtained from measurements taken at focal planes.
+We use a photon sieve as the
 diffractive element in our simulations, which offers PSFs with sharper focus
 than Fresnel zone plates \cite{kipp2001sharper}.
 
-For the first experiment, we simulate a scenario with two spectral components
-that are close to each other in wavelength, shown as separate colors in Figure
-\ref{fig:results}(a). We first run SBS to find a measurement configuration, and
-then compare the quality of its reconstruction with the focal plane
-configuration reconstruction. We run SBS on a set of uniformly spaced candidate plane
-locations centered around the focal planes and choose a prior covariance
-matrix $\bm \Sigma_x$ that promotes global smoothness in each image. We use the
-MAP estimation framework given in Section 2 as the image reconstruction
-algorithm for both the focal plane and SBS configurations for consistency, where
-we take $\bm x_0=0$. We search for the best $\lambda$ for the focal plane
-reconstructions, and used the same $\lambda$ for both running SBS, and
-reconstructing the components with SBS and focal plane configurations.
-
-The final measurement configuration selected by SBS is given in Figure
-\ref{fig:results}(d), where the two focal planes are marked with red and green
-bars. Figures \ref{fig:results}(b) and \ref{fig:results}(c) show the spectral
-component reconstructions for focal plane configuration, and Figures
-\ref{fig:results}(e) and \ref{fig:results}(f) does the same for SBS
-configuration. Table \ref{tab:ssims} provides the structural similary (SSIM) and
+We begin by simulating a scenario with two spectral components that are close to
+each other in wavelength, shown as separate colors in Figure
+\ref{fig:results}(a). We use the MAP estimation framework given in Section 2 as
+the image reconstruction algorithm for both the focal plane and SBS
+configurations. For a fair comparison between SBS and focal plane
+reconstructions, we search over $\lambda$ to find the value which maximizes the
+focal plane reconstruction, then use this same $\lambda$ for the SBS cost
+function and reconstruction. The final measurement configuration selected by SBS
+is given in Figure \ref{fig:results}(d), where the two focal planes are marked
+with red and green bars. Figures \ref{fig:results}(b) and \ref{fig:results}(c)
+show the spectral component reconstructions for focal plane configuration, and
+Figures \ref{fig:results}(e) and \ref{fig:results}(f) for SBS
+configuration. Table \ref{tab:ssims} provides the structural similary (SSIM) \cite{ssim} and
 peak signal-to-noise ratio (PSNR) values of the reconstructions.
 
 % Our intuition on why SBS chooses out of focus planes over the focal planes is
@@ -791,7 +782,7 @@ measurement variation and makes disentangling the component contributions
 difficult. This is especially evident in Figure 3(c), where the features from
 one wavelength appear in the reconstruction of the other wavelength. Instead,
 SBS chooses measurement locations where the PSF pairs have more variation at the
-expense of a less sharp in focus PSF.
+expense of a less sharp in focus PSF, shown in Figure \ref{fig:psfs_compare}.
 
 \begin{figure}[t]
 \begin{minipage}[b]{0.32\linewidth}
@@ -834,6 +825,33 @@ expense of a less sharp in focus PSF.
 \label{fig:results}
 \end{figure}
 
+\begin{figure}[t]
+\begin{minipage}[b]{0.23\linewidth}
+  \centering
+  \centerline{\includegraphics[width=2.0cm]{psf_focus1}}
+  \centerline{(a)}
+\end{minipage}
+\begin{minipage}[b]{0.23\linewidth}
+  \centering
+  \centerline{\includegraphics[width=2.0cm]{psf_focus2}}
+  \centerline{(b)}
+\end{minipage}
+\begin{minipage}[b]{0.23\linewidth}
+  \centering
+  \centerline{\includegraphics[width=2.0cm]{psf_csbs1}}
+  \centerline{(c)}
+\end{minipage}
+\begin{minipage}[b]{0.23\linewidth}
+  \centering
+  \centerline{\includegraphics[width=2.0cm]{psf_csbs2}}
+  \centerline{(d)}
+\end{minipage}
+\caption{(a) (b) PSFs at $\lambda_1$ focal plane. (c) (d) PSFs at a measurement location selected by SBS
+  (c) and (d) are less focused that (a) and (b), but have more measurement variation between them.
+}
+\label{fig:psfs_compare}
+\end{figure}
+
 % Figure \ref{fig:results}d shows the reconstructed image of the wavelength
 % $\lambda_1$ with the 12 CSBS planes given in Figure \ref{fig:results}f and
 % Figure \ref{fig:results}e shows the same with using 6 measurements in each focal
@@ -866,20 +884,17 @@ SBS  & 0.764 & 26.56 dB \\ \hline
     \centering
     \centerline{\includegraphics[width=8.5cm]{ratio}}
   \end{minipage}
-  \caption{Reconstruction SSIMs for various settings. SBS reconstruction SSIM and
-  focal plane reconstruction SSIM are shown in orange and blue.}
+  \caption{Reconstruction SSIMs for varied number of spectral components, SNR (dB), and source separation (DOF). SBS reconstruction SSIM and
+  focal plane reconstruction SSIM are shown in orange and blue, respectively.}
   \label{fig:ratio}
 \end{figure}
 
-For the second experiment, we repeat the first experiment for $S = 2, 3, 4$
-uniformly spaced spectral components under a variety of noise levels and
-spectral component separations.  In Figure \ref{fig:ratio}, we plot the mean
+To show that this reconstruction improvement generalizes, we repeat the first experiment for $S = 2, 3, 4$
+uniformly spaced spectral components under different noise levels and
+spectral component separations measured in depth of focus (DOF).  In Figure \ref{fig:ratio}, we plot the mean
 SSIM of the reconstructions obtained from measurements at focal planes (blue)
 and measurements at planes selected by SBS (orange).  The SBS reconstructions
-generally outperform the focal plane reconstructions except when the spectral
-component separation is large enough (around 10 depth-of-focus).  With
-sufficient separation, we have found that SBS converges to a final measurement
-configuration near the focal planes.
+generally have higher SSIM than the focal plane up until the spectral components are sufficiently separated (about 10 DOF), where reconstruction SSIM are about the same.
 
 \section{Conclusion}
 
@@ -890,8 +905,8 @@ computationally intractable, so we have developed a more feasible implementation
 of this algorithm and perform an analysis of its complexity to show that it is
 significantly faster than the previous implementation for large images.
 Finally, we demonstrate SBS on a simulated spectral imaging system and show that
-the optimized measurement configuration achieves better reconstructions than a
-naive choice of measurements at the spectral component focal planes.
+the optimized measurement configuration achieves equal or better reconstructions than a
+choice of measurements at the spectral component focal planes.
 
 \vfill\pagebreak
 
