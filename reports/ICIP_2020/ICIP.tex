@@ -28,6 +28,7 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 
 \begin{document}
 \maketitle
+% \ninept
 
 \begin{abstract}
 % Spectral imaging, forming images of a scene at many wavelengths, is a
@@ -55,19 +56,22 @@ University of Illinois at Urbana-Champaign, Urbana, IL 61801, USA
 
 Diffractive lenses have recently been applied to the domain of multispectral
 imaging in the X-ray and UV regimes where they can achieve very high resolution
-as compared to reflective and refractive optics. Previously, spectral components were reconstructed by taking measurements at the focal planes. However, the reconstruction quality can be improved by optimizing the measurement configuration. In this work, we apply the sequential backward selection
-algorithm to search for a configuration which minimizes expected
+as compared to reflective and refractive optics. Conventionally, spectral
+components are reconstructed by taking measurements at the focal planes.
+However, the reconstruction quality can be improved by optimizing the
+measurement configuration. In this work, we adapt a sequential backward
+selection algorithm to search for a configuration which minimizes expected
 reconstruction error. By approximating the forward system as a circular
 convolution and making assumptions on the source and noise, we greatly reduce
-the complexity of the algorithm. Numerical results show that the
-configuration found by the algorithm significantly improves the reconstruction
-performance compared to a standard configuration.
+the complexity of the algorithm. Numerical results show that the configuration
+found by the algorithm significantly improves the reconstruction performance
+compared to a standard configuration.
 
 \end{abstract}
 
 \begin{keywords}
-Spectral imaging, diffractive optics, measurement configuration, sequential
-backward selection, subset selection
+Spectral imaging, diffractive optics, measurement configuration,
+subset selection, computational imaging
 \end{keywords}
 
 \section{Introduction}
@@ -108,10 +112,12 @@ pattern that can be etched into silicon wafer to produce a diffractive lens.
 
 
 Diffractive lenses have the property that the angle at which light exits the
-lens is determined by the light's wavelength. This process forms a focused image
-of each spectral component of source at different
-distances from the lens \cite{attwood1999}, as shown in Figure
-\ref{fig:diff_lens}(a).
+lens is determined by the light's wavelength, which gives them a wavelength
+dependent focal length, as shown in Figure \ref{fig:diff_lens}(a)
+\cite{attwood1999}.
+% This process forms a focused image of each spectral
+% component of source at different distances from the lens \cite{attwood1999}, as
+% shown in Figure \ref{fig:diff_lens}(a).
 
 
 \begin{figure}[htb]
@@ -135,19 +141,72 @@ distances from the lens \cite{attwood1999}, as shown in Figure
   \centerline{(c)}\medskip
 \end{minipage}
 \caption{(a) diffraction of a polychromatic wave through a diffractive lens (b) Fresnel zone
-plate (c) photon sieve}
+plate (c) photon sieve \cite{kipp2001sharper}}
 \label{fig:diff_lens}
 %
 \end{figure}
 
 % FIXME
-Through the process of diffraction, each measurement is actually a sum of all
-spectral components of the source at varying degrees of focus. An inverse
-problem consisting of disentangling and deblurring of measurements must be
-solved in order to recover the original source components. This has been
-previously addressed by taking measurements at each focal plane, formulating the
-diffractive system in a linear model, and solving the associated inverse problem
-\cite{oktem2014icip}.
+Measurements at the focal plane of each spectral component comprise of a sum of a
+focused image of one component and blurred images of all other
+components, as shown in Figure \ref{fig:pssi_drawing}.
+% Through the process of diffraction, each measurement is actually a sum of all
+% spectral components of the source at varying degrees of focus.
+An inverse problem consisting of disentangling and deblurring of measurements
+must be solved in order to recover the original source components
+\cite{oktem2014icip}. However, this focal plane measurement configuration leads
+to suboptimal reconstructions, especially when spectral components are close in
+wavelength. Therefore, it is desired to determine the optimal measurement
+configuration before acquiring the data.
+
+\begin{figure}[htb]
+  \begin{minipage}[b]{1\linewidth}
+    \centering
+    \centerline{\includegraphics[width=8.5cm]{diffraction_system}}
+  \end{minipage}
+  \caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
+  $\lambda_2$. Measurements $y_1$ and $y_2$ are taken at two positions where one wavelength
+  is in focus and the other is out of focus.}
+  \label{fig:pssi_drawing}
+\end{figure}
+
+
+Finding the optimal measurement configuration can be seen as a \emph{sensor
+placement problem}, which lies under the broader class of problems known as
+\emph{subset selection}. Subset selection applies to many domains, such as array
+optimization for atmospheric imaging \cite{sharif}, \cite{wang2017near},
+magnetic resonance imaging \cite{gao2000optimal}, and detection problems
+\cite{yu1997sampling}. Methods like genetic algorithms, convex optimization
+\cite{joshi2008sensor}, and hill climbing \cite{reeves1999sequential} with many
+selection criteria have been developed to solve such problems.
+
+
+However, most of these methods solve the problem of
+single-sensor/single-measurement systems where the placement of one sensor
+contributes a single row to the observation matrix. In contrast, many imaging
+systems are single-sensor/multiple-measurement (like our problem), where each sensor placed (measurement plane) contributes multiple rows to the observation matrix (one row
+per detector pixel). Single-sensor/single-measurement algorithms have been
+extended to the multiple measurement case, known as \emph{clustering}
+algorithms. Examples include \emph{clustered sequential backward selection} (CSBS)
+\cite{sharif}, \emph{clustered FrameSense} (CFS) \cite{ranieri2014near}, \emph{clustered maximum projection on minimum eigenspace} (CMPME) \cite{wang2018sampling}.
+
+% Finding the optimal measurement configuration can be seen as a sensor placement
+% problem, which lies under the broader class of problems known as subset
+% selection. It appears in many signal reconstruction problems in the domains of
+% sensor networks [?], magnetic resonance imaging [?], remote sensing [?] ...
+% Many selection algorithms that have been developed are based on greedy search
+% [?] or convex optimization [?]. Of these methods, we are interested in the ones
+% that consider the case where each sensor location contributes to multiple
+% measurements. Clustered sequential backward selection (CSBS) \cite{sharif},
+%  .
+%
+% - explain how the problem is sensor placement
+% - sensor placement ---> subset selection
+% - other problems with subset selection [...]
+% - methods to find optimal subset for single row
+% - single row is limited, formulation needs to be extended to capture clusters
+% - Cite CSBS CMPME CFS and Boyd's paper
+% - We studied CSBS, provided speed-up and obtained performance improvement
 
 % In fact, any plane consists of a sum of all spectral
 % components of the source at varying degrees of focus, which depends on the
@@ -168,25 +227,22 @@ diffractive system in a linear model, and solving the associated inverse problem
 % plane locations, it is desired to find the best configuration that maximizes the
 % reconstruction quality.
 
-However, this measurement configuration leads to suboptimal reconstructions,
-especially when spectral components are close in wavelength. We improve the
-reconstruction quality by applying a greedy backward selection algorithm described
-by Sharif et al. \cite{sharif} in this new domain to automatically discover such a measurement
-configuration from a set of candidate plane locations. Furthermore, we exploit
+In this paper we adapt CSBS to the diffractive imaging problem to automatically
+determine a measurement configuration from a set of candidate plane locations,
+which minimizes expected reconstruction error. Furthermore, we exploit
 structures in the imaging model to make the algorithm computationally feasible
 for large images.
 % Exploiting the
 % structures of the imaging model, we have implemented the algorithm efficiently,
 % which otherwise would be infeasible to implement.
 
-In the next section, we mathematically model the diffractive imaging system and
-formulate the inverse problem of recovering spectral components. We go on to
-show the measurement selection algorithm in Section 3. Fast implementation of
-this algorithm is presented in Section 4. Next, the complexity of the fast
-implementation is analysed and compared with the complexity of the general algorithm. The last
-section is dedicated to a numerical example demonstrating the improved
-reconstruction quality when the algorithm is used to select a measurement
-configuration.
+% In the next section, we mathematically model the diffractive imaging system and
+% formulate the inverse problem of recovering spectral components. In Sections 3
+% and 4 we describe the measurement selection algorithm and show a fast
+% implementation. Next, the complexity of the fast implementation is analysed and
+% compared with the complexity of the general algorithm. The last section is
+% dedicated to a numerical analysis demonstrating the improved reconstruction
+% quality when the algorithm is used to select a measurement configuration.
 
 % A different approach is to use a diffractive lens to perform spectral imaging.
 % Diffractive lenses focus light using the diffraction principle. They have
@@ -209,17 +265,6 @@ configuration.
 % of the spectral images. The spectral images are then reconstructed from these
 % measurements by solving a multi-frame deconvolution problem.
 
-
-\begin{figure}[htb]
-  \begin{minipage}[b]{1\linewidth}
-    \centering
-    \centerline{\includegraphics[width=8.5cm]{diffraction_system}}
-  \end{minipage}
-  \caption{Imaging a scene with emissions at wavelengths $\lambda_1$ and
-  $\lambda_2$. Measurements $y_1$ and $y_2$ are taken at two positions where one wavelength
-  is in focus and the other is out of focus.}
-  \label{fig:pssi_drawing}
-\end{figure}
 
 % Choice of measurement planes is an important factor affecting the reconstruction
 % quality of the spectral images. Where to take measurements to maximize the
@@ -275,7 +320,7 @@ where $\bm{a}_{m,s} \in \mathbb R^{P\times P}$ is a blurring kernel known as a
 \emph{point spread function} (PSF), $\ast$ is a 2D convolution, and $\bm{n}_m
 \in \mathbb R^{N_2 \times N_2}$ is additive measurement noise. Each PSF depends
 on the associated source wavelength and measurement location together with the
-diffractive lens aperture and can be computed efficiently
+diffractive lens parameters and can be computed efficiently
 \cite{ayazgok2020efficient}.
 % An example set of PSF images for $M=S=2$ case is given in Figure \ref{fig:psfs}.
 
@@ -322,13 +367,14 @@ generated by measurements taken at $\bm{d} = \{d_1, \dots, d_M\}$ as
 $\bm{A}_{\bm{d}}$.
 
 The problem of where to take measurements $\bm{y}_1, \dots, \bm{y}_M$ has not
-been addressed and affects the reconstruction quality.  In order to
-compare the impact of different measurement configurations on the reconstruction, it is
-necessary to define some cost for the measurement matrix $\bm{A}_{\bm{d}}$.  A common cost
-metric is the expected reconstruction error, or expected sum of squared errors
-(SSE). However, we must have some strategy for the recovery of $\bm{x}$ to get
-reconstruction error and we must make statistical assumptions about $\bm{x}$.
-Maximum a posteriori (MAP) estimation is one such strategy.
+been addressed and affects the reconstruction quality.  In order to compare the
+impact of different measurement configurations on the reconstruction, it is
+necessary to define some cost for the measurement matrix $\bm{A}_{\bm{d}}$.  A
+common cost metric is the expected reconstruction error, or expected \emph{sum
+of squared errors} (SSE). However, we must have some strategy for the recovery
+of $\bm{x}$ to get reconstruction error and we must make statistical assumptions
+about $\bm{x}$.\emph{ Maximum a posteriori} (MAP) estimation is one such
+strategy.
 
 We assume the original spectral components and noise are distributed according to a
 normal distribution such that $\bm{x} \sim \mathcal{N}(\bm{x}_{0}, \bm{\Sigma}_{\bm{x}})$ and
@@ -450,16 +496,15 @@ cost, growing on the order of $O(C^M)$.
 % Exhaustively searching through all possible configurations of $\bm{A}$ would
 % require $\binom{C}{M}$ iterations, recomputing $\text{Cost}(\bm{A})$ each time.
 
-An alternative method which is more computationally feasible is known as
-\emph{greedy hill climbing}, or more specifically, \emph{sequential backward
-selection} (SBS) \cite{sharif}. In SBS, one measurement location is eliminated from $\bm{d}$ in each
-iteration until only $M$ locations remain. As reconstruction error generally
-increases as the number of measurements decreases, SBS selects for elimination the
-measurement that incurs the smallest increase in cost in each iteration.
+CSBS is an alternative method which is more computationally feasible, where one
+measurement location is eliminated from $\bm{d}$ in each iteration until only
+$M$ locations remain. As reconstruction error generally increases as the number
+of measurements decreases, CSBS selects for elimination the measurement that
+incurs the smallest increase in cost in each iteration.
 
 \begin{algorithm}
   \begin{algorithmic}
-    \caption{SBS Algorithm}
+    \caption{CSBS Algorithm}
     \State $\bm{d} = \{d_1, \dots, d_C\}$
     \Repeat
       \State $d' = \arg \min_{d \in \bm{d}} \text{Cost}(\bm{d} \backslash \{d\}))$
@@ -468,15 +513,15 @@ measurement that incurs the smallest increase in cost in each iteration.
   \end{algorithmic}
 \end{algorithm}
 
-Unlike an exhaustive search, the complexity of SBS is not combinatorial.  As the
+Unlike an exhaustive search, the complexity of CSBS is not combinatorial.  As the
 size of $\bm{d}$ shrinks with each iteration, the number of cost evaluations for each
 minimization step decreases.  The total number of cost evaluations is
-
+\vspace{-0.1 in}
 $$
 \begin{aligned}
   \sum_{|\bm{d}| = M}^C |\bm{d}|
-  &= \frac{C
-    (C + 1)}{2} - \frac{M(M + 1)}{2} \\
+  % &= \frac{C
+  %   (C + 1)}{2} - \frac{M(M + 1)}{2} \\
   &= O(C^2 - M^2)
 \end{aligned}
 $$
@@ -506,9 +551,10 @@ $$
 % measurements and the second term is the regularization term with parameter
 % $\lambda>0$. In this paper, we are interested in
 
+\vspace{-0.1 in}
 \section{Fast Implementation}
 While the SSE cost applies to any general linear system, we can augment the
-complexity reduction achieved by SBS by making assumptions about the structure
+complexity reduction achieved by CSBS by making assumptions about the structure
 of $\bm{A}_{\bm{d}}$, $\bm{\Sigma}_{\bm{n}}$ and $\bm{\Sigma}_{\bm{x}}$.
 Specifically, if we assume the blocks of these matrices are block-circulant with
 circulant blocks (BCCB), then they can be diagonalized by the 2D DFT matrix
@@ -593,15 +639,15 @@ calculated once during the algorithm initialization, and it can be efficiently
 updated at each iteration by adding/subracting the contribution of the candidate plane
 that is iterated over, which can be precomputed.
 
-Thus, the complexity of overall SBS algorithm is dominated by the inversion
+Thus, the complexity of overall CSBS algorithm is dominated by the inversion
 of $\left( \widetilde{\bm A}_{\bm d}^H \widetilde{\bm A}_{\bm d} +
 \lambda \widetilde{\bm \Sigma}_x^{-1} \right) \in \mathbb C ^{SN^2 \times SN^2}$
 that is performed in each iteration.  While the complexity of a standard inversion algorithm
 is $O((SN^2)^3)$, the diagonal structure of this matrix allows for a much faster inversion algorithm
 with complexity $O(S^3N^2)$, a speed-up of $N^4$ which is significant for large images.
 
-The total SBS algorithm complexity is
-
+The total CSBS algorithm complexity is
+\vspace{-0.1 in}
 $$
 O_{sbs} = \sum_{|\bm{d}| = M}^C |\bm{d}| O(S^3N^2) = O(S^3N^2C^2)
 $$
@@ -610,7 +656,7 @@ $$
 % Complexity of a standard inversion
 % algorithm would give $O_i \triangleq O((SN^2)^3) = O(S^3N^6)$. However, the
 % diagonal structure in $\bm \Psi$ allows for a much faster inversion algorithm
-% of complexity $O_i = O(S^3N^2)$ \cite{kamaci2017}, providing a speed-up of $N^4$, which is significant for large image sizes. The total complexity of the SBS algorithm can
+% of complexity $O_i = O(S^3N^2)$ \cite{kamaci2017}, providing a speed-up of $N^4$, which is significant for large image sizes. The total complexity of the CSBS algorithm can
 % be written as:
 % $$
 % O_{sbs} = \sum_{|\bm{d}| = M}^C |\bm{d}| O_i = O(S^3N^2C^2)
@@ -619,7 +665,7 @@ $$
 % \section{Complexity Analysis}
 %
 % In this section, we derive the computational complexity of the general
-% SBS implementation and our fast version as a function of the number of pixels
+% CSBS implementation and our fast version as a function of the number of pixels
 % in an image $N^2$, the number of spectral components $S$ in the source, and the
 % number of candidate measurement locations $C$.
 %
@@ -662,7 +708,7 @@ $$
 %
 % $$O_i = O\big( (SN^2)^3 \big) = O(S^3N^6)$$
 %
-% The total complexity of the SBS algorithm can be written
+% The total complexity of the CSBS algorithm can be written
 %
 % \vspace{-0.2 in}
 % \begin{align*}
@@ -705,7 +751,7 @@ $$
 % A}_{\bm d} + \lambda \widetilde{\bm \Sigma}_x^{-1} \right)^{-1} \right)
 % $$
 %
-% In our fast SBS implementation, we use an alternative cost metric where the
+% In our fast CSBS implementation, we use an alternative cost metric where the
 % diagonal blocks of $\widetilde{\bm{A}}_{\bm{d}}$ and $\widetilde{\bm \Sigma}_x^{-1}$ greatly
 %   reduce the computational complexity of multiplication and inversion.
 %
@@ -722,7 +768,7 @@ $$
 % O_i = O(S^3N^2)
 % $$
 %
-% Computing the total complexity of the SBS algorithm, we find that we obtain a
+% Computing the total complexity of the CSBS algorithm, we find that we obtain a
 % speedup of $N^4$, which is significant for large images.
 %
 % \vspace{-0.2 in}
@@ -744,28 +790,30 @@ $$
 
 \section{Numerical Experiments}
 In this section, we present numerical experiments that demonstrate that the
-measurement configuration selected by SBS yields improved reconstructions over
+measurement configuration selected by CSBS yields improved reconstructions over
 reconstructions obtained from measurements taken at focal planes.
 We use a photon sieve as the
 diffractive element in our simulations, which offers PSFs with sharper focus
 than Fresnel zone plates \cite{kipp2001sharper}.
 
+\vspace{-0.1 in}
 We begin by simulating a scenario with two spectral components that are close to
 each other in wavelength, shown as separate colors in Figure
 \ref{fig:results}(a). We use the MAP estimation framework given in Section 2 as
-the image reconstruction algorithm for both the focal plane and SBS
-configurations. For a fair comparison between SBS and focal plane
+the image reconstruction algorithm for both the focal plane and CSBS
+configurations. For a fair comparison between CSBS and focal plane
 reconstructions, we search over $\lambda$ to find the value which maximizes the
-focal plane reconstruction, then use this same $\lambda$ for the SBS cost
-function and reconstruction. The final measurement configuration selected by SBS
-is given in Figure \ref{fig:results}(d), where the two focal planes are marked
-with red and green bars. Figures \ref{fig:results}(b) and \ref{fig:results}(c)
-show the spectral component reconstructions for focal plane configuration, and
-Figures \ref{fig:results}(e) and \ref{fig:results}(f) for SBS
-configuration. Table \ref{tab:ssims} provides the structural similary (SSIM) \cite{ssim} and
-peak signal-to-noise ratio (PSNR) values of the reconstructions.
+focal plane reconstruction \emph{structural similarity} (SSIM) \cite{ssim}, then
+use this same $\lambda$ for the CSBS cost function and reconstruction. The final
+measurement configuration selected by CSBS is given in Figure
+\ref{fig:results}(d), where the two focal planes are marked with red and green
+bars. Figures \ref{fig:results}(b) and \ref{fig:results}(c) show the spectral
+component reconstructions for the focal plane configuration, and Figures
+\ref{fig:results}(e) and \ref{fig:results}(f) for CSBS configuration. The
+reconstruction SSIMs for the CSBS and focal plane reconstructions are 0.459
+and 0.347, respectively.
 
-% Our intuition on why SBS chooses out of focus planes over the focal planes is
+% Our intuition on why CSBS chooses out of focus planes over the focal planes is
 % that as the source wavelengths get very close to each other, which is the case
 % here, each focal plane get higher contamination from the other source; as a
 % result, it gets harder for the deconvolution algorithm to disentangle the
@@ -774,14 +822,14 @@ peak signal-to-noise ratio (PSNR) values of the reconstructions.
 % out of focus planes where relative contamination from off focus sources are
 % smaller, and it is easier to disentangle the sources.
 
-Our intuition on why SBS chooses out out of focus planes pertains to measurement
+Our intuition on why CSBS chooses out of focus planes pertains to measurement
 variation of the PSF pairs for each candidate plane. The spectral components are
 very close together in wavelength, so the PSFs corresponding to in focus and out
 of focus components at the focal planes are very similar. This leads to poor
 measurement variation and makes disentangling the component contributions
 difficult. This is especially evident in Figure 3(c), where the features from
 one wavelength appear in the reconstruction of the other wavelength. Instead,
-SBS chooses measurement locations where the PSF pairs have more variation at the
+CSBS chooses measurement locations where the PSF pairs have more variation at the
 expense of a less sharp in focus PSF, shown in Figure \ref{fig:psfs_compare}.
 
 \begin{figure}[t]
@@ -819,34 +867,34 @@ expense of a less sharp in focus PSF, shown in Figure \ref{fig:psfs_compare}.
 \caption{(a) polychromatic source image with spectral components $\lambda_1$ and
   $\lambda_2$ (b) reconstruction of $\lambda_1$ from focal configuration (c)
   reconstruction of $\lambda_2$ from focal configuration (d) measurement
-  locations selected by SBS (e) reconstruction of
-  $\lambda_1$ from SBS configuration (f) reconstruction of $\lambda_2$ from
-  SBS configuration}
+  locations selected by CSBS (e) reconstruction of
+  $\lambda_1$ from CSBS configuration (f) reconstruction of $\lambda_2$ from
+  CSBS configuration}
 \label{fig:results}
 \end{figure}
 
 \begin{figure}[t]
 \begin{minipage}[b]{0.23\linewidth}
   \centering
-  \centerline{\includegraphics[width=2.0cm]{psf_focus1}}
+  \centerline{\includegraphics[width=2cm]{psf_focus1}}
   \centerline{(a)}
 \end{minipage}
 \begin{minipage}[b]{0.23\linewidth}
   \centering
-  \centerline{\includegraphics[width=2.0cm]{psf_focus2}}
+  \centerline{\includegraphics[width=2cm]{psf_focus2}}
   \centerline{(b)}
 \end{minipage}
 \begin{minipage}[b]{0.23\linewidth}
   \centering
-  \centerline{\includegraphics[width=2.0cm]{psf_csbs1}}
+  \centerline{\includegraphics[width=2cm]{psf_csbs1}}
   \centerline{(c)}
 \end{minipage}
 \begin{minipage}[b]{0.23\linewidth}
   \centering
-  \centerline{\includegraphics[width=2.0cm]{psf_csbs2}}
+  \centerline{\includegraphics[width=2cm]{psf_csbs2}}
   \centerline{(d)}
 \end{minipage}
-\caption{(a) (b) PSFs at $\lambda_1$ focal plane. (c) (d) PSFs at a measurement location selected by SBS
+\caption{(a) (b) PSFs at $\lambda_1$ focal plane. (c) (d) PSFs at a measurement location selected by CSBS
   (c) and (d) are less focused that (a) and (b), but have more measurement variation between them.
 }
 \label{fig:psfs_compare}
@@ -864,51 +912,51 @@ expense of a less sharp in focus PSF, shown in Figure \ref{fig:psfs_compare}.
 
 % Finally, in Table \ref{tab:ssims}, we evaluate the error in the reconstructed
 % spectral images using structural similary (SSIM) and peak signal-to-noise ratio
-% (PSNR), where the SBS reconstruction yielded better results measured by both metrics.
-
-\begin{table}[h]
-\caption{SSIM/PSNR comparison for SBS vs focal planes}
-\vspace{0.08 in}
-\centering
-\begin{tabular}{|c|c|c|}
-\hline
-      & Avg. SSIM  & Avg. PSNR  \\ \hline
-Focal & 0.666 & 22.93 dB \\ \hline
-SBS  & 0.764 & 26.56 dB \\ \hline
-\end{tabular}
-\label{tab:ssims}
-\end{table}
+% (PSNR), where the CSBS reconstruction yielded better results measured by both metrics.
+% \begin{table}[h]
+% \caption{SSIM/PSNR comparison for CSBS vs focal planes}
+% % \vspace{0.08 in}
+% \centering
+% \begin{tabular}{|c|c|c|}
+% \hline
+%       & Avg. SSIM  & Avg. PSNR  \\ \hline
+% Focal & 0.347 & 9.53 dB \\ \hline
+% CSBS  & 0.459 & 10.0 dB \\ \hline
+% \end{tabular}
+% \label{tab:ssims}
+% \end{table}
 
 \begin{figure}[htb]
   \begin{minipage}[b]{1\linewidth}
     \centering
-    \centerline{\includegraphics[width=8.5cm]{ratio}}
+    \centerline{\includegraphics[width=8.5cm]{ssims}}
   \end{minipage}
-  \caption{Reconstruction SSIMs for varied number of spectral components, SNR (dB), and source separation (DOF). SBS reconstruction SSIM and
+  \caption{Reconstruction SSIMs for varied number of spectral components, SNR (dB), and source separation (DOF). CSBS reconstruction SSIM and
   focal plane reconstruction SSIM are shown in orange and blue, respectively.}
   \label{fig:ratio}
 \end{figure}
 
 To show that this reconstruction improvement generalizes, we repeat the first experiment for $S = 2, 3, 4$
 uniformly spaced spectral components under different noise levels and
-spectral component separations measured in depth of focus (DOF).  In Figure \ref{fig:ratio}, we plot the mean
+spectral component separations measured in depth of focus (DOF) \cite{davila2011high}.  In Figure \ref{fig:ratio}, we plot the mean
 SSIM of the reconstructions obtained from measurements at focal planes (blue)
-and measurements at planes selected by SBS (orange).  The SBS reconstructions
+and measurements at planes selected by CSBS (orange).  The CSBS reconstructions
 generally have higher SSIM than the focal plane up until the spectral components are sufficiently separated (about 10 DOF), where reconstruction SSIM are about the same.
-
+\vspace{-0.1 in}
 \section{Conclusion}
-
+\vspace{-0.1 in}
 We apply a variant of the sequential backward selection algorithm to the problem
 of acquisition in a diffractive spectral imaging system.  The high
-dimensionality of large images makes a direct application of SBS and SSE cost
+dimensionality of large images makes a direct application of CSBS and SSE cost
 computationally intractable, so we have developed a more feasible implementation
 of this algorithm and perform an analysis of its complexity to show that it is
 significantly faster than the previous implementation for large images.
-Finally, we demonstrate SBS on a simulated spectral imaging system and show that
+Finally, we demonstrate CSBS on a simulated spectral imaging system and show that
 the optimized measurement configuration achieves equal or better reconstructions than a
 choice of measurements at the spectral component focal planes.
 
 \vfill\pagebreak
+\clearpage
 
 % References should be produced using the bibtex program from suitable
 % BiBTeX files (here: strings, refs, manuals). The IEEEbib.bst bibliography
