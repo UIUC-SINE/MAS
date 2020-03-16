@@ -270,6 +270,7 @@ def get_LAM(*, rows, cols, order):
             np.abs(np.fft.fft2(diffy_kernel))**2
         )
 
+
 def deconv_plotter(*, sources, recons, iter):
     """Function that plots the deconvolved images as the iterations go.
 

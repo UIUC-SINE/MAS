@@ -36,7 +36,7 @@ def fourier_slices(measurements):
         subplot.grid(False)
         # subplot.set(adjustable='box', aspect=1/4)
         subplot.set_title('Source {}'.format(source_index))
-        subplot.set_ylabel('Frequency support')
+        subplot.set_ylabel('Freq.')
         subplot.get_xaxis().set_visible(False)
 
 
