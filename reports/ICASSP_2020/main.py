@@ -51,7 +51,7 @@ psfs_focus = PSFs(
     num_copies=6
 )
 
-csbs(psfs_csbs, sse_cost, 12, lam=csbs_lam, order=order)
+psfs_csbs = csbs(psfs_csbs, sse_cost, 12, lam=csbs_lam, order=order)
 
 # %% measure
 psnr_focus, psnr_csbs, ssim_focus, ssim_csbs = [], [], [], []
