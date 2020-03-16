@@ -264,6 +264,7 @@ class PSFs():
         energy_ratio (float): energy ratio of cropped psfs to initial psfs
         num_copies (int): number of repeated measurements to initialize with
         psf_generator (def): function to generate photon sieve psf (default, mas.psf_generator.sieve_incoherent_psf)
+        zero_mean (bool): whether to zero mean each psf
 
     Attributes:
         psfs (ndarray): an array holding the 2D psfs
@@ -282,14 +283,16 @@ class PSFs():
             energy_ratio=0.9995,
             num_copies=1,
             psf_generator=circ_incoherent_psf,
-            sampling_interval=3.5e-6
+            sampling_interval=3.5e-6,
+            grid_width=10,
+            zero_mean=False
     ):
 
         focal_lengths = sieve.diameter * sieve.smallest_hole_diameter / source_wavelengths
         dofs = 2 * sieve.smallest_hole_diameter**2 / source_wavelengths
         if type(measurement_wavelengths) is int:
-            approx_start = sieve.diameter * sieve.smallest_hole_diameter / (max(focal_lengths) + 10 * max(dofs))
-            approx_end = sieve.diameter * sieve.smallest_hole_diameter / (min(focal_lengths) - 10 * min(dofs))
+            approx_start = sieve.diameter * sieve.smallest_hole_diameter / (max(focal_lengths) + grid_width * max(dofs))
+            approx_end = sieve.diameter * sieve.smallest_hole_diameter / (min(focal_lengths) - grid_width * min(dofs))
             measurement_wavelengths = np.linspace(approx_start, approx_end, measurement_wavelengths)
             measurement_wavelengths = np.insert(
                 measurement_wavelengths,
@@ -336,6 +339,9 @@ class PSFs():
             width1 = size_compressor(psfs[-1,0], energy_ratio=energy_ratio)
             width = max(width0, width1)
             psfs = size_equalizer(psfs, [width, width])
+
+        if zero_mean:
+            psfs -= psfs.mean(axis=(2, 3))[:, :, np.newaxis, np.newaxis]
 
         self.psfs = psfs
         self.psf_dfts = np.fft.fft2(psfs)

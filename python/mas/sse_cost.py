@@ -95,5 +95,9 @@ def cost(psfs, psf_group_index, **kwargs):
             psfs.initialized_data['psf_dfts'][psf_group_index:psf_group_index + 1]
         )
     )
+    if kwargs['no_dc']:
+        cov = block_inv(iteration_SIG_e_dft)
+        cov[:, :, 0, 0] = 0 # set the DC values to zero
+        return np.real(np.sum(np.trace(cov)))
 
     return np.real(np.sum(np.trace(block_inv(iteration_SIG_e_dft))))
