@@ -20,7 +20,7 @@ def experiment(func, iterations, **kwargs):
     return pd.DataFrame(result)
 
 
-def combination_experiment(func, **kwargs):
+def combination_experiment(func, print=False, **kwargs):
     """
     Run `func` with all combinations of input parameters and return results in
     dataframe
