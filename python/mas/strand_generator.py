@@ -31,7 +31,7 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
         ndarray: (image_width, image_width) image containing strands"""
 
     img = np.zeros((initial_width,initial_width))
-    for s in tqdm(range(num_strands), desc='Strands', leave=False):
+    for s in tqdm(range(num_strands), desc='Strands', leave=None):
         theta = np.random.uniform(min_angle, max_angle)
         x  = np.random.randint(
             0 if theta < 0 else initial_width * -np.tan(np.deg2rad(theta)),
