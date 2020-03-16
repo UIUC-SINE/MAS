@@ -28,13 +28,15 @@ def tikhonov(
     """
     num_sources = psfs.psfs.shape[1]
     rows, cols = measurements.shape[1:]
-    psfs.psf_dfts = np.repeat(
+
+    # expand psf_dfts
+    exp_psf_dfts = np.repeat(
             np.fft.fft2(size_equalizer(psfs.psfs, ref_size=[rows,cols])),
             psfs.copies.astype(int), axis=0
     )
     psfs.psf_GAM = block_mul(
-        block_herm(psfs.psf_dfts),
-        psfs.psf_dfts
+        block_herm(exp_psf_dfts),
+        exp_psf_dfts
     )
     # DFT of the kernel corresponding to (D^TD)
     LAM = get_LAM(rows=rows,cols=cols,order=tikhonov_order)
@@ -46,7 +48,7 @@ def tikhonov(
                         tikhonov_lam * np.einsum('ij,kl', np.eye(num_sources), LAM)
                     ),
                     block_mul(
-                        block_herm(psfs.psf_dfts),
+                        block_herm(exp_psf_dfts),
                         np.fft.fft2(np.fft.fftshift(measurements, axes=(1,2)))
                     )
                 )

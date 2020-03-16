@@ -466,3 +466,34 @@ def upsample(x, factor=2):
         repeats=factor,
         axis=1
     )
+
+def dof2wavelength(*, dof, base_wavelength, ps):
+    """Returns a wavelength relative to base_wavelength, measured in DOF
+    for a given photon sieve
+
+    Args:
+        dof (float, ndarray): dof(s) of returned wavelength relative
+            to base_wavelength
+        base_wavelength (float): reference wavelength
+        ps (PhotonSieve): photon sieve parameters to compute DOF
+    """
+
+    return (
+        base_wavelength + 2 * ps.smallest_hole_diameter *
+        base_wavelength * dof / ps.diameter
+    )
+
+def wavelength2dof(*, wavelength, base_wavelength, ps):
+    """Returns dof of a wavelength relative to base_wavelength
+    for a given photon sieve
+
+    Args:
+        dof (float, ndarray): wavelength(s) with which to compute DOF
+        base_wavelength (float): reference wavelength
+        ps (PhotonSieve): photon sieve parameters to compute DOF
+    """
+
+    return (
+        (wavelength - base_wavelength) * ps.diameter /
+        (2 * ps.smallest_hole_diameter * base_wavelength)
+    )
