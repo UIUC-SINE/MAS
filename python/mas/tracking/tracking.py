@@ -1,13 +1,24 @@
 import numpy as np
+from matplotlib import pyplot as plt
+from functools import partial
 from scipy.ndimage import map_coordinates, fourier_shift
 from scipy.ndimage.interpolation import shift
 from scipy.optimize import curve_fit, minimize
+from scipy.signal import convolve2d
 from abel.tools.polar import polar2cart, cart2polar, index_coords
 from itertools import combinations
 from skimage.feature.register_translation import _upsampled_dft
+from skimage.transform import resize
+from skimage.draw import line_aa
 from mas.decorators import np_gpu
+from mas.deconvolution.admm import patch_based, TV, bm3d_pnp, dncnn_pnp
+from mas.deconvolution import tikhonov, admm
+from mas.forward_model import size_equalizer
+from mas.psf_generator import PSFs, circ_incoherent_psf
+from mas.misc import xy2rc, rc2xy
+
 from tqdm import tqdm
-import inspect
+import inspect, copy
 
 def guizar_multiframe(corr_sum, upsample_factor=100, start=10, end=30, np=np):
     """
@@ -66,9 +77,11 @@ def guizar_multiframe(corr_sum, upsample_factor=100, start=10, end=30, np=np):
 
         shifts = shifts + maxima / upsample_factor
 
-        d.append(np.array((shifts[1], shifts[0])) / time_diff)
+        d.append(np.array((shifts[1], -shifts[0])) / time_diff)
+    d = np.array(d)
+    guizar_error = np.mean(d, axis=0)
 
-    return np.mean(d, axis=0), np.array(d)
+    return guizar_error, d
 
 
 @np_gpu(np_args=[0])
@@ -201,16 +214,11 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
     Returns:
         (ndarray): coadded images
     """
-    if mode == 'full':
 
-        pad = np.ceil(drift * (len(frames) - 1)).astype(int)
-        pad_x = (0, pad[0]) if drift[0] > 0 else (-pad[0], 0)
-        pad_y = (pad[1], 0) if drift[1] > 0 else (0, -pad[1])
-        frames = np.pad(frames, ((0, 0), pad_y, pad_x), mode='constant')
-    elif mode == 'crop':
-        pass
-    else:
-        raise Exception('Invalid mode')
+    pad = np.ceil(drift * (len(frames) - 1)).astype(int)
+    pad_x = (0, pad[0]) if drift[0] > 0 else (-pad[0], 0)
+    pad_y = (pad[1], 0) if drift[1] > 0 else (0, -pad[1])
+    frames = np.pad(frames, ((0, 0), pad_y, pad_x), mode='constant')
 
     summation = np.zeros(frames[0].shape, dtype='complex128')
 
@@ -229,76 +237,81 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
         summation += shifted
 
     if mode == 'crop':
-        crop = np.ceil(drift * len(frames) - 1).astype(int)
-        crop_x = slice(crop[0], None) if drift[0] > 0 else slice(None, crop[1])
-        crop_y = slice(crop[1], None) if drift[1] > 0 else slice(None, crop[1])
-        summation = summation[crop_y, crop_x]
+        summation = size_equalizer(
+            summation,
+            np.array(frames[0].shape).astype(int) -
+            2 * np.ceil(xy2rc(drift) * (len(frames)-1)).astype(int)
+        )
+    elif mode == 'full':
+        pass
+    else:
+        raise Exception('Invalid mode')
 
     return summation.real
 
-# def ulas_multiframe(frames, proportion=0.4):
-#     num_frames = frames.shape[0]
+def ulas_multiframe(frames, proportion=0.4):
+    num_frames = frames.shape[0]
 
-#     # initialize the array that holds fourier transforms of the correlations between frame pairs
-#     correlations = np.zeros((num_frames-1, frames.shape[1], frames.shape[2]))
+    # initialize the array that holds fourier transforms of the correlations between frame pairs
+    correlations = np.zeros((num_frames-1, frames.shape[1], frames.shape[2]))
 
-#     for i in range(num_frames-1):
-#         for j in np.arange(i+1, num_frames):
-#             # k^th element of correlations_f is the sum of all correlations between
-#             # frame pairs that are k frame apart from each other.
-#             # correlations[j - i - 1] += np.fft.fftn(frames[i]) * np.fft.fftn(frames[j]).conj()
-#             correlations[j - i - 1] += np.fft.ifft2(np.fft.fft2(frames[i]) * np.fft.fft2(frames[j]).conj()).real
+    for i in range(num_frames-1):
+        for j in np.arange(i+1, num_frames):
+            # k^th element of correlations_f is the sum of all correlations between
+            # frame pairs that are k frame apart from each other.
+            # correlations[j - i - 1] += np.fft.fftn(frames[i]) * np.fft.fftn(frames[j]).conj()
+            correlations[j - i - 1] += np.fft.ifft2(np.fft.fft2(frames[i]) * np.fft.fft2(frames[j]).conj()).real
 
-#     # %% foo
+    # %% foo
 
-#     shifts = np.zeros((correlations.shape[0], 2))
+    shifts = np.zeros((correlations.shape[0], 2))
 
-#     for i in range(correlations.shape[0]):
-#         # find the argmax points, which give the estimated shift
-#         shifts[i] = np.unravel_index(np.argmax(correlations[i]), correlations[i].shape)
+    for i in range(correlations.shape[0]):
+        # find the argmax points, which give the estimated shift
+        shifts[i] = np.unravel_index(np.argmax(correlations[i]), correlations[i].shape)
 
-#     # bring the shift values from [0,N] to [-N/2, N/2] format
-#     shifts[shifts>np.fix(frames[0].shape[0]/2)] -= frames[0].shape[0]
+    # bring the shift values from [0,N] to [-N/2, N/2] format
+    shifts[shifts>np.fix(frames[0].shape[0]/2)] -= frames[0].shape[0]
 
-#     # normalize the shifts to per frame shift
-#     shifts = shifts / np.tile(np.arange(1,shifts.shape[0]+1), (2,1)).T
+    # normalize the shifts to per frame shift
+    shifts = shifts / np.tile(np.arange(1,shifts.shape[0]+1), (2,1)).T
 
-#     # determine what proportion of the shift estimates to use in the final shift estimation
-#     # if `proportion` < 1, then we are not using the correlations of frame pairs that
-#     # are very far from each other, the reason being that further apart frames have
-#     # less overlap, where the nonoverlapping parts contribute to the correlation as
-#     # 'noise', and reduce the accuracy.
-#     # proportion = 0.4
+    # determine what proportion of the shift estimates to use in the final shift estimation
+    # if `proportion` < 1, then we are not using the correlations of frame pairs that
+    # are very far from each other, the reason being that further apart frames have
+    # less overlap, where the nonoverlapping parts contribute to the correlation as
+    # 'noise', and reduce the accuracy.
+    # proportion = 0.4
 
-#     # estimate the shift using the first `proportion` of the shift array
-#     shift_est = np.mean(shifts[:int(proportion * shifts.shape[0])], axis=0)
+    # estimate the shift using the first `proportion` of the shift array
+    shift_est = np.mean(shifts[:int(proportion * shifts.shape[0])], axis=0)
 
 
-#     # initialize the array that will take the fourier transform of the correlations of correlations
-#     correlations_f2 = np.zeros((num_frames-2, frames.shape[1], frames.shape[2])).astype(np.complex128)
+    # initialize the array that will take the fourier transform of the correlations of correlations
+    correlations_f2 = np.zeros((num_frames-2, frames.shape[1], frames.shape[2])).astype(np.complex128)
 
-#     for i in range(num_frames-2):
-#         for j in np.arange(i+1, num_frames-1):
-#             # compute the correlations between correlations to get a more refined estimate of drift
-#             correlations_f2[j-i-1] += np.fft.fftn(correlations[i]) * np.fft.fftn(correlations[j]).conj()
+    for i in range(num_frames-2):
+        for j in np.arange(i+1, num_frames-1):
+            # compute the correlations between correlations to get a more refined estimate of drift
+            correlations_f2[j-i-1] += np.fft.fftn(correlations[i]) * np.fft.fftn(correlations[j]).conj()
 
-#     correlations2 = np.fft.ifft2(correlations_f2).real
+    correlations2 = np.fft.ifft2(correlations_f2).real
 
-#     # FIXME
-#     # for i in range(len(correlations2)):
-#     #     # convolve the correlations with a gaussian to eliminate outlier peaks
-#     #     correlations2[i] = gaussian_filter(correlations2[i], sigma=1, mode='wrap')
+    # FIXME
+    # for i in range(len(correlations2)):
+    #     # convolve the correlations with a gaussian to eliminate outlier peaks
+    #     correlations2[i] = gaussian_filter(correlations2[i], sigma=1, mode='wrap')
 
-#     shifts2 = np.zeros((correlations2.shape[0], 2))
+    shifts2 = np.zeros((correlations2.shape[0], 2))
 
-#     for i in range(correlations2.shape[0]):
-#         shifts2[i] = np.unravel_index(np.argmax(correlations2[i]), correlations2[i].shape)
+    for i in range(correlations2.shape[0]):
+        shifts2[i] = np.unravel_index(np.argmax(correlations2[i]), correlations2[i].shape)
 
-#     shifts2[shifts2>np.fix(frames[0].shape[0]/2)] -= frames[0].shape[0]
-#     shifts2 = shifts2 / np.tile(np.arange(1,shifts2.shape[0]+1), (2,1)).T
+    shifts2[shifts2>np.fix(frames[0].shape[0]/2)] -= frames[0].shape[0]
+    shifts2 = shifts2 / np.tile(np.arange(1,shifts2.shape[0]+1), (2,1)).T
 
-#     shift_est2 = np.mean(shifts2[:int(proportion * shifts2.shape[0])], axis=0)
-#     return np.array((shift_est[1], shift_est[0])), np.array((shift_est2[1], shift_est2[0]))
+    shift_est2 = np.mean(shifts2[:int(proportion * shifts2.shape[0])], axis=0)
+    return np.array((shift_est[1], shift_est[0])), np.array((shift_est2[1], shift_est2[0]))
 
 @np_gpu(np_args=[0])
 def ulas_multiframe(corr_sum, proportion=0.4, np=np):
@@ -330,7 +343,6 @@ def ulas_multiframe(corr_sum, proportion=0.4, np=np):
     # estimate the shift using the first `proportion` of the shift array
     shift_est = np.mean(shifts[:int(proportion * shifts.shape[0])], axis=0)
 
-
     # initialize the array that will take the fourier transform of the correlations of correlations
     correlations_f2 = np.zeros((num_frames-2, corr_sum.shape[1], corr_sum.shape[2])).astype(np.complex128)
 
@@ -359,63 +371,134 @@ def ulas_multiframe(corr_sum, proportion=0.4, np=np):
     shift_est2 = -np.mean(shifts2[:int(proportion * shifts2.shape[0])], axis=0)
     return np.array((shift_est[1], shift_est[0])), np.array((shift_est2[1], shift_est2[0]))
 
-# def ulas_multiframe3(corr_sum, proportion=0.4):
-#     import cupy
 
-#     if type(corr_sum) is not cupy.ndarray:
-#         corr_sum = cupy.array(corr_sum)
+def motion_deblur(*, sv, registered, drift):
+    """
 
-#     num_frames = len(corr_sum) + 1
+    """
+    pixel_size_um = sv.pixel_size * 1e6
 
-#     correlations = corr_sum
+    # width of the final motion blur kernel with CCD pixel size
+    kernel_size = 11
+    (x,y) = (pixel_size_um * drift[0], pixel_size_um * drift[1])
+    N = int(np.ceil(np.max((abs(x),abs(y)))))
 
-#     # %% foo
+    # set the shape of the initial kernel with 1 um pixels based on the estimated drift
+    kernel_um = np.zeros((2*N+1, 2*N+1))
 
-#     shifts = cupy.zeros((correlations.shape[0], 2))
+    # calculate the line representing the motion blur
+    rr, cc, val = line_aa(
+        N + np.round((y/2)).astype(int),
+        N - np.round((x/2)).astype(int),
+        N - np.round((y/2)).astype(int),
+        N + np.round((x/2)).astype(int),
+    )
 
-#     for i in range(correlations.shape[0]):
-#         # find the argmax points, which give the estimated shift
-#         shifts[i] = cupy.array(cupy.unravel_index(cupy.argmax(correlations[i]), correlations[i].shape))
+    # update the kernel with the calculated line
+    kernel_um[rr,cc] = val
 
-#     # bring the shift values from [0,N] to [-N/2, N/2] format
-#     shifts[shifts>cupy.fix(corr_sum[0].shape[0]/2)] -= corr_sum[0].shape[0]
+    # resize the initial 1 um kernel to the given pixel size
+    kernel = resize(size_equalizer(kernel_um, [int(pixel_size_um)*kernel_size]*2), [kernel_size]*2, anti_aliasing=True)
+    # compute the analytical photon sieve PSF with the given pixel size
+    psfs = copy.deepcopy(sv.psfs)
 
-#     # normalize the shifts to per frame shift
-#     shifts = shifts / cupy.tile(cupy.arange(1,shifts.shape[0]+1), (2,1)).T
+    # convolve the photon sieve PSF with the motion blur kernel to find the "effective blurring kernel"
+    psfs.psfs[0,0] = convolve2d(psfs.psfs[0,0], kernel, mode='same')
 
-#     # determine what proportion of the shift estimates to use in the final shift estimation
-#     # if `proportion` < 1, then we are not using the correlations of frame pairs that
-#     # are very far from each other, the reason being that further apart frames have
-#     # less overlap, where the nonoverlapping parts contribute to the correlation as
-#     # 'noise', and reduce the accuracy.
-#     # proportion = 0.4
+    # normalize the kernel
+    psfs.psfs[0,0] /= psfs.psfs[0,0].sum()
 
-#     # estimate the shift using the first `proportion` of the shift array
-#     shift_est = cupy.asnumpy(cupy.mean(shifts[:int(proportion * shifts.shape[0])], axis=0))
+    # normalize the registered image (doesn't change anything but helps choosing regularization parameter consistently)
+    registered /= registered.max()
+
+    # do a tikhonov regularized deblurring on the registered image to remove the
+    # in-frame blur with the calculated "effective blurring kernel"
+    recon_tik = tikhonov(
+        measurements=registered[np.newaxis,:,:],
+        psfs=psfs,
+        tikhonov_lam=1e1,
+        tikhonov_order=1
+    )
+    plt.figure()
+    plt.imshow(recon_tik[0], cmap='gist_heat')
+    plt.title('Deblurred Tikhonov')
+    plt.show()
+
+    # do a Plug and Play with BM3D reconstruction with tikhonov initialization
+    recon = admm(
+        measurements=registered[np.newaxis,:,:],
+        psfs=psfs,
+        regularizer=partial(bm3d_pnp),
+        recon_init=recon_tik,
+        plot=False,
+        iternum=5,
+        periter=1,
+        nu=10**-0.0,
+        lam=[10**-0.5]
+    )
+
+    plt.figure()
+    plt.imshow(recon[0], cmap='gist_heat')
+    plt.title('Deblurred')
+    plt.show()
+
+    return recon
 
 
-#     # initialize the array that will take the fourier transform of the correlations of correlations
-#     correlations_f2 = cupy.zeros((num_frames-2, corr_sum.shape[1], corr_sum.shape[2])).astype(cupy.complex128)
+def ulas_multiframe3(corr_sum, proportion=0.4):
+    import cupy
 
-#     for i in range(num_frames-2):
-#         for j in cupy.arange(i+1, num_frames-1):
-#             # compute the correlations between correlations to get a more refined estimate of drift
-#             correlations_f2[j-i-1] += cupy.fft.fftn(correlations[i]) * cupy.fft.fftn(correlations[j]).conj()
+    if type(corr_sum) is not cupy.ndarray:
+        corr_sum = cupy.array(corr_sum)
 
-#     correlations2 = cupy.fft.ifft2(correlations_f2).real
+    num_frames = len(corr_sum) + 1
 
-#     # FIXME
-#     # for i in range(len(correlations2)):
-#     #     # convolve the correlations with a gaussian to eliminate outlier peaks
-#     #     correlations2[i] = gaussian_filter(correlations2[i], sigma=1, mode='wrap')
+    correlations = corr_sum
 
-#     shifts2 = cupy.zeros((correlations2.shape[0], 2))
+    # %% foo
 
-#     for i in range(correlations2.shape[0]):
-#         shifts2[i] = cupy.array(cupy.unravel_index(cupy.argmax(correlations2[i]), correlations2[i].shape))
+    shifts = cupy.zeros((correlations.shape[0], 2))
 
-#     shifts2[shifts2>cupy.fix(corr_sum[0].shape[0]/2)] -= corr_sum[0].shape[0]
-#     shifts2 = shifts2 / cupy.tile(cupy.arange(1,shifts2.shape[0]+1), (2,1)).T
+    for i in range(correlations.shape[0]):
+        # find the argmax points, which give the estimated shift
+        shifts[i] = cupy.array(cupy.unravel_index(cupy.argmax(correlations[i]), correlations[i].shape))
 
-#     shift_est2 = -cupy.asnumpy(cupy.mean(shifts2[:int(proportion * shifts2.shape[0])], axis=0))
-#     return ((shift_est[1], shift_est[0])), ((shift_est2[1], shift_est2[0]))
+    # bring the shift values from [0,N] to [-N/2, N/2] format
+    shifts[shifts>cupy.fix(corr_sum[0].shape[0]/2)] -= corr_sum[0].shape[0]
+
+    # determine what proportion of the shift estimates to use in the final shift estimation
+    # if `proportion` < 1, then we are not using the correlations of frame pairs that
+    # are very far from each other, the reason being that further apart frames have
+    # less overlap, where the nonoverlapping parts contribute to the correlation as
+    # 'noise', and reduce the accuracy.
+    # proportion = 0.4
+
+    # normalize the shifts to per frame shift
+    shifts = shifts / cupy.tile(cupy.arange(1,shifts.shape[0]+1), (2,1)).T
+
+    # estimate the shift using the first `proportion` of the shift array
+    shift_est = cupy.asnumpy(cupy.mean(shifts[:int(proportion * shifts.shape[0])], axis=0))
+
+    # initialize the array that will take the fourier transform of the correlations of correlations
+    correlations_f2 = cupy.zeros((num_frames-2, corr_sum.shape[1], corr_sum.shape[2])).astype(cupy.complex128)
+
+    for i in range(num_frames-2):
+        for j in cupy.arange(i+1, num_frames-1):
+            # compute the correlations between correlations to get a more refined estimate of drift
+            correlations_f2[j-i-1] += cupy.fft.fftn(correlations[i]) * cupy.fft.fftn(correlations[j]).conj()
+    correlations2 = cupy.fft.ifft2(correlations_f2).real
+
+    # FIXME
+    # for i in range(len(correlations2)):
+    #     # convolve the correlations with a gaussian to eliminate outlier peaks
+    #     correlations2[i] = gaussian_filter(correlations2[i], sigma=1, mode='wrap')
+
+    shifts2 = cupy.zeros((correlations2.shape[0], 2))
+
+    for i in range(correlations2.shape[0]):
+        shifts2[i] = cupy.array(cupy.unravel_index(cupy.argmax(correlations2[i]), correlations2[i].shape))
+
+    shifts2[shifts2>cupy.fix(corr_sum[0].shape[0]/2)] -= corr_sum[0].shape[0]
+    shifts2 = shifts2 / cupy.tile(cupy.arange(1,shifts2.shape[0]+1), (2,1)).T
+    shift_est2 = -cupy.asnumpy(cupy.mean(shifts2[:int(proportion * shifts2.shape[0])], axis=0))
+    return ((shift_est[1], shift_est[0])), ((shift_est2[1], shift_est2[0]))

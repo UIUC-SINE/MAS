@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from itertools import product
 import functools, operator
 from tqdm import tqdm
@@ -19,6 +20,17 @@ def experiment(func, iterations, **kwargs):
 
     return pd.DataFrame(result)
 
+def xy2rc(x, y=None):
+    if y is None:
+        x, y = x.T
+
+    return np.array((-y, x)).T
+
+def rc2xy(r, c=None):
+    if c is None:
+        r, c = r.T
+
+    return np.array((c, -r)).T
 
 def combination_experiment(func, **kwargs):
     """
@@ -33,7 +45,7 @@ def combination_experiment(func, **kwargs):
             must be iterable
     """
 
-    # clear any left over progressbars if in ipython
+      # clear any left over progressbars if in ipython
     # https://github.com/tqdm/tqdm/issues/375#issuecomment-576863223
     getattr(tqdm, '_instances', {}).clear()
 

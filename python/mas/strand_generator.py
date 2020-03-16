@@ -46,11 +46,20 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
     imgr = imgr / imgr.max()
     return imgr
 
+def get_visors_noise(dark_current=8, background=2, read_noise=10):
+    """
+    Return a noise function which generates noisy frames out of noiseless ones
+    according to the given parameters
 
-def noise_model(x, frame_rate):
-
-    x = np.random.poisson((x + 8 + 2) / frame_rate)
-    return normal(loc=x, scale=10)
+    Args:
+        dark_current (float): [dark current counts / pixel / s]
+        background (float): [background photon counts / pixel / s]
+        read_noise (float): standard deviation of the Gaussian readout noise [1/read]
+    """
+    def func(x, frame_rate):
+        x = np.random.poisson(x + (dark_current + background) / frame_rate)
+        return normal(loc=x, scale=read_noise)
+    return func
 
 
 class StrandVideo(object):
@@ -62,8 +71,8 @@ class StrandVideo(object):
         drift_angle (float): angle of drift (degrees)
         drift_velocity (float): velocity of drift (m / s)
         max_count (int): maximum photon rate
-        noise_model (function): function which takes 'frames' and 'frame_rate'
-            and returns noisy frames
+        noise_model (function): function which takes 'frames', 'frame_rate',
+            'dark_current', 'background', 'read_noise' and returns noisy frames
 
         ccd_size (tuple): resolution of physical CCD
         pixel_size (float): width of CCD pixel (m)
@@ -86,7 +95,7 @@ class StrandVideo(object):
             drift_angle=-45, # degrees
             drift_velocity=0.2e-3, # meters / s
             max_count=20,
-            noise_model=noise_model,
+            noise_model=get_visors_noise(),
             wavelengths=np.array([30.4e-9]),
             # CCD parameters
             frame_rate=4, # Hz
@@ -130,6 +139,7 @@ class StrandVideo(object):
             )
 
         self.scene = get_measurements(sources=self.scene[np.newaxis, :, :], psfs=self.psfs)[0]
+        self.scene *= max_count / np.max(self.scene)
 
         self.frames_clean, self.topleft_coords = video(
             scene=self.scene,
@@ -143,9 +153,6 @@ class StrandVideo(object):
             start=start
         )
 
-        self.frames_clean /= np.max(self.frames_clean)
-        self.frames_clean *= max_count
-
         # add noise to the frames
         if noise_model is not None:
             self.frames = noise_model(self.frames_clean, frame_rate)
@@ -154,5 +161,5 @@ class StrandVideo(object):
 
         self.true_drift = drift_velocity / frame_rate * np.array([
             np.cos(np.deg2rad(drift_angle)),
-            -np.sin(np.deg2rad(drift_angle)) # use image coordinate system
+            np.sin(np.deg2rad(drift_angle)) # use image coordinate system
         ]) / pixel_size
