@@ -270,8 +270,7 @@ def get_LAM(*, rows, cols, order):
             np.abs(np.fft.fft2(diffy_kernel))**2
         )
 
-
-def deconv_plotter(*, sources, recons, iter):
+def deconv_plotter(*, sources=None, recons, iter):
     """Function that plots the deconvolved images as the iterations go.
 
     Args:
@@ -280,17 +279,22 @@ def deconv_plotter(*, sources, recons, iter):
         iter (int): current iteration number
 
     """
-    num_sources = sources.shape[0]
+    num_sources = recons.shape[0]
     ssim1 = np.zeros(num_sources)
-    mse1 = np.mean((sources - recons)**2, axis=(1, 2))
-    psnr1 = 20 * np.log10(np.max(sources, axis=(1,2))/np.sqrt(mse1))
-    for i in range(num_sources):
-        ssim1[i] = compare_ssim(sources[i], recons[i],
-            data_range=np.max(recons[i])-np.min(recons[i]))
+    if sources is not None:
+        mse1 = np.mean((sources - recons)**2, axis=(1, 2))
+        psnr1 = 20 * np.log10(np.max(sources, axis=(1,2))/np.sqrt(mse1))
+        for i in range(num_sources):
+            ssim1[i] = compare_ssim(sources[i], recons[i],
+                data_range=np.max(recons[i])-np.min(recons[i]))
+        title = 'Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter+1, ssim1, psnr1)
+    else:
+        title = 'Iteration: {}'.format(iter+1)
+
     plotter4d(recons,
         cmap='gist_heat',
         fignum=3,
         figsize=(5.6,8),
-        title='Iteration: {}\n Recon. SSIM={}\n Recon. PSNR={}'.format(iter+1, ssim1, psnr1)
+        title=title
     )
     plt.pause(0.01)

@@ -4,7 +4,7 @@ from skimage.transform import rescale
 from tqdm import tqdm
 
 def video(*, scene, resolution_ratio, frame_rate, exp_time, drift_angle,
-        drift_velocity, pixel_size, ccd_size, start,):
+        drift_velocity, pixel_size, ccd_size, start):
 
     """
     Get strand video frames
@@ -57,7 +57,9 @@ def video(*, scene, resolution_ratio, frame_rate, exp_time, drift_angle,
         )
         if len(path_rows) > 1:
             path_rows, path_cols = path_rows[:-1], path_cols[:-1]
+        numpoints = len(path_rows)
         for row,col in zip(path_rows, path_cols):
             temp += scene[row:row+temp.shape[0], col:col+temp.shape[1]]
+        temp /= frame_rate * numpoints
         frames[frame] = rescale(temp, 1/resolution_ratio, anti_aliasing=False)
     return frames, topleft_coords

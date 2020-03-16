@@ -19,7 +19,7 @@ def admm(
         recon_init,
         iternum,
         plot=True,
-        periter,
+        periter=5,
         nu,
         lam,
         **kwargs
