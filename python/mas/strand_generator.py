@@ -94,13 +94,14 @@ class StrandVideo(object):
             exp_time=10, # s
             drift_angle=-45, # degrees
             drift_velocity=0.2e-3, # meters / s
+            angle_velocity=2, # deg / s
             max_count=20,
             noise_model=get_visors_noise(),
             wavelengths=np.array([30.4e-9]),
             # CCD parameters
             frame_rate=4, # Hz
-            ccd_size=(750, 750),
-            start=(0, 0),
+            ccd_size=np.array((750, 750)),
+            start=(1500, 1500),
             pixel_size=14e-6, # meters
             # simulation subpixel parameters
             resolution_ratio=2, # CCD pixel_size / simulation pixel_size
@@ -147,6 +148,7 @@ class StrandVideo(object):
             exp_time=exp_time,
             drift_angle=drift_angle,
             drift_velocity=drift_velocity,
+            angle_velocity=angle_velocity,
             ccd_size=ccd_size,
             resolution_ratio=resolution_ratio,
             pixel_size=pixel_size,

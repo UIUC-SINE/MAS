@@ -383,12 +383,12 @@ def crop(im, center=None, *, width):
     if center is None:
         center = (im.shape[0] // 2, im.shape[1] // 2)
 
-    assert (
-        (0 <= center[0] - width[0]) and
-        (0 <= center[1] - width[1]) and
-        (im.shape[0] >= center[0] + width[0]) and
-        (im.shape[1] >= center[1] + width[1])
-    ), "Cropped region falls outside image bounds"
+    # assert (
+    #     (0 <= center[0] - width[0]) and
+    #     (0 <= center[1] - width[1]) and
+    #     (im.shape[0] >= center[0] + width[0]) and
+    #     (im.shape[1] >= center[1] + width[1])
+    # ), "Cropped region falls outside image bounds"
 
     crop_left = (im.shape[0] - width[0] + 1) // 2
     crop_right = crop_left + width[0]

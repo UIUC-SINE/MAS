@@ -115,6 +115,30 @@ def psf_slider(psfs):
     return plt
 
 
+def slider(images):
+    """Plot array of images with a slider
+
+    Args:
+        images (ndarray): (L x M x N) array of (M x N) images
+    """
+
+    fig, ax = plt.subplots()
+    plt.subplots_adjust(left=0.25, bottom=0.25)
+    im = ax.imshow(images[0])
+
+    slider_axis = plt.axes([0.25, 0.1, 0.65, 0.03])
+    slider = Slider(slider_axis, 'Index', 0, len(images) - 1, valfmt='%i')
+
+    def update(_):
+        im.set_array(images[int(slider.val)])
+        im.set_norm(Normalize())
+        fig.canvas.draw_idle()
+
+    slider.on_changed(update)
+
+    return slider
+
+
 def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
               colorbar=False, column_labels=None, row_labels=None,
               sup_ylabel=None, sup_xlabel=None, scale=False):
