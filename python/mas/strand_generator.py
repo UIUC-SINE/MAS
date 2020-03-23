@@ -94,7 +94,7 @@ class StrandVideo(object):
             exp_time=10, # s
             drift_angle=-45, # degrees
             drift_velocity=0.2e-3, # meters / s
-            angle_velocity=2, # deg / s
+            angle_velocity=0, # deg / s
             max_count=20,
             noise_model=get_visors_noise(),
             wavelengths=np.array([30.4e-9]),
@@ -107,6 +107,7 @@ class StrandVideo(object):
             resolution_ratio=2, # CCD pixel_size / simulation pixel_size
             fov_ratio=2, # simulated FOV / CCD FOV
             # strand parameters
+            scene=None, # pregenerated scene
             num_strands=100, # num strands per CCD FOV
             # sieve parameters
             diameter=75e-3, # meters
@@ -125,7 +126,9 @@ class StrandVideo(object):
         )
 
         # load common high resolution scene from file
-        if (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 5, 160):
+        if scene is not None:
+            scene = np.copy(scene)
+        elif (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 5, 160):
             from mas.data import strand_highres
             self.scene = strand_highres
         elif (num_strands, fov_ratio, resolution_ratio, ccd_size[0]) == (100, 2, 2, 750):
@@ -140,7 +143,7 @@ class StrandVideo(object):
             )
 
         self.scene = get_measurements(sources=self.scene[np.newaxis, :, :], psfs=self.psfs)[0]
-        self.scene *= max_count / np.max(self.scene)
+        # self.scene *= max_count / np.max(self.scene)
 
         self.frames_clean, self.topleft_coords = video(
             scene=self.scene,
@@ -154,6 +157,8 @@ class StrandVideo(object):
             pixel_size=pixel_size,
             start=start
         )
+
+        self.frames_clean *= max_count / np.max(self.frames_clean)
 
         # add noise to the frames
         if noise_model is not None:
