@@ -144,8 +144,7 @@ class StrandVideo(object):
 
         self.scene = get_measurements(sources=self.scene[np.newaxis, :, :], psfs=self.psfs)[0]
 
-        # old noise model
-        # self.scene *= max_count / np.max(self.scene)
+        self.scene *= max_count / np.max(self.scene)
 
         self.frames_clean, self.topleft_coords = video(
             scene=self.scene,
@@ -159,8 +158,6 @@ class StrandVideo(object):
             pixel_size=pixel_size,
             start=start
         )
-
-        self.frames_clean *= (max_count / frame_rate) / np.max(self.frames_clean)
 
         # add noise to the frames
         if noise_model is not None:
