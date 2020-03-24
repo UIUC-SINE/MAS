@@ -8,7 +8,7 @@ from scipy.signal import convolve2d
 from abel.tools.polar import polar2cart, cart2polar, index_coords
 from itertools import combinations
 from skimage.feature.register_translation import _upsampled_dft
-from skimage.transform import resize
+from skimage.transform import resize, rescale
 from skimage.draw import line_aa
 from mas.decorators import np_gpu
 from mas.deconvolution.admm import patch_based, TV, bm3d_pnp, dncnn_pnp
@@ -99,7 +99,49 @@ def reproject_image_into_polar(data, origin=None, Jacobian=False,
 
     return output, r_grid, theta_grid
 
-def guizar_multiframe(corr_sum, upsample_factor=100, start=10, end=30, np=np):
+
+def guizar_upsample(corr_sum, np=np):
+    max_scale = len(corr_sum)
+    scale_factor = np.array(corr_sum[0].shape) // len(corr_sum)
+
+    fine_list = []
+    argmaxes = []
+    for n, cs in enumerate(corr_sum, 1):
+        sfx, sfy = scale_factor
+        # rescale only works with real arrays
+        # scale real and imaginary parts separately
+        rescaled = rescale(
+            cs[:sfx * n, :sfy * n].real,
+            float(max_scale) / n
+        )[
+            :sfx * max_scale,
+            :sfy * max_scale
+        ].astype('complex128')
+        rescaled += 1j * rescale(
+            cs[:sfx * n, :sfy * n].imag,
+            float(max_scale) / n
+        )[
+            :sfx * max_scale,
+            :sfy * max_scale
+        ]
+        fine_list.append(rescaled)
+        argmax = np.unravel_index(np.argmax(rescaled), rescaled.shape)
+        argmaxes.append((argmax[1], -argmax[0]))
+
+    fine = np.array(fine_list)
+
+    weights = np.arange(1, max_scale + 1)**2
+    weights = weights / weights.sum()
+    weights[-2:] = 0
+
+    result = np.sum(weights[:, np.newaxis, np.newaxis] * fine, axis=0)
+
+    fine_est = np.array(np.unravel_index(np.argmax(result), result.shape)) / max_scale
+
+    return np.array((fine_est[1], -fine_est[0])), np.array(argmaxes) / float(max_scale)
+
+
+def guizar_multiframe(corr_sum, upsample_factor=100, np=np):
     """
     Efficient subpixel image translation registration by cross-correlation.
     Modified and simplified version of register_translation from skimage
@@ -115,9 +157,7 @@ def guizar_multiframe(corr_sum, upsample_factor=100, start=10, end=30, np=np):
     shape = corr_sum[0].shape
 
     d = []
-    for time_diff, cross_correlation in enumerate(corr_sum[start - 1:end - 1]):
-
-        time_diff += start
+    for time_diff, cross_correlation in enumerate(corr_sum, 1):
 
         # Locate maximum
         maxima = np.unravel_index(np.argmax(np.abs(cross_correlation)),
@@ -157,8 +197,14 @@ def guizar_multiframe(corr_sum, upsample_factor=100, start=10, end=30, np=np):
         shifts = shifts + maxima / upsample_factor
 
         d.append(np.array((shifts[1], -shifts[0])) / time_diff)
+
+    weights = np.arange(1, len(corr_sum) + 1)**2
+    # FIXME
+    weights[-2:] = 0
+    weights = weights / weights.sum()
+
     d = np.array(d)
-    guizar_error = np.mean(d, axis=0)
+    guizar_error = np.sum(d * weights[:, np.newaxis], axis=0)
 
     return guizar_error, d
 
