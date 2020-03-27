@@ -46,7 +46,7 @@ def strands(num_strands=100, thickness=22, min_angle=-20, max_angle=20,
     imgr = imgr / imgr.max()
     return imgr
 
-def get_visors_noise(dark_current=8, background=2, read_noise=10):
+def get_visors_noise(dark_current=0.8, background=2, read_noise=1):
     """
     Return a noise function which generates noisy frames out of noiseless ones
     according to the given parameters

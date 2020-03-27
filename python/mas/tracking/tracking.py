@@ -497,7 +497,7 @@ def ulas_multiframe(corr_sum, proportion=0.4, np=np):
     return np.array((shift_est[1], shift_est[0])), np.array((shift_est2[1], shift_est2[0]))
 
 
-def motion_deblur(*, sv, registered, drift):
+def motion_deblur(*, sv, coadded, drift):
     """
 
     """
@@ -533,13 +533,13 @@ def motion_deblur(*, sv, registered, drift):
     # normalize the kernel
     psfs.psfs[0,0] /= psfs.psfs[0,0].sum()
 
-    # normalize the registered image (doesn't change anything but helps choosing regularization parameter consistently)
-    registered /= registered.max()
+    # normalize the coadded image (doesn't change anything but helps choosing regularization parameter consistently)
+    coadded /= coadded.max()
 
-    # do a tikhonov regularized deblurring on the registered image to remove the
+    # do a tikhonov regularized deblurring on the coadded image to remove the
     # in-frame blur with the calculated "effective blurring kernel"
     recon_tik = tikhonov(
-        measurements=registered[np.newaxis,:,:],
+        measurements=coadded[np.newaxis,:,:],
         psfs=psfs,
         tikhonov_lam=1e1,
         tikhonov_order=1
@@ -551,7 +551,7 @@ def motion_deblur(*, sv, registered, drift):
 
     # do a Plug and Play with BM3D reconstruction with tikhonov initialization
     recon = admm(
-        measurements=registered[np.newaxis,:,:],
+        measurements=coadded[np.newaxis,:,:],
         psfs=psfs,
         regularizer=partial(bm3d_pnp),
         recon_init=recon_tik,
