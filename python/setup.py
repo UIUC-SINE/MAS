@@ -22,7 +22,9 @@ setup(
         "tqdm",
         "pandas",
         "scikit-image",
-        "cachalot"
+        "cachalot",
+        "pyabel",
+        "pybm3d"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
