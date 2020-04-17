@@ -45,7 +45,7 @@ def video(*, scene, resolution_ratio, frame_rate, exp_time, drift_angle,
     # calculate each frame by integrating high resolution image along the drift
     # direction
     for frame in tqdm(range(num_frames), desc='Frames', leave=None, position=1):
-        hr_size = ccd_size * resolution_ratio
+        hr_size = np.array(ccd_size) * resolution_ratio
         hr_frame = np.zeros(hr_size)
         # calculate middle coordinates for the shortest line connecting the
         # middle coordinates of the consecutive frames

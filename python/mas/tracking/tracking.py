@@ -131,8 +131,8 @@ def guizar_upsample(corr_sum, np=np):
     fine = np.array(fine_list)
 
     weights = np.arange(1, max_scale + 1)**2
-    weights = weights / weights.sum()
     weights[-2:] = 0
+    weights = weights / weights.sum()
 
     result = np.sum(weights[:, np.newaxis, np.newaxis] * fine, axis=0)
 
