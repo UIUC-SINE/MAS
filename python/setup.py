@@ -20,7 +20,9 @@ setup(
         "imageio",
         "opencv-python",
         "tqdm",
-        "pandas"
+        "pandas",
+        "scikit-image",
+        "cachalot"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
