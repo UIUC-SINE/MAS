@@ -20,7 +20,11 @@ setup(
         "imageio",
         "opencv-python",
         "tqdm",
-        "pandas"
+        "pandas",
+        "scikit-image",
+        "cachalot",
+        "pyabel",
+        "pybm3d"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
