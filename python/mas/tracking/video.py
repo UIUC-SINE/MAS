@@ -30,7 +30,7 @@ def video(*, scene, resolution_ratio, frame_rate, exp_time, drift_angle,
             resolution_ratio / (frame_rate * pixel_size)
         )).astype(int).T
 
-    # FIXME check box bounds correctly
+    # FIXME check box bounds correctly, need to account for rotation
     assert (
         0 <= coord(0)[0] < scene.shape[0] and 0 <= coord(0)[1] < scene.shape[1] and
         0 <= coord(num_frames)[0] < scene.shape[0] and 0 <= coord(num_frames)[1] < scene.shape[1]
