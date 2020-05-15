@@ -12,12 +12,16 @@ def video(*, scene, resolution_ratio, frame_rate, exp_time, drift_angle,
     Get strand video frames
 
     Args:
-        resolution_ratio
-        frame_rate
-        exp_time
-        drift_vector*
-        scene*
-        start*
+        scene (ndarray): high resolution input scene
+        resolution_ratio (float): downsample factor to low resolution images
+        frame_rate (float): video frame rate
+        exp_time (float): experiment duration
+        drift_angle (float): linear drift direction (deg)
+        drift_velocity (float): linear drift velocity (pix / s)
+        angle_velocity (float): camera rotation rate (deg / s)
+        pixel_size (float):
+        ccd_size (int): size of square detector ccd (pixels)
+        start (tuple): start location of detector in scene
     """
 
     num_frames = exp_time * frame_rate
