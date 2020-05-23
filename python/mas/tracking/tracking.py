@@ -16,6 +16,7 @@ from mas.deconvolution import tikhonov, admm
 from mas.forward_model import size_equalizer
 from mas.psf_generator import PSFs, circ_incoherent_psf
 from mas.misc import xy2rc, rc2xy
+import numpy.ma as ma
 
 from tqdm import tqdm
 import inspect, copy
@@ -330,9 +331,9 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
 
     Args:
         frames (ndarray): input frames to coadd
-        drift (ndarray): drift between adjacent frames (cartesian)
+        drift (ndarray): drift between adjacent frames
         mode (str): zeropad before coadding ('full') or crop to region of
-            frame overlap ('crop')
+            frame overlap ('crop'), or crop to region of first frame ('first')
         shift_method (str): method for shifting frames ('roll', 'fourier')
         pad (bool): zeropad images before coadding
 
@@ -341,38 +342,55 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
     """
 
     pad = np.ceil(drift * (len(frames) - 1)).astype(int)
-    pad_x = (0, pad[0]) if drift[0] > 0 else (-pad[0], 0)
-    pad_y = (pad[1], 0) if drift[1] > 0 else (0, -pad[1])
-    frames = np.pad(frames, ((0, 0), pad_y, pad_x), mode='constant')
+    pad_r = (0, pad[0]) if drift[0] > 0 else (-pad[0], 0)
+    pad_c = (0, pad[1]) if drift[1] > 0 else (-pad[1], 0)
+    frames_ones = np.pad(
+        np.ones(frames.shape, dtype=int),
+        ((0, 0), pad_r, pad_c),
+        mode='constant',
+    )
+    frames_pad = np.pad(frames, ((0, 0), pad_r, pad_c), mode='constant')
 
-    summation = np.zeros(frames[0].shape, dtype='complex128')
+    summation = np.zeros(frames_pad[0].shape, dtype='complex128')
+    summation_scale = np.zeros(frames_pad[0].shape, dtype=int)
 
-    for time_diff, frame in enumerate(frames):
+    for time_diff, (frame, frame_ones) in enumerate(zip(frames_pad, frames_ones)):
         shift = np.array(drift) * (time_diff + 1)
         if shift_method == 'roll':
-            integer_shift = np.round(shift).astype(int)
-            shifted = roll(frame, (-integer_shift[1], integer_shift[0]))
+            integer_shift = np.floor(shift).astype(int)
+            shifted = roll(frame, (integer_shift[0], integer_shift[1]))
+            shifted_ones = roll(frame_ones, (integer_shift[0], integer_shift[1]))
         elif shift_method == 'fourier':
             shifted = np.fft.ifftn(fourier_shift(
                 np.fft.fftn(frame),
-                (-shift[1], shift[0])
+                (shift[0], shift[1])
+            ))
+            shifted_ones = np.fft.ifftn(fourier_shift(
+                np.fft.fftn(frame_ones),
+                (shift[0], shift[1])
             ))
         else:
             raise Exception('Invalid shift_method')
         summation += shifted
+        summation_scale += shifted_ones
 
     if mode == 'crop':
         summation = size_equalizer(
             summation,
-            np.array(frames[0].shape).astype(int) -
-            2 * np.ceil(xy2rc(drift) * (len(frames)-1)).astype(int)
+            np.array(frames_pad[0].shape).astype(int) -
+            2 * np.ceil(drift * (len(frames_pad)-1)).astype(int)
         )
     elif mode == 'full':
-        pass
+        summation /= summation_scale
+    elif mode == 'first':
+        summation_scale[summation_scale == 0] = 1
+        summation /= summation_scale
+        summation = summation[:frames.shape[1], :frames.shape[2]]
     else:
         raise Exception('Invalid mode')
 
-    return summation.real
+    return summation
+
 
 def ulas_multiframe(frames, proportion=0.4):
     num_frames = frames.shape[0]
