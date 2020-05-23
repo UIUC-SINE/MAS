@@ -427,7 +427,7 @@ def size_compressor(signal, energy_ratio=0.9995):
 
 def downsample(x, factor=2):
     """
-    Downsample an image by average factor*factor sized patches.  Discards remaining pixels
+    Downsample an image by averaging factor*factor sized patches.  Discards remaining pixels
     on bottom and right edges
 
     Args:
@@ -444,6 +444,26 @@ def downsample(x, factor=2):
         mode='valid'
     )[::factor, ::factor]
 
+def downsample_mid(x, factor=2):
+    """
+    Downsample an image by average factor*factor sized patches.
+    Shift patches by factor / 2
+
+    Args:
+        x (ndarray): input image to downsample
+        factor (int): factor to downsample image by
+
+    Returns:
+        ndarray containing downsampled image
+    """
+
+    X = np.fft.fftn(x)
+    kern = size_equalizer(np.ones((factor, factor)) / factor**2, x.shape)
+    kern = np.fft.fftshift(kern)
+    kern = np.fft.fftn(kern)
+    # -factor to prevent overlap from first kernel pos to last kernel pos
+    # return np.fft.ifftn(kern * X)[:-factor:factor, :-factor:factor]
+    return np.fft.ifftn(kern * X)[::factor, ::factor]
 
 def upsample(x, factor=2):
     """
@@ -497,3 +517,28 @@ def wavelength2dof(*, wavelength, base_wavelength, ps):
         (wavelength - base_wavelength) * ps.diameter /
         (2 * ps.smallest_hole_diameter * base_wavelength)
     )
+
+def modulate(shape, amp=1, width=1, grid=5):
+
+    tile = np.tile(
+        np.hstack((
+            [.5] * width,
+            [-.5] * width
+        )),
+        (width * grid, grid // 2 + 1)
+    )[:, :width * grid]
+
+    modulated = np.vstack((
+        np.hstack((tile, tile.T)),
+        np.hstack((tile.T, tile)),
+    ))
+
+    modulated = np.tile(
+        modulated,
+        (
+            shape[0] // modulated.shape[0] + 1,
+            shape[1] // modulated.shape[1] + 1
+        )
+    )[:shape[0], :shape[1]]
+
+    return amp * modulated
