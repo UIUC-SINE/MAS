@@ -101,7 +101,8 @@ def reproject_image_into_polar(data, origin=None, Jacobian=False,
     return output, r_grid, theta_grid
 
 
-def guizar_upsample(corr_sum, np=np):
+# @np_gpu(np_args=[0])
+def guizar_upsample(corr_sum):
     max_scale = len(corr_sum)
     scale_factor = np.array(corr_sum[0].shape) // len(corr_sum)
 
@@ -127,7 +128,7 @@ def guizar_upsample(corr_sum, np=np):
         ]
         fine_list.append(rescaled)
         argmax = np.unravel_index(np.argmax(rescaled), rescaled.shape)
-        argmaxes.append((argmax[1], -argmax[0]))
+        argmaxes.append(argmax)
 
     fine = np.array(fine_list)
 
@@ -139,7 +140,8 @@ def guizar_upsample(corr_sum, np=np):
 
     fine_est = np.array(np.unravel_index(np.argmax(result), result.shape)) / max_scale
 
-    return np.array((fine_est[1], -fine_est[0])), np.array(argmaxes) / float(max_scale)
+    # return np.array((fine_est[1], -fine_est[0])), np.array(argmaxes) / float(max_scale), fine, weights
+    return fine_est, np.array(argmaxes) / float(max_scale), fine, weights
 
 
 def guizar_multiframe(corr_sum, upsample_factor=100, np=np):
@@ -341,20 +343,28 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
         (ndarray): coadded images
     """
 
+    assert type(drift) is np.ndarray, "'drift' should be ndarray"
+
+    print('1')
     pad = np.ceil(drift * (len(frames) - 1)).astype(int)
     pad_r = (0, pad[0]) if drift[0] > 0 else (-pad[0], 0)
     pad_c = (0, pad[1]) if drift[1] > 0 else (-pad[1], 0)
+    print('2')
     frames_ones = np.pad(
         np.ones(frames.shape, dtype=int),
         ((0, 0), pad_r, pad_c),
         mode='constant',
     )
+    print('3')
     frames_pad = np.pad(frames, ((0, 0), pad_r, pad_c), mode='constant')
 
+    print('3')
     summation = np.zeros(frames_pad[0].shape, dtype='complex128')
+    print('4')
     summation_scale = np.zeros(frames_pad[0].shape, dtype=int)
+    print('5')
 
-    for time_diff, (frame, frame_ones) in enumerate(zip(frames_pad, frames_ones)):
+    for time_diff, (frame, frame_ones) in tqdm(enumerate(zip(frames_pad, frames_ones))):
         shift = np.array(drift) * (time_diff + 1)
         if shift_method == 'roll':
             integer_shift = np.floor(shift).astype(int)
@@ -374,6 +384,8 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
         summation += shifted
         summation_scale += shifted_ones
 
+    summation /= summation_scale
+
     if mode == 'crop':
         summation = size_equalizer(
             summation,
@@ -381,16 +393,43 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
             2 * np.ceil(drift * (len(frames_pad)-1)).astype(int)
         )
     elif mode == 'full':
-        summation /= summation_scale
+        pass
     elif mode == 'first':
         summation_scale[summation_scale == 0] = 1
-        summation /= summation_scale
         summation = summation[:frames.shape[1], :frames.shape[2]]
+    elif mode == 'center':
+        summation_scale[summation_scale == 0] = 1
+        summation = size_equalizer(summation, frames.shape[1:])
     else:
         raise Exception('Invalid mode')
 
-    return summation
+    return summation.real
 
+
+def get_truth(sv, mode="full"):
+    """Return ground truth for shift_and_sum
+
+    Args:
+        sv (StrandVideo)
+
+    Returns:
+        ndarray: ground truth image
+    """
+
+    frame_shape = np.array(sv.frames[0].shape) * sv.resolution_ratio
+
+    import ipdb
+    ipdb.set_trace()
+    if mode == 'crop':
+        top, left = sv.midpoint_coords[-1] - frame_shape // 2
+        bottom, right = sv.midpoint_coords[0] + (frame_shape + 1) // 2
+    elif mode == 'full':
+        top, left = sv.midpoint_coords[0] - frame_shape // 2
+        bottom, right = sv.midpoint_coords[-1] + (frame_shape + 1) // 2
+    else:
+        raise NotImplementedError
+
+    return sv.scene[top:bottom, left:right]
 
 def ulas_multiframe(frames, proportion=0.4):
     num_frames = frames.shape[0]

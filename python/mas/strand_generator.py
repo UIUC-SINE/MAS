@@ -146,7 +146,7 @@ class StrandVideo(object):
 
         self.scene *= max_count / np.max(self.scene)
 
-        self.frames_clean, self.topleft_coords = video(
+        self.frames_clean, self.midpoint_coords = video(
             scene=self.scene,
             frame_rate=frame_rate,
             exp_time=exp_time,
@@ -166,6 +166,6 @@ class StrandVideo(object):
             self.frames = self.frames_clean
 
         self.true_drift = drift_velocity / frame_rate * np.array([
-            np.cos(np.deg2rad(drift_angle)),
-            np.sin(np.deg2rad(drift_angle)) # use image coordinate system
+            -np.sin(np.deg2rad(drift_angle)), # use image coordinate system
+            np.cos(np.deg2rad(drift_angle))
         ]) / pixel_size
