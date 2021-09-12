@@ -18,6 +18,7 @@ def experiment(func, iterations, **kwargs):
         print('Trial {}/{}\r'.format(t + 1, iterations), end='')
         result.append(func(**kwargs))
 
+    print('\033[K', end='')
     return pd.DataFrame(result)
 
 def xy2rc(x, y=None):
