@@ -8,7 +8,6 @@ from mas.forward_model import size_equalizer
 from mas.block import block_mul, block_herm, block_inv
 import functools
 import multiprocessing
-import pybm3d
 
 def admm(
         *,
@@ -244,6 +243,7 @@ def bm3d_pnp(
         ndarray of updated intermediate variable pre_primal2
         ndarray of initialized dual
     """
+    import pybm3d
     num_sources = psfs.psfs.shape[1]
     rows, cols = measurements.shape[1:]
     ###################  INITIALIZE PRIMAL2 and DUAL ##################

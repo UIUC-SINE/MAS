@@ -49,6 +49,9 @@ def _vectorize(signature='(m,n)->(i,j)', included=[0]):
                 signature = kwargs['signature']
                 kwargs.pop('signature')
 
+            # print(f'{func=}')
+            # print(f'{excluded=}')
+            # print(f'{signature=}')
             return np.vectorize(func, excluded=excluded, signature=signature)(*args, **kwargs)
 
         return new_func

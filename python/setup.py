@@ -21,10 +21,10 @@ setup(
         "opencv-python",
         "tqdm",
         "pandas",
-        "scikit-image",
+        "scikit-image==0.17.2",
         "cachalot",
         "pyabel",
-        "pybm3d"
+        # "pybm3d"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
