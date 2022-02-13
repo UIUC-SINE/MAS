@@ -33,7 +33,7 @@ def rc2xy(r, c=None):
 
     return np.array((c, -r)).T
 
-def combination_experiment(func, print=False, **kwargs):
+def combination_experiment(func, disable_print=False, iterations=1, **kwargs):
     """
     Run `func` with all combinations of input parameters and return results in
     dataframe
@@ -42,6 +42,7 @@ def combination_experiment(func, print=False, **kwargs):
         func (function): function which returns a dict of results
             use `return dict(**locals())` to return all function variables
         iterations (int): number of iterations to repeat each experiment
+        disable_print (boolean): disable tqdm printing
         kwargs: keyword arguments that will be passed to `func`.  each kwarg
             must be iterable
     """
@@ -50,20 +51,24 @@ def combination_experiment(func, print=False, **kwargs):
     # https://github.com/tqdm/tqdm/issues/375#issuecomment-576863223
     getattr(tqdm, '_instances', {}).clear()
 
-    total = functools.reduce(operator.mul, map(len, kwargs.values()))
+    try:
+        total = functools.reduce(operator.mul, map(len, kwargs.values()))
+        total *= iterations
+    except TypeError:
+        raise Exception("arguments must be list or iterable")
 
     results = []
-    for values in tqdm(
-            product(*kwargs.values()), desc='Trials', total=total, leave=None
-    ):
+    with tqdm(desc='Trials', total=total, leave=None, disable=disable_print) as tqdm_bar:
+        for values in product(*kwargs.values()):
+            for _ in range(iterations):
+                func_kwargs = dict(zip(kwargs.keys(), values))
+                result = func(**func_kwargs)
+                tqdm_bar.update(1)
 
-        func_kwargs = dict(zip(kwargs.keys(), values))
-        result = func(**func_kwargs)
+                if type(result) is not dict:
+                    result = {'result': result}
 
-        if type(result) is not dict:
-            result = {'result': result}
-
-        results.append({**result, **func_kwargs})
+                results.append({**result, **func_kwargs})
 
     return pd.DataFrame(results)
 
