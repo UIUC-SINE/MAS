@@ -7,7 +7,6 @@ from scipy.optimize import curve_fit, minimize
 from scipy.signal import convolve2d
 from abel.tools.polar import polar2cart, cart2polar, index_coords
 from itertools import combinations
-from skimage.feature.register_translation import _upsampled_dft
 from skimage.transform import resize, rescale
 from skimage.draw import line_aa
 from mas.decorators import np_gpu
@@ -103,6 +102,9 @@ def reproject_image_into_polar(data, origin=None, Jacobian=False,
 
 # @np_gpu(np_args=[0])
 def guizar_upsample(corr_sum):
+    # FIXME: deprecated function
+
+    from skimage.feature.register_translation import _upsampled_dft
     max_scale = len(corr_sum)
     scale_factor = np.array(corr_sum[0].shape) // len(corr_sum)
 
@@ -239,7 +241,7 @@ def correlate_and_sum(frames, mode='CC', np=np):
         else:
             raise Exception('Invalid mode {}'.format(mode.upper()))
 
-    return np.fft.ifftn(np.array(product_sums), axes=(1, 2))
+    return np.fft.ifftn(np.array(product_sums), axes=(1, 2)).real
 
 # def phase_correlate(x, y):
 #     """Perform normalized phase-correlation"""
