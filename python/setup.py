@@ -1,10 +1,10 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import version
 
 setup(
     name='uiuc-mas',
     version=version.__version__,
-    packages=['mas'],
+    packages=find_packages(),
     author="Evan Widloski, Ulas Kamaci",
     author_email="evan@evanw.org",
     description="Milliarc-second Photon Sieve Simulations",
