@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mas.deconvolution.common import patch_extractor, patch_aggregator, dctmtx, hard_thresholding
 from mas.deconvolution import tikhonov
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity as compare_ssim
 from mas.deconvolution.common import deconv_plotter, get_LAM
 from mas.forward_model import size_equalizer
 from mas.block import block_mul, block_herm, block_inv

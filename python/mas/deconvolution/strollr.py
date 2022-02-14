@@ -1,7 +1,7 @@
 import numpy as np
 from mas.deconvolution.common import indsum, lowrank, deconv_plotter, hard_thresholding
 from mas.deconvolution.common import patch_extractor, patch_aggregator
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity as compare_ssim
 from mas.plotting import plotter4d
 from mas.block import block_mul, block_inv
 import functools

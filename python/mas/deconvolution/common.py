@@ -1,7 +1,7 @@
 import numpy as np
 from collections import Counter
 from scipy.fftpack import dct, dctn, idctn
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity as compare_ssim
 from mas.plotting import plotter4d
 from matplotlib import pyplot as plt
 
