@@ -400,14 +400,15 @@ def crop(im, center=None, *, width):
 
 def size_compressor(signal, energy_ratio=0.9995):
     """
-    Crop the borders of an image such that the given `energy_ratio` is achieved
+    Compute width of an image such that the given `energy_ratio` is achieved
 
     Args:
-        signal (ndarray): input image to crop
+        signal (ndarray): 2D input image
         energy_ratio (float): ratio of output to input signal energies
 
     Returns:
-        ndarray containing cropped image
+        width containing 'energy_ratio' percent of total energy, measured
+        from the central pixel
     """
 
     energy0 = sum(sum(signal**2))
