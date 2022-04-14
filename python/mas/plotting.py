@@ -115,11 +115,12 @@ def psf_slider(psfs):
     return plt
 
 
-def slider(images):
+def slider(images, same_scale=False):
     """Plot array of images with a slider
 
     Args:
         images (ndarray): (L x M x N) array of (M x N) images
+        same_scale (boolean): force colormap to have same scale on all images
     """
 
     fig, ax = plt.subplots()
@@ -129,9 +130,14 @@ def slider(images):
     slider_axis = plt.axes([0.25, 0.1, 0.65, 0.03])
     slider = Slider(slider_axis, 'Index', 0, len(images) - 1, valfmt='%i')
 
+    global_max = images.max()
+    global_min = images.min()
+
     def update(_):
         im.set_array(images[int(slider.val)])
         im.set_norm(Normalize())
+        if same_scale:
+            im.set_clim(global_min, global_max)
         fig.canvas.draw_idle()
 
     slider.on_changed(update)
