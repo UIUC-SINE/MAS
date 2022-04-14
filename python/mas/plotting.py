@@ -210,33 +210,58 @@ def plotter4d(data, title='', fignum=None, cmap=None, figsize=None,
     return plt
 
 
-def image_animater(arr,
-        titlearray=None,
+def image_animater(
+        arr,
+        title_array=None,
         figsize=(7.4, 4.8),
         cmap='gray',
         vmin=None,
         vmax=None,
-        title='',
-        interval=300
+        title_format='{}',
+        outfile=None,
+        fps=30,
+        same_scale=False
 ):
-    if titlearray is None:
-        titlearray = np.arange(arr.shape[0]) + 1
+    """Create animated sequence from stack of images
+
+    Args:
+        arr (ndarray): input stack (num_images, width, height)
+        title_array (list): list of values to substitute into title_format
+            when generating titles for each image
+        figsize (tuple): pyplot figsize
+        cmap (str): image colormap
+        vmin (float): image scale min
+        max (float): image scale max
+        title_format (str): format string to generate image titles
+        outfile (string): output file path to generate a .gif
+        fps (int) framerate of animated sequence
+        same_scale (boolean): force images to have same colorscale (default=False)
+    """
+    plt.ioff()
+    if title_array is None:
+        title_array = np.arange(arr.shape[0]) + 1
     num = arr.shape[0]
     fig = plt.figure(figsize=figsize)
     ax = plt.gca()
     im = plt.imshow(arr[0], cmap=cmap)
     cb = fig.colorbar(im, ax=ax)
-    if vmin is None:
-        def update(i):
-            plt.title(title.format(titlearray[i]))
-            vmin = np.min(arr[i])
-            vmax = np.max(arr[i])
-            im.set_clim(vmin, vmax)
-            im.set_data(arr[i])
-    else:
-        def update(i):
-            plt.title(title.format(titlearray[i]))
-            im.set_clim(vmin, vmax)
-            im.set_data(arr[i])
+    global_max = arr.max()
+    global_min = arr.min()
+    def update(i):
+        plt.title(title_format.format(title_array[i]))
 
-    return animation.FuncAnimation(fig, update, frames=num, interval=interval)
+        if same_scale:
+            im.set_clim(global_min, global_max)
+
+        elif vmin is None:
+            im.set_clim(np.min(arr[i]), np.max(arr[i]))
+
+        im.set_data(arr[i])
+
+    anim = animation.FuncAnimation(fig, update, frames=num, interval=1000 // fps)
+
+    if outfile is not None:
+        writergif = animation.PillowWriter(fps=fps)
+        anim.save(outfile, writergif)
+
+    return anim
