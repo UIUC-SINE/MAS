@@ -44,7 +44,7 @@ def admm(
     """
     num_sources = psfs.psfs.shape[1]
     rows, cols = measurements.shape[1:]
-    if type(lam) is np.float or type(lam) is np.float64 or type(lam) is np.int:
+    if type(lam) is float or type(lam) is np.float64 or type(lam) is int:
         lam = np.ones(num_sources) * lam
 
     ################## initialize the primal/dual variables ##################

@@ -21,7 +21,7 @@ setup(
         "opencv-python",
         "tqdm",
         "pandas",
-        "scikit-image==0.17.2",
+        "scikit-image",
         "cachalot",
         "pyabel",
         # "pybm3d"

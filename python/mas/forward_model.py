@@ -10,6 +10,12 @@ from scipy.signal import convolve2d
 from scipy.ndimage.filters import gaussian_filter
 from PIL import Image
 import logging
+from mas.psf_generator import PSFs, PhotonSieve
+from mas.strand_generator import strands
+from mas.tracking import mb_kernel
+from skimage.transform import resize, rescale
+import torch
+from torch.nn.functional import conv2d
 
 log = logging.getLogger(name=__name__)
 
@@ -318,6 +324,63 @@ def add_noise(signal, dbsnr=None, max_count=None, model='Poisson', no_noise=Fals
                 sig_scaled = signal * (avg_brightness / signal.mean())
                 out = poisson.rvs(sig_scaled) * (signal.mean() / avg_brightness)
         return out
+
+
+def get_fwd_op_torch(
+    diameter=75e-3, # meters
+    smallest_hole_diameter=16e-6, # meters
+    wavelengths=np.array([30.4e-9]), # meters
+    plane_offset=15e-3, # meters
+    drift_angle=-45, # degrees
+    drift_velocity=0.10e-3, # meters / s
+    jitter_rms=3e-6, # meters
+    frame_rate=7.5, # Hz
+    pixel_size=7e-6, # meters
+    device=None
+):
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    ps = PhotonSieve(
+        diameter=diameter,
+        smallest_hole_diameter=smallest_hole_diameter
+        )
+    psfs = PSFs(
+        ps,
+        sampling_interval=pixel_size,
+        source_wavelengths=wavelengths,
+        measurement_wavelengths=wavelengths,
+        plane_offset=plane_offset
+    )
+
+    true_drift = drift_velocity / frame_rate * np.array([
+        -np.sin(np.deg2rad(drift_angle)), # use image coordinate system
+        np.cos(np.deg2rad(drift_angle))
+    ]) / pixel_size
+
+    ker, ker_um = mb_kernel(true_drift, pixel_size*1e6)
+    ker_um = size_equalizer(ker_um, (31,31))
+    psf_mb = rescale(
+        size_equalizer(gaussian_filter(ker_um, sigma=jitter_rms*1e6), (77,77)),
+        1./7,
+        anti_aliasing=True
+    )
+
+    psfs.psfs[0,0] /= psfs.psfs[0,0].sum()
+    psf_mb /= psf_mb.sum()
+
+    psf_final = convolve2d(psf_mb, psfs.psfs[0,0], mode='same')
+    psf_final /= psf_final.sum()
+
+    psf_final = torch.tensor(psf_final).to(device).view(1, 1, *psf_final.shape)
+
+    def fwd_op_torch(x):
+        if type(x) is not torch.Tensor:
+            x = torch.tensor(x).to(device)
+        x = x.view((1,) * (4 - x.dim()) + x.shape).to(device) # make sure x is 4D
+        return conv2d(x, psf_final, padding='same')
+
+    return fwd_op_torch, psf_final
 
 
 @vectorize

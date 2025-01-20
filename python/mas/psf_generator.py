@@ -278,6 +278,7 @@ class PSFs():
             *,
             source_wavelengths=np.array([33.4, 33.5]) * 1e-9,
             measurement_wavelengths=30,
+            plane_offset=0,
             image_width=1001,
             cropped_width=None,
             energy_ratio=0.9995,
@@ -299,6 +300,9 @@ class PSFs():
                 np.searchsorted(measurement_wavelengths, source_wavelengths),
                 source_wavelengths
             )
+        measurement_locations = sieve.diameter * sieve.smallest_hole_diameter / measurement_wavelengths
+        measurement_locations += plane_offset
+        measurement_wavelengths = sieve.diameter * sieve.smallest_hole_diameter / measurement_locations
 
         psfs = np.empty((0, len(source_wavelengths), image_width, image_width))
 

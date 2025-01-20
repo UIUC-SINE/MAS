@@ -13,7 +13,7 @@ from mas import sse_cost
 from matplotlib import pyplot as plt
 from functools import partial
 from matplotlib.figure import figaspect
-from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 from scipy.io import readsav
 import numpy as np
 import imageio, pickle, h5py
@@ -60,7 +60,7 @@ measured_noisy = add_noise(measured, max_count=10, model='Poisson')
 # %% recon ------------------------------------
 
 recon = tikhonov(
-    sources=sources_ref,
+    # sources=sources_ref,
     measurements=measured_noisy,
     psfs=psfs,
     tikhonov_lam=2e-1,

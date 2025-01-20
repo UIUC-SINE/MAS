@@ -407,6 +407,35 @@ def shift_and_sum(frames, drift, mode='full', shift_method='roll'):
 
     return summation.real
 
+def mb_kernel(drift, pixel_size_um, sr_factor=1):
+    # width of the final motion blur kernel with CCD pixel size
+    kernel_size = 11
+    (x,y) = (pixel_size_um * drift[0], pixel_size_um * drift[1])
+    N = int(np.ceil(np.max((abs(x),abs(y)))))
+
+    # set the shape of the initial kernel with 1 um pixels based on the estimated drift
+    kernel_um = np.zeros((2*N+1, 2*N+1))
+
+    # calculate the line representing the motion blur
+    rr, cc, val = line_aa(
+        N + np.round((y/2)).astype(int),
+        N - np.round((x/2)).astype(int),
+        N - np.round((y/2)).astype(int),
+        N + np.round((x/2)).astype(int),
+    )
+
+    # update the kernel with the calculated line
+    kernel_um[rr,cc] = val
+
+    # resize the initial 1 um kernel to the given pixel size
+    kernel = rescale(
+        size_equalizer(
+            kernel_um, [int(pixel_size_um*kernel_size)+(int(pixel_size_um*kernel_size)+1)%2]*2
+        ),
+        [sr_factor/pixel_size_um]*2,
+        anti_aliasing=True
+    )
+    return kernel, kernel_um
 
 def get_truth(sv, mode="full"):
     """Return ground truth for shift_and_sum

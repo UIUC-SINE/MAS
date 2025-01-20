@@ -98,6 +98,7 @@ class StrandVideo(object):
             max_count=20,
             noise_model=get_visors_noise(),
             wavelengths=np.array([30.4e-9]),
+            plane_offset=15e-3, # meters
             # CCD parameters
             frame_rate=4, # Hz
             ccd_size=np.array((750, 750)),
@@ -122,7 +123,8 @@ class StrandVideo(object):
             self.ps,
             sampling_interval=pixel_size / resolution_ratio,
             source_wavelengths=wavelengths,
-            measurement_wavelengths=wavelengths
+            measurement_wavelengths=wavelengths,
+            plane_offset=plane_offset
         )
 
         # load common high resolution scene from file

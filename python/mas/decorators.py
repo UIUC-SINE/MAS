@@ -65,7 +65,7 @@ def store_kwargs(func):
     Apply to any class __init__ to automatically store all kwargs inside the class
     https://stackoverflow.com/questions/1389180/automatically-initialize-instance-variables
     """
-    names, varargs, keywords, defaults = inspect.getargspec(func)
+    names, varargs, keywords, defaults,_,_,_ = inspect.getfullargspec(func)
 
     @wraps(func)
     def wrapper(self, *args, **kargs):
